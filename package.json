@@ -1,0 +1,25 @@
+{
+  "name": "dials_browser_rlv",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toastisme/dials_browser_rlv.git"
+  },
+  "author": "toastisme",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/toastisme/dials_browser_rlv/issues"
+  },
+  "homepage": "https://github.com/toastisme/dials_browser_rlv#readme",
+  "dependencies": {
+    "@ygoe/msgpack": "^1.0.3",
+    "gsap": "^3.12.1",
+    "three": "^0.153.0",
+    "three.meshline": "^1.4.0"
+  }
+}
