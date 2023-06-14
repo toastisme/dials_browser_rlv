@@ -47,7 +47,6 @@ class ReciprocalLatticeViewer{
 
 	}
 
-
 	static colors(){
 		return {
 			"background": 0x222222,
@@ -104,8 +103,10 @@ class ReciprocalLatticeViewer{
 		if (val !== null){
 			this.calculatedReflsCheckbox.checked = val;
 		}
-		this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
-		this.requestRender();
+		if (this.reflPointsCal.length > 0){
+			this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
+			this.requestRender();
+		}
 	}
 
 	updateAxes(val=null){
@@ -177,7 +178,13 @@ class ReciprocalLatticeViewer{
 			this.updateCalculatedReflections();
 		}
 		this.requestRender();
+	}
 
+	mapPointToGlobal(point, pOrigin, fa, sa, scaleFactor=[1,1]){
+		const pos = pOrigin.clone();
+		pos.add(fa.clone().normalize().multiplyScalar(point[0] * scaleFactor[0]));
+		pos.add(sa.clone().normalize().multiplyScalar(point[1] * scaleFactor[1]));
+		return pos;
 	}
 
 	hasExperiment(){
@@ -292,6 +299,10 @@ class ReciprocalLatticeViewer{
 
 	addReflections(){
 
+		function getRLV(s1, wavelength, unitS0){
+			return s1.clone().normalize().sub(unitS0.clone().normalize().multiplyScalar(1/wavelength)).multiplyScalar(1000);
+		}
+
 		if (!this.hasReflectionTable()){
 			console.warn("Tried to add reflections but no table has been loaded");
 			return;
@@ -308,10 +319,21 @@ class ReciprocalLatticeViewer{
 		const containsXYZObs = this.refl.containsXYZObs();
 		const containsXYZCal = this.refl.containsXYZCal();
 		const containsMillerIndices = this.refl.containsMillerIndices();
+		const containsWavelengths = this.refl.containsWavelengths();
+		const containsWavelengthsCal = this.refl.containsWavelengthsCal();
+		var wavelength = this.expt.getBeamData["wavelength"];
+		var wavelengthCal = this.expt.getBeamData["wavelength"];
+		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++){
 
 			const panelReflections = this.refl.getReflectionsForPanel(i);
+			const panelData = this.expt.getPanelDataByIdx(i);
+
+			const fa = panelData["fastAxis"];
+			const sa = panelData["slowAxis"];
+			const pOrigin = panelData["origin"];
+			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
 
 			for (var j = 0; j < panelReflections.length; j++){
 			
@@ -319,22 +341,39 @@ class ReciprocalLatticeViewer{
 
 					const xyzObs = panelReflections[j]["xyzObs"];
 
+					if (containsWavelengths){
+						wavelength = panelReflections[j]["wavelength"];
+					}
+					if (!wavelength){
+						continue;
+					}
+					const s1 = this.mapPointToGlobal(xyzObs, pOrigin, fa, sa, pxSize);
+					const rlv = getRLV(s1, wavelength, unitS0);
+
 					if (containsMillerIndices && panelReflections[j]["indexed"]){
-						positionsObsIndexed.push(xyzObs.x);
-						positionsObsIndexed.push(xyzObs.y);
-						positionsObsIndexed.push(xyzObs.z);
+						positionsObsIndexed.push(rlv.x);
+						positionsObsIndexed.push(rlv.y);
+						positionsObsIndexed.push(rlv.z);
 					}
 					else{
-						positionsObsUnindexed.push(xyzObs.x);
-						positionsObsUnindexed.push(xyzObs.y);
-						positionsObsUnindexed.push(xyzObs.z);
+						positionsObsUnindexed.push(rlv.x);
+						positionsObsUnindexed.push(rlv.y);
+						positionsObsUnindexed.push(rlv.z);
 					}
 				}
 				if (containsXYZCal){
 					const xyzCal = panelReflections[j]["xyzCal"];
-					positionsCal.push(xyzCal.x);
-					positionsCal.push(xyzCal.y);
-					positionsCal.push(xyzCal.z);
+					if (containsWavelengthsCal){
+						wavelengthCal = panelReflections[j]["wavelengthCal"];
+					}
+					if (!wavelengthCal){
+						continue;
+					}
+					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
+					const rlv = getRLV(s1, wavelengthCal, unitS0);
+					positionsCal.push(rlv.x);
+					positionsCal.push(rlv.y);
+					positionsCal.push(rlv.z);
 				}
 			}
 		}
@@ -652,6 +691,9 @@ class ReciprocalLatticeViewer{
 
 		function updateCrystalInfo(viewer){
 			if (viewer.sampleHidden()){
+				return;
+			}
+			if (viewer.expt.getCrystalSummary() === null){
 				return;
 			}
 			const intersects = window.rayCaster.intersectObjects([viewer.sampleMesh]);

@@ -46,18 +46,6 @@ export class ReflParser{
 		return true;
 	}
 
-	hasBboxData(){
-		if (!this.hasReflTable()){
-			return false;
-		}
-		for (var i in this.reflData){
-			if (!("bbox" in this.reflData[i][0])){
-				return false;
-			}
-		}
-		return true;
-	}
-
 	hasMillerIndicesData(){
 		if (!this.hasReflTable()){
 			return false;
@@ -139,25 +127,6 @@ export class ReflParser{
 		return arr;
 	}
 
-	getVec6Uint32Array(column_name){
-		const buffer = this.getColumnBuffer(column_name);
-		const arr = new Array(buffer.length/(6*4));
-		const dataView = new DataView(buffer.buffer);
-		let count = 0;
-		for (let i = 0; i < buffer.length; i+=24){
-			const vec = new Uint32Array(6);
-			vec[0] = dataView.getUint32(buffer.byteOffset + i, true);
-			vec[1] = dataView.getUint32(buffer.byteOffset + i+4, true);
-			vec[2] = dataView.getUint32(buffer.byteOffset + i+8, true);
-			vec[3] = dataView.getUint32(buffer.byteOffset + i+12, true);
-			vec[4] = dataView.getUint32(buffer.byteOffset + i+16, true);
-			vec[5] = dataView.getUint32(buffer.byteOffset + i+20, true);
-			arr[count] = vec;
-			count++;
-		}
-		return arr;
-	}
-
 	getVec3Int32Array(column_name){
 		const buffer = this.getColumnBuffer(column_name);
 		const arr = new Array(buffer.length/(3*4));
@@ -194,10 +163,6 @@ export class ReflParser{
 		return this.containsColumn("xyzcal.px");
 	}
 
-	getBoundingBoxes(){
-		return this.getVec6Uint32Array("bbox");
-	}
-
 	containsMillerIndices(){
 		return this.containsColumn("miller_index");
 	}
@@ -210,12 +175,30 @@ export class ReflParser{
 		return Math.pow(idx[0], 2) + Math.pow(idx[1], 2) + Math.pow(idx[2], 2) > 1e-3;
 	}
 
+	containsWavelengths(){
+		return this.containsColumn("wavelength");
+	}
+
+	getWavelengths(){
+		return this.getDoubleArray("wavelength");
+	}
+
+	containsWavelengthsCal(){
+		return this.containsColumn("wavelength_cal");
+	}
+
+	getWavelengthsCal(){
+		return this.getDoubleArray("wavelength_cal");
+	}
+
 	loadReflectionData(){
 		const panelNums = this.getPanelNumbers();
 		var xyzObs;
 		var xyzCal;
-		var bboxes;
 		var millerIndices;
+		var wavelengths;
+		var wavelengthsCal;
+
 		if (this.containsXYZObs()){
 			xyzObs = this.getXYZObs();
 		}
@@ -225,17 +208,20 @@ export class ReflParser{
 		if (this.containsMillerIndices()){
 			millerIndices = this.getMillerIndices();
 		}
-		bboxes = this.getBoundingBoxes();
+		if (this.containsWavelengths()){
+			wavelengths = this.getWavelengths();
+		}
+		if (this.containsWavelengthsCal()){
+			wavelengthsCal = this.getWavelengthsCal();
+		}
 
 		console.assert(xyzObs || xyzCal);
-		console.assert(bboxes);
 
 		var numUnindexed = 0;
 		var numIndexed = 0;
 		for (var i = 0; i < panelNums.length; i++){
 			const panel = panelNums[i];
 			const refl = {
-				"bbox" : bboxes[i],
 				"indexed" : false
 			};
 			if (xyzObs){
@@ -260,6 +246,12 @@ export class ReflParser{
 			else{
 				refl["id"] = numUnindexed;
 				numUnindexed++;
+			}
+			if (wavelengths){
+				refl["wavelength"] = wavelengths[i];
+			}
+			if (wavelengthsCal){
+				refl["wavelengthCal"] = wavelengthsCal[i];
 			}
 			if (panel in this.reflData){
 				this.reflData[panel].push(refl);
