@@ -40,6 +40,8 @@ class ReciprocalLatticeViewer{
 		this.reflectionInexedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]);
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
+		this.rlpScalFactor = 1000;
+
 		this.displayingTextFromHTMLEvent = false;
 
 		this.updateReflectionCheckboxStatus();
@@ -299,8 +301,9 @@ class ReciprocalLatticeViewer{
 
 	addReflections(){
 
-		function getRLV(s1, wavelength, unitS0){
-			return s1.clone().normalize().sub(unitS0.clone().normalize().multiplyScalar(1/wavelength)).multiplyScalar(1000);
+		function getRLP(s1, wavelength, unitS0, viewer){
+			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1/wavelength);
+			return rlp.multiplyScalar(viewer.rlpScalFactor);
 		}
 
 		if (!this.hasReflectionTable()){
@@ -348,17 +351,17 @@ class ReciprocalLatticeViewer{
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzObs, pOrigin, fa, sa, pxSize);
-					const rlv = getRLV(s1, wavelength, unitS0);
+					const rlp = getRLP(s1, wavelength, unitS0, this);
 
 					if (containsMillerIndices && panelReflections[j]["indexed"]){
-						positionsObsIndexed.push(rlv.x);
-						positionsObsIndexed.push(rlv.y);
-						positionsObsIndexed.push(rlv.z);
+						positionsObsIndexed.push(rlp.x);
+						positionsObsIndexed.push(rlp.y);
+						positionsObsIndexed.push(rlp.z);
 					}
 					else{
-						positionsObsUnindexed.push(rlv.x);
-						positionsObsUnindexed.push(rlv.y);
-						positionsObsUnindexed.push(rlv.z);
+						positionsObsUnindexed.push(rlp.x);
+						positionsObsUnindexed.push(rlp.y);
+						positionsObsUnindexed.push(rlp.z);
 					}
 				}
 				if (containsXYZCal){
@@ -370,10 +373,10 @@ class ReciprocalLatticeViewer{
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
-					const rlv = getRLV(s1, wavelengthCal, unitS0);
-					positionsCal.push(rlv.x);
-					positionsCal.push(rlv.y);
-					positionsCal.push(rlv.z);
+					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer);
+					positionsCal.push(rlp.x);
+					positionsCal.push(rlp.y);
+					positionsCal.push(rlp.z);
 				}
 			}
 		}
@@ -818,7 +821,7 @@ function setupScene(){
 	sidebar = window.document.getElementById("sidebar")
 
 	window.scene = new THREE.Scene()
-	window.scene.fog = new THREE.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 3000);
+	window.scene.fog = new THREE.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 8000);
 	window.camera = new THREE.PerspectiveCamera(
 		45,
 		window.innerWidth / window.innerHeight,
@@ -832,6 +835,7 @@ function setupScene(){
 	window.controls = new OrbitControls(window.camera, window.renderer.domElement);
 	window.controls.maxDistance = 3000;
 	window.controls.enablePan = false;
+	window.controls.rotateSpeed = 0.2;
 	window.controls.update();
 	window.controls.addEventListener("change", function(){window.viewer.requestRender();});
 
