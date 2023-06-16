@@ -99,6 +99,9 @@ export class ExptParser{
 	}
 
 	hasCrystal(){
+		if (this.exptJSON === null){
+			return false;
+		}
 		return this.exptJSON["crystal"].length > 0;
 	}
 
@@ -113,12 +116,9 @@ export class ExptParser{
 
 		const pi = Math.PI;
 
-		console.log("real", a, b, c)
 		const bxc = b.clone().cross(c);
 		const adot_bxc = 1/(a.clone().dot(bxc));
-		console.log("bxc", bxc, adot_bxc);
 		const aStar = bxc.clone().multiplyScalar(adot_bxc * 2 * pi); 
-		console.log("aStar", aStar);
 
 		const cxa = c.clone().cross(a);
 		const bStar = cxa.clone().multiplyScalar(adot_bxc * 2 * pi); 

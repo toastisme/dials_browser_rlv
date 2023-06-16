@@ -125,6 +125,7 @@ class ReciprocalLatticeViewer{
 	}
 
 	updateReciprocalCell(val=null){
+		this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal();
 		if (val !== null){
 			this.reciprocalCellCheckbox.checked = val;
 		}
@@ -213,6 +214,11 @@ class ReciprocalLatticeViewer{
 			this.beamMeshes[i].geometry.dispose();
 			this.beamMeshes[i].material.dispose();
 		}
+		for (var i = 0; i < this.reciprocalCellMeshes.length; i++){
+			window.scene.remove(this.reciprocalCellMeshes[i]);
+			this.reciprocalCellMeshes[i].geometry.dispose();
+			this.reciprocalCellMeshes[i].material.dispose();
+		}
 		this.beamMeshes = [];
 		if (this.sampleMesh){
 			window.scene.remove(this.sampleMesh);
@@ -225,6 +231,7 @@ class ReciprocalLatticeViewer{
 		this.hideCloseExptButton();
 
 		this.clearReflectionTable();
+		this.updateReciprocalCell(false);
 		this.requestRender();
 	}
 
@@ -235,13 +242,8 @@ class ReciprocalLatticeViewer{
 		console.assert(this.hasExperiment());
 		this.addBeam();
 		this.addSample();
-		if (this.expt.hasCrystal()){
-			this.addCrystalRLV();
-			this.reciprocalCellCheckbox.disabled = false;
-		}
-		else{
-			this.reciprocalCellCheckbox.disabled = true;
-		}
+		this.addCrystalRLV();
+		this.updateReciprocalCell();
 		this.setCameraToDefaultPositionWithExperiment();
 		this.showSidebar();
 		this.showCloseExptButton();
