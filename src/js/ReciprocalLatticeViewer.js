@@ -21,6 +21,7 @@ class ReciprocalLatticeViewer{
 		this.observedIndexedReflsCheckbox = document.getElementById("observedIndexedReflections");
 		this.observedUnindexedReflsCheckbox = document.getElementById("observedUnindexedReflections");
 		this.calculatedReflsCheckbox = document.getElementById("calculatedReflections");
+		this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
 		this.axesCheckbox = document.getElementById("showAxes");
 		this.reflectionSize = document.getElementById("reflectionSize");
 
@@ -34,13 +35,14 @@ class ReciprocalLatticeViewer{
 		this.beamMeshes = [];
 		this.axesMeshes = [];
 		this.sampleMesh = null;
+		this.reciprocalCellMeshes = [];
 
 		this.hightlightColor = new THREE.Color(ReciprocalLatticeViewer.colors()["highlight"]);
 		this.reflectionUnindexedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]);
 		this.reflectionInexedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]);
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
-		this.rlpScalFactor = 1000;
+		this.rlpScaleFactor = 1000;
 
 		this.displayingTextFromHTMLEvent = false;
 
@@ -58,7 +60,8 @@ class ReciprocalLatticeViewer{
 			"reflectionCal" : 0xffaaaa,
 			"highlight" : 0xFFFFFF,
 			"beam" : 0xFFFFFF,
-			"axes": [0xffaaaa, 0xaaffaa, 0xaaaaff]
+			"axes": [0xffaaaa, 0xaaffaa, 0xaaaaff],
+			"reciprocalCell": 0x119dff
 		};
 	}
 
@@ -117,6 +120,16 @@ class ReciprocalLatticeViewer{
 		}
 		for (var i = 0; i < this.axesMeshes.length; i++){
 			this.axesMeshes[i].visible = this.axesCheckbox.checked;
+		}
+		this.requestRender();
+	}
+
+	updateReciprocalCell(val=null){
+		if (val !== null){
+			this.reciprocalCellCheckbox.checked = val;
+		}
+		for (var i = 0; i < this.reciprocalCellMeshes.length; i++){
+			this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
 		}
 		this.requestRender();
 	}
@@ -222,6 +235,13 @@ class ReciprocalLatticeViewer{
 		console.assert(this.hasExperiment());
 		this.addBeam();
 		this.addSample();
+		if (this.expt.hasCrystal()){
+			this.addCrystalRLV();
+			this.reciprocalCellCheckbox.disabled = false;
+		}
+		else{
+			this.reciprocalCellCheckbox.disabled = true;
+		}
 		this.setCameraToDefaultPositionWithExperiment();
 		this.showSidebar();
 		this.showCloseExptButton();
@@ -303,7 +323,7 @@ class ReciprocalLatticeViewer{
 
 		function getRLP(s1, wavelength, unitS0, viewer){
 			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1/wavelength);
-			return rlp.multiplyScalar(viewer.rlpScalFactor);
+			return rlp.multiplyScalar(viewer.rlpScaleFactor);
 		}
 
 		if (!this.hasReflectionTable()){
@@ -480,7 +500,8 @@ class ReciprocalLatticeViewer{
 		}
 		this.observedUnindexedReflsCheckbox.disabled = !this.refl.hasXYZObsData();
 		this.observedIndexedReflsCheckbox.disabled = !this.refl.hasMillerIndicesData();
-		this.calculatedReflsCheckbox.disabled = !this.refl.hasXYZCalData();
+		this.reciprocalCellCheckbox.disabled = !this.refl.hasMillerIndicesData();
+		this.calculatedReflsCheckbox.disabled = !this.expt.hasCrystal();
 	}
 
 	addBeam(){
@@ -545,6 +566,54 @@ class ReciprocalLatticeViewer{
 		sphere.name = "sample";
 		this.sampleMesh = sphere;
 		window.scene.add(sphere);
+	}
+
+	addCrystalRLV(){
+
+		if (!this.expt.hasCrystal()){
+			return;
+		}
+
+		const crystalRLV = this.expt.getCrystalRLV();
+
+		const material = new MeshLineMaterial({
+			lineWidth: 5,
+			color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
+			transparent: true,
+			opacity: 0.5,
+			depthWrite: false
+		});
+
+		const a = crystalRLV[0].clone().multiplyScalar(100);
+		const b = crystalRLV[1].clone().multiplyScalar(100);
+		const c = crystalRLV[2].clone().multiplyScalar(100);
+		const origin = new THREE.Vector3(0, 0, 0);
+
+		const vertices = [
+			origin,
+			a,
+			a.clone().add(b),
+			b,
+			origin,
+
+			c,
+			c.clone().add(a),
+			a,
+			a.clone().add(b),
+			a.clone().add(b).add(c),
+			a.clone().add(c),
+			c,
+			b.clone().add(c),
+			a.clone().add(b).add(c),
+			b.clone().add(c),
+			b
+		];
+
+		const line = new MeshLine();
+		line.setPoints(vertices);
+		const Mesh = new THREE.Mesh(line, material);
+		viewer.reciprocalCellMeshes.push(Mesh);
+		window.scene.add(Mesh);
 	}
 
 	addAxes(){
@@ -891,6 +960,7 @@ function setupScene(){
 	});
 	window.viewer.addAxes();
 	window.viewer.updateAxes(false);
+	window.viewer.updateReciprocalCell(false);
 	window.viewer.setCameraToDefaultPosition();
 	window.viewer.requestRender();
 }

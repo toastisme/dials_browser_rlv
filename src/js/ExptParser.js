@@ -98,6 +98,36 @@ export class ExptParser{
 		return this.exptJSON["crystal"][0];
 	}
 
+	hasCrystal(){
+		return this.exptJSON["crystal"].length > 0;
+	}
+
+	getCrystalRLV(){
+		const crystalData = this.getCrystalData();
+		var a = crystalData["real_space_a"];
+		a = new THREE.Vector3(a[0], a[1], a[2]);
+		var b = crystalData["real_space_b"];
+		b = new THREE.Vector3(b[0], b[1], b[2]);
+		var c = crystalData["real_space_c"];
+		c = new THREE.Vector3(c[0], c[1], c[2]);
+
+		const pi = Math.PI;
+
+		console.log("real", a, b, c)
+		const bxc = b.clone().cross(c);
+		const adot_bxc = 1/(a.clone().dot(bxc));
+		console.log("bxc", bxc, adot_bxc);
+		const aStar = bxc.clone().multiplyScalar(adot_bxc * 2 * pi); 
+		console.log("aStar", aStar);
+
+		const cxa = c.clone().cross(a);
+		const bStar = cxa.clone().multiplyScalar(adot_bxc * 2 * pi); 
+
+		const axb = a.clone().cross(b);
+		const cStar = axb.clone().multiplyScalar(adot_bxc * 2 * pi);
+		return [aStar, bStar, cStar];
+	}
+
 	loadCrystalSummary(){
 		const crystalData = this.getCrystalData();
 		if (!crystalData){

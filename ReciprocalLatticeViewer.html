@@ -31,6 +31,8 @@
 		onclick="window.viewer.updateCalculatedReflections()", disabled=true>
 		<b>show axes:</b> <input type="checkbox" id="showAxes", 
 		checked=false, onclick="window.viewer.updateAxes()", disabled=false>
+		<span style="color: #119dff"><b>reciprocal cell:</b> </span><input type="checkbox" id="reciprocalCell", 
+		checked=false, onclick="window.viewer.updateReciprocalCell()", disabled=false>
 		<b>reflection size:</b>  <input type="range" min="1" max="50" value="10" 
 		class="slider" id="reflectionSize" 
 		onmouseup="window.viewer.updateReflectionSize()">
