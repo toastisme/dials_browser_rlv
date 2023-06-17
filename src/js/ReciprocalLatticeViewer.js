@@ -659,7 +659,7 @@ class ReciprocalLatticeViewer {
 
 		var context = canvas.getContext('2d');
 
-		context.font = 'Bold 24px Tahoma';
+		context.font = 'Bold 18px Tahoma';
 		context.fillStyle = color;
 		context.textAlign = 'center';
 		context.textBaseline = 'middle';
@@ -678,9 +678,7 @@ class ReciprocalLatticeViewer {
 
 		var sprite = new THREE.Sprite(material);
 		sprite.scale.set(1000, 500, 1); 
-		sprite.onBeforeRender = function (renderer) {
-		this.position.copy(pos);
-		};
+		sprite.position.copy(pos);
 
 		this.reciprocalCellMeshes.push(sprite);
 		window.scene.add(sprite);
