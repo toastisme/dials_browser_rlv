@@ -5,8 +5,8 @@ import { MeshLine, MeshLineMaterial, MeshLineRaycast } from 'three.meshline';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
 
-class ReciprocalLatticeViewer{
-	constructor(exptParser, reflParser){
+class ReciprocalLatticeViewer {
+	constructor(exptParser, reflParser) {
 
 		// Data parsers
 		this.expt = exptParser;
@@ -51,96 +51,96 @@ class ReciprocalLatticeViewer{
 
 	}
 
-	static colors(){
+	static colors() {
 		return {
 			"background": 0x222222,
-			"sample" : 0xfdf6e3,
-			"reflectionObsUnindexed" : 0xFFFFFF,
-			"reflectionObsIndexed" : 0xe74c3c,
-			"reflectionCal" : 0xffaaaa,
-			"highlight" : 0xFFFFFF,
-			"beam" : 0xFFFFFF,
+			"sample": 0xfdf6e3,
+			"reflectionObsUnindexed": 0xFFFFFF,
+			"reflectionObsIndexed": 0xe74c3c,
+			"reflectionCal": 0xffaaaa,
+			"highlight": 0xFFFFFF,
+			"beam": 0xFFFFFF,
 			"axes": [0xffaaaa, 0xaaffaa, 0xaaaaff],
 			"reciprocalCell": 0x119dff
 		};
 	}
 
-	static cameraPositions(){
+	static cameraPositions() {
 		return {
-			"default" : new THREE.Vector3(0, 0, -1000),
-			"defaultWithExperiment" : new THREE.Vector3(-1000, 0, 0),
-			"centre" : new THREE.Vector3(0, 0, 0)
+			"default": new THREE.Vector3(0, 0, -1000),
+			"defaultWithExperiment": new THREE.Vector3(-1000, 0, 0),
+			"centre": new THREE.Vector3(0, 0, 0)
 		};
 	}
 
-	static text(){
+	static text() {
 		return {
-			"default" : "To view an experiment, drag .expt and .refl files into the browser",
-			"defaultWithExpt" : null
+			"default": "To view an experiment, drag .expt and .refl files into the browser",
+			"defaultWithExpt": null
 		}
 	}
 
-	toggleSidebar(){
-		this.sidebar.style.display = this.sidebar.style.display  === 'block' ? 'none' : 'block';
+	toggleSidebar() {
+		this.sidebar.style.display = this.sidebar.style.display === 'block' ? 'none' : 'block';
 	}
-	
-	showSidebar(){
+
+	showSidebar() {
 		this.sidebar.style.display = 'block';
 	}
 
-	updateObservedIndexedReflections(val=null){
-		if (val !== null){
+	updateObservedIndexedReflections(val = null) {
+		if (val !== null) {
 			this.observedIndexedReflsCheckbox.checked = val;
 		}
 		this.reflPointsObsIndexed[0].visible = this.observedIndexedReflsCheckbox.checked;
 		this.requestRender();
 	}
 
-	updateObservedUnindexedReflections(val=null){
-		if (val !== null){
+	updateObservedUnindexedReflections(val = null) {
+		if (val !== null) {
 			this.observedUnindexedReflsCheckbox.checked = val;
 		}
 		this.reflPointsObsUnindexed[0].visible = this.observedUnindexedReflsCheckbox.checked;
 		this.requestRender();
 	}
 
-	updateCalculatedReflections(val=null){
-		if (val !== null){
+	updateCalculatedReflections(val = null) {
+		if (val !== null) {
 			this.calculatedReflsCheckbox.checked = val;
 		}
-		if (this.reflPointsCal.length > 0){
+		if (this.reflPointsCal.length > 0) {
 			this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
 			this.requestRender();
 		}
 	}
 
-	updateAxes(val=null){
-		if (val !== null){
+	updateAxes(val = null) {
+		if (val !== null) {
 			this.axesCheckbox.checked = val;
 		}
-		for (var i = 0; i < this.axesMeshes.length; i++){
+		for (var i = 0; i < this.axesMeshes.length; i++) {
 			this.axesMeshes[i].visible = this.axesCheckbox.checked;
 		}
 		this.requestRender();
 	}
 
-	updateReciprocalCell(val=null){
+	updateReciprocalCell(val = null) {
 		this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal();
-		if (val !== null){
+		if (val !== null) {
 			this.reciprocalCellCheckbox.checked = val;
 		}
-		for (var i = 0; i < this.reciprocalCellMeshes.length; i++){
+		for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
 			this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
 		}
 		this.requestRender();
 	}
 
-	updateReflectionSize(){
-		if (!this.hasReflectionTable()){
+	updateReflectionSize() {
+		if (!this.hasReflectionTable()) {
 			return;
 		}
-		if (this.refl.containsXYZObs()){
-			if (this.reflPointsObsUnindexed){
+		if (this.refl.containsXYZObs()) {
+			if (this.reflPointsObsUnindexed) {
 				const reflGeometryObs = new THREE.BufferGeometry();
 				reflGeometryObs.setAttribute(
 					"position", new THREE.Float32BufferAttribute(this.reflPositionsUnindexed, 3)
@@ -148,7 +148,7 @@ class ReciprocalLatticeViewer{
 
 				const reflMaterialObs = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
-					transparent:true,
+					transparent: true,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
 				});
 				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
@@ -157,7 +157,7 @@ class ReciprocalLatticeViewer{
 				this.reflPointsObsUnindexed = [pointsObs];
 				this.updateObservedUnindexedReflections();
 			}
-			if (this.reflPointsObsIndexed){
+			if (this.reflPointsObsIndexed) {
 				const reflGeometryObs = new THREE.BufferGeometry();
 				reflGeometryObs.setAttribute(
 					"position", new THREE.Float32BufferAttribute(this.reflPositionsIndexed, 3)
@@ -165,7 +165,7 @@ class ReciprocalLatticeViewer{
 
 				const reflMaterialObs = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
-					transparent:true,
+					transparent: true,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
 				});
 				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
@@ -176,7 +176,7 @@ class ReciprocalLatticeViewer{
 			}
 		}
 
-		if (this.refl.containsXYZCal() && this.reflPositionsCal){
+		if (this.refl.containsXYZCal() && this.reflPositionsCal) {
 			const reflGeometryCal = new THREE.BufferGeometry();
 			reflGeometryCal.setAttribute(
 				"position", new THREE.Float32BufferAttribute(this.reflPositionsCal, 3)
@@ -184,7 +184,7 @@ class ReciprocalLatticeViewer{
 
 			const reflMaterialCal = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
-				transparent:true,
+				transparent: true,
 				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
 			});
 			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
@@ -196,31 +196,31 @@ class ReciprocalLatticeViewer{
 		this.requestRender();
 	}
 
-	mapPointToGlobal(point, pOrigin, fa, sa, scaleFactor=[1,1]){
+	mapPointToGlobal(point, pOrigin, fa, sa, scaleFactor = [1, 1]) {
 		const pos = pOrigin.clone();
 		pos.add(fa.clone().normalize().multiplyScalar(point[0] * scaleFactor[0]));
 		pos.add(sa.clone().normalize().multiplyScalar(point[1] * scaleFactor[1]));
 		return pos;
 	}
 
-	hasExperiment(){
+	hasExperiment() {
 		return (this.expt.hasExptJSON());
 	}
 
-	clearExperiment(){
-		
-		for (var i = 0; i < this.beamMeshes.length; i++){
+	clearExperiment() {
+
+		for (var i = 0; i < this.beamMeshes.length; i++) {
 			window.scene.remove(this.beamMeshes[i]);
 			this.beamMeshes[i].geometry.dispose();
 			this.beamMeshes[i].material.dispose();
 		}
-		for (var i = 0; i < this.reciprocalCellMeshes.length; i++){
+		for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
 			window.scene.remove(this.reciprocalCellMeshes[i]);
 			this.reciprocalCellMeshes[i].geometry.dispose();
 			this.reciprocalCellMeshes[i].material.dispose();
 		}
 		this.beamMeshes = [];
-		if (this.sampleMesh){
+		if (this.sampleMesh) {
 			window.scene.remove(this.sampleMesh);
 			this.sampleMesh.geometry.dispose();
 			this.sampleMesh.material.dispose();
@@ -251,21 +251,21 @@ class ReciprocalLatticeViewer{
 
 	}
 
-	showCloseExptButton(){
+	showCloseExptButton() {
 		this.closeExptButton.style.display = "inline";
-		this.closeExptButton.innerHTML = "<b>"+this.expt.filename  + ' <i class="fa fa-trash"></i>' ;
+		this.closeExptButton.innerHTML = "<b>" + this.expt.filename + ' <i class="fa fa-trash"></i>';
 	}
 
-	hideCloseExptButton(){
+	hideCloseExptButton() {
 		this.closeExptButton.style.display = "none";
 	}
 
-	hasReflectionTable(){
+	hasReflectionTable() {
 		return (this.refl.hasReflTable());
 	}
 
-	clearReflPointsObsIndexed(){
-		for (var i = 0; i < this.reflPointsObsIndexed.length; i++){
+	clearReflPointsObsIndexed() {
+		for (var i = 0; i < this.reflPointsObsIndexed.length; i++) {
 			window.scene.remove(this.reflPointsObsIndexed[i]);
 			this.reflPointsObsIndexed[i].geometry.dispose();
 			this.reflPointsObsIndexed[i].material.dispose();
@@ -273,8 +273,8 @@ class ReciprocalLatticeViewer{
 		this.reflPointsObsIndexed = [];
 	}
 
-	clearReflPointsObsUnindexed(){
-		for (var i = 0; i < this.reflPointsObsUnindexed.length; i++){
+	clearReflPointsObsUnindexed() {
+		for (var i = 0; i < this.reflPointsObsUnindexed.length; i++) {
 			window.scene.remove(this.reflPointsObsUnindexed[i]);
 			this.reflPointsObsUnindexed[i].geometry.dispose();
 			this.reflPointsObsUnindexed[i].material.dispose();
@@ -282,8 +282,8 @@ class ReciprocalLatticeViewer{
 		this.reflPointsObsUnindexed = [];
 	}
 
-	clearReflPointsCal(){
-		for (var i = 0; i < this.reflPointsCal.length; i++){
+	clearReflPointsCal() {
+		for (var i = 0; i < this.reflPointsCal.length; i++) {
 			window.scene.remove(this.reflPointsCal[i]);
 			this.reflPointsCal[i].geometry.dispose();
 			this.reflPointsCal[i].material.dispose();
@@ -291,7 +291,7 @@ class ReciprocalLatticeViewer{
 		this.reflPointsCal = [];
 	}
 
-	clearReflectionTable(){
+	clearReflectionTable() {
 		this.clearReflPointsObsIndexed();
 		this.clearReflPointsObsUnindexed();
 		this.clearReflPointsCal();
@@ -302,12 +302,12 @@ class ReciprocalLatticeViewer{
 		this.requestRender();
 	}
 
-	showCloseReflButton(){
+	showCloseReflButton() {
 		this.closeReflButton.style.display = "inline";
-		this.closeReflButton.innerHTML = "<b>"+this.refl.filename  + ' <i class="fa fa-trash"></i>' ;
+		this.closeReflButton.innerHTML = "<b>" + this.refl.filename + ' <i class="fa fa-trash"></i>';
 	}
 
-	hideCloseReflButton(){
+	hideCloseReflButton() {
 		this.closeReflButton.style.display = "none";
 	}
 
@@ -315,24 +315,24 @@ class ReciprocalLatticeViewer{
 		this.clearReflectionTable();
 		await this.refl.parseReflectionTable(file);
 		this.addReflections();
-		if(this.hasReflectionTable()){
+		if (this.hasReflectionTable()) {
 			this.showCloseReflButton();
 		}
 		this.requestRender();
 	}
 
-	addReflections(){
+	addReflections() {
 
-		function getRLP(s1, wavelength, unitS0, viewer){
-			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1/wavelength);
+		function getRLP(s1, wavelength, unitS0, viewer) {
+			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
 			return rlp.multiplyScalar(viewer.rlpScaleFactor);
 		}
 
-		if (!this.hasReflectionTable()){
+		if (!this.hasReflectionTable()) {
 			console.warn("Tried to add reflections but no table has been loaded");
 			return;
 		}
-		if (!this.hasExperiment()){
+		if (!this.hasExperiment()) {
 			console.warn("Tried to add reflections but no experiment has been loaded");
 			this.clearReflectionTable();
 			return;
@@ -350,7 +350,7 @@ class ReciprocalLatticeViewer{
 		var wavelengthCal = this.expt.getBeamData["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 
-		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++){
+		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
 
 			const panelReflections = this.refl.getReflectionsForPanel(i);
 			const panelData = this.expt.getPanelDataByIdx(i);
@@ -360,38 +360,38 @@ class ReciprocalLatticeViewer{
 			const pOrigin = panelData["origin"];
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
 
-			for (var j = 0; j < panelReflections.length; j++){
-			
-				if (containsXYZObs){
+			for (var j = 0; j < panelReflections.length; j++) {
+
+				if (containsXYZObs) {
 
 					const xyzObs = panelReflections[j]["xyzObs"];
 
-					if (containsWavelengths){
+					if (containsWavelengths) {
 						wavelength = panelReflections[j]["wavelength"];
 					}
-					if (!wavelength){
+					if (!wavelength) {
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzObs, pOrigin, fa, sa, pxSize);
 					const rlp = getRLP(s1, wavelength, unitS0, this);
 
-					if (containsMillerIndices && panelReflections[j]["indexed"]){
+					if (containsMillerIndices && panelReflections[j]["indexed"]) {
 						positionsObsIndexed.push(rlp.x);
 						positionsObsIndexed.push(rlp.y);
 						positionsObsIndexed.push(rlp.z);
 					}
-					else{
+					else {
 						positionsObsUnindexed.push(rlp.x);
 						positionsObsUnindexed.push(rlp.y);
 						positionsObsUnindexed.push(rlp.z);
 					}
 				}
-				if (containsXYZCal){
+				if (containsXYZCal) {
 					const xyzCal = panelReflections[j]["xyzCal"];
-					if (containsWavelengthsCal){
+					if (containsWavelengthsCal) {
 						wavelengthCal = panelReflections[j]["wavelengthCal"];
 					}
-					if (!wavelengthCal){
+					if (!wavelengthCal) {
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
@@ -403,8 +403,8 @@ class ReciprocalLatticeViewer{
 			}
 		}
 
-		if (containsXYZObs){
-			if (containsMillerIndices){
+		if (containsXYZObs) {
+			if (containsMillerIndices) {
 
 				const reflGeometryObsIndexed = new THREE.BufferGeometry();
 				reflGeometryObsIndexed.setAttribute(
@@ -413,7 +413,7 @@ class ReciprocalLatticeViewer{
 
 				const reflMaterialObsIndexed = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
-					transparent:true,
+					transparent: true,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
 				});
 				const pointsObsIndexed = new THREE.Points(reflGeometryObsIndexed, reflMaterialObsIndexed);
@@ -429,7 +429,7 @@ class ReciprocalLatticeViewer{
 
 			const reflMaterialObsUnindexed = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
-				transparent:true,
+				transparent: true,
 				color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
 			});
 			const pointsObsUnindexed = new THREE.Points(reflGeometryObsUnindexed, reflMaterialObsUnindexed);
@@ -438,7 +438,7 @@ class ReciprocalLatticeViewer{
 			this.reflPositionsUnindexed = positionsObsUnindexed;
 		}
 
-		if (containsXYZCal){
+		if (containsXYZCal) {
 			const reflGeometryCal = new THREE.BufferGeometry();
 			reflGeometryCal.setAttribute(
 				"position", new THREE.Float32BufferAttribute(positionsCal, 3)
@@ -446,7 +446,7 @@ class ReciprocalLatticeViewer{
 
 			const reflMaterialCal = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
-				transparent:true,
+				transparent: true,
 				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
 			});
 			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
@@ -459,33 +459,33 @@ class ReciprocalLatticeViewer{
 		this.setDefaultReflectionsDisplay();
 	}
 
-	setDefaultReflectionsDisplay(){
+	setDefaultReflectionsDisplay() {
 
 		/**
 		 * If both observed and calculated reflections are available,
 		 * show observed by default.
 		 */
 
-		if (!this.hasReflectionTable()){
+		if (!this.hasReflectionTable()) {
 			this.observedIndexedReflsCheckbox.checked = false;
 			this.observedUnindexedReflsCheckbox.checked = false;
 			this.calculatedReflsCheckbox.checked = false;
 			return;
 		}
 
-		if (this.reflPointsObsIndexed.length > 0){
+		if (this.reflPointsObsIndexed.length > 0) {
 			this.updateObservedIndexedReflections(true);
 			this.observedIndexedReflsCheckbox.checked = true;
 			this.updateCalculatedReflections(false);
 			this.calculatedReflsCheckbox.checked = false;
 		}
-		if (this.reflPointsObsUnindexed.length > 0){
+		if (this.reflPointsObsUnindexed.length > 0) {
 			this.updateObservedUnindexedReflections(true);
 			this.observedUnindexedReflsCheckbox.checked = true;
 			this.updateCalculatedReflections(false);
 			this.calculatedReflsCheckbox.checked = false;
 		}
-		else if (this.reflPointsCal.length > 0){
+		else if (this.reflPointsCal.length > 0) {
 			this.showCalculatedReflections(true);
 			this.calculatedReflsCheckbox.checked = true;
 			this.observedIndexedReflsCheckbox.checked = false;
@@ -493,8 +493,8 @@ class ReciprocalLatticeViewer{
 		}
 	}
 
-	updateReflectionCheckboxStatus(){
-		if (!this.hasReflectionTable()){
+	updateReflectionCheckboxStatus() {
+		if (!this.hasReflectionTable()) {
 			this.observedIndexedReflsCheckbox.disabled = true;
 			this.observedUnindexedReflsCheckbox.disabled = true;
 			this.calculatedReflsCheckbox.disabled = true;
@@ -506,7 +506,7 @@ class ReciprocalLatticeViewer{
 		this.calculatedReflsCheckbox.disabled = !this.expt.hasCrystal();
 	}
 
-	addBeam(){
+	addBeam() {
 		var beamLength = 800.;
 		var bd = this.expt.getBeamDirection();;
 
@@ -515,13 +515,13 @@ class ReciprocalLatticeViewer{
 			new THREE.Vector3(bd.x * -beamLength, bd.y * -beamLength, bd.z * -beamLength)
 		);
 		incidentVertices.push(
-			new THREE.Vector3(bd.x * -beamLength*.5, bd.y * -beamLength*.5, bd.z * -beamLength*.5)
+			new THREE.Vector3(bd.x * -beamLength * .5, bd.y * -beamLength * .5, bd.z * -beamLength * .5)
 		);
-		incidentVertices.push(new THREE.Vector3(0,0,0));
+		incidentVertices.push(new THREE.Vector3(0, 0, 0));
 		const incidentLine = new MeshLine();
 		incidentLine.setPoints(incidentVertices);
 		const incidentMaterial = new MeshLineMaterial({
-			lineWidth:5,
+			lineWidth: 5,
 			color: ReciprocalLatticeViewer.colors()["beam"],
 			fog: true,
 			transparent: true,
@@ -534,9 +534,9 @@ class ReciprocalLatticeViewer{
 		window.scene.add(incidentMesh);
 
 		var outgoingVertices = []
-		outgoingVertices.push(new THREE.Vector3(0,0,0));
+		outgoingVertices.push(new THREE.Vector3(0, 0, 0));
 		outgoingVertices.push(
-			new THREE.Vector3(bd.x * beamLength*.5, bd.y * beamLength*.5, bd.z * beamLength*.5)
+			new THREE.Vector3(bd.x * beamLength * .5, bd.y * beamLength * .5, bd.z * beamLength * .5)
 		);
 		outgoingVertices.push(
 			new THREE.Vector3(bd.x * beamLength, bd.y * beamLength, bd.z * beamLength)
@@ -544,7 +544,7 @@ class ReciprocalLatticeViewer{
 		const outgoingLine = new MeshLine();
 		outgoingLine.setPoints(outgoingVertices);
 		const outgoingMaterial = new MeshLineMaterial({
-			lineWidth:5,
+			lineWidth: 5,
 			color: ReciprocalLatticeViewer.colors()["beam"],
 			transparent: true,
 			opacity: .25,
@@ -559,9 +559,9 @@ class ReciprocalLatticeViewer{
 
 	addSample() {
 		const sphereGeometry = new THREE.SphereGeometry(5);
-		const sphereMaterial = new THREE.MeshBasicMaterial({ 
-			color: ReciprocalLatticeViewer.colors()["sample"], 
-			transparent: true, 
+		const sphereMaterial = new THREE.MeshBasicMaterial({
+			color: ReciprocalLatticeViewer.colors()["sample"],
+			transparent: true,
 			depthWrite: false
 		});
 		const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
@@ -570,9 +570,9 @@ class ReciprocalLatticeViewer{
 		window.scene.add(sphere);
 	}
 
-	addCrystalRLV(){
+	addCrystalRLV() {
 
-		if (!this.expt.hasCrystal()){
+		if (!this.expt.hasCrystal()) {
 			return;
 		}
 
@@ -590,14 +590,16 @@ class ReciprocalLatticeViewer{
 		const b = crystalRLV[1].clone().multiplyScalar(100);
 		const c = crystalRLV[2].clone().multiplyScalar(100);
 		const origin = new THREE.Vector3(0, 0, 0);
+		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), "white");
+		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), "white");
+		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), "white");
 
-		const vertices = [
+		const cellVertices = [
 			origin,
 			a,
 			a.clone().add(b),
 			b,
 			origin,
-
 			c,
 			c.clone().add(a),
 			a,
@@ -608,18 +610,19 @@ class ReciprocalLatticeViewer{
 			b.clone().add(c),
 			a.clone().add(b).add(c),
 			b.clone().add(c),
-			b
+			b,
+			origin
 		];
 
 		const line = new MeshLine();
-		line.setPoints(vertices);
+		line.setPoints(cellVertices);
 		const Mesh = new THREE.Mesh(line, material);
 		viewer.reciprocalCellMeshes.push(Mesh);
 		window.scene.add(Mesh);
 	}
 
-	addAxes(){
-		function addAxis(viewer, vertices, color){
+	addAxes() {
+		function addAxis(viewer, vertices, color) {
 			const line = new MeshLine();
 			line.setPoints(vertices);
 			const Material = new MeshLineMaterial({
@@ -648,6 +651,43 @@ class ReciprocalLatticeViewer{
 		this.axesCheckbox.disabled = false;
 	}
 
+	addRLVLabel(text, pos, color){
+		var canvas = document.createElement('canvas');
+
+		canvas.width = 512;
+		canvas.height = 256;
+
+		var context = canvas.getContext('2d');
+
+		context.font = 'Bold 24px Tahoma';
+		context.fillStyle = color;
+		context.textAlign = 'center';
+		context.textBaseline = 'middle';
+
+		context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+		var texture = new THREE.CanvasTexture(canvas);
+
+		var material = new THREE.SpriteMaterial({
+		map: texture,
+		transparent: true,
+		alphaTest: 0.5,
+		depthWrite: false,
+		depthTest: false,
+		});
+
+		var sprite = new THREE.Sprite(material);
+		sprite.scale.set(1000, 500, 1); 
+		sprite.onBeforeRender = function (renderer) {
+		this.position.copy(pos);
+		};
+
+		this.reciprocalCellMeshes.push(sprite);
+		window.scene.add(sprite);
+		this.requestRender();
+
+	}
+
 	setCameraSmooth(position) {
 		this.rotateToPos(position);
 		window.controls.update();
@@ -657,7 +697,7 @@ class ReciprocalLatticeViewer{
 		this.setCameraSmooth(ReciprocalLatticeViewer.cameraPositions()["default"]);
 	}
 
-	setCameraToDefaultPositionWithExperiment(){
+	setCameraToDefaultPositionWithExperiment() {
 		this.setCameraSmooth(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
 	}
 
@@ -665,73 +705,73 @@ class ReciprocalLatticeViewer{
 		this.setCameraSmooth(ReciprocalLatticeViewer.cameraPositions()["centre"]);
 	}
 
-	displayHeaderText(text){
+	displayHeaderText(text) {
 		this.showHeaderText();
 		this.headerText.innerHTML = text;
 	}
 
-	appendHeaderText(text){
+	appendHeaderText(text) {
 		this.headerText.innerHTML += text;
 	}
 
-	hideHeaderText(){
+	hideHeaderText() {
 		this.headerText.style.display = "none";
 	}
 
-	showHeaderText(){
+	showHeaderText() {
 		this.headerText.style.display = "block";
 	}
 
-	displayFooterText(text){
+	displayFooterText(text) {
 		this.showFooterText();
 		this.footerText.textContent = text;
 	}
 
-	hideFooterText(){
+	hideFooterText() {
 		this.footerText.style.display = "none";
 	}
 
-	showFooterText(){
+	showFooterText() {
 		this.footerText.style.display = "block";
 	}
 
-	displayDefaultHeaderText(){
-		if (this.hasExperiment()){
+	displayDefaultHeaderText() {
+		if (this.hasExperiment()) {
 			this.hideHeaderText();
 		}
-		else{
+		else {
 			this.displayHeaderText(ReciprocalLatticeViewer.text()["default"]);
 		}
 	}
 
-	displayImageFilenames(){
+	displayImageFilenames() {
 		this.displayHeaderText(this.expt.imageFilenames);
 		this.displayingTextFromHTMLEvent = true;
 	}
 
-	displayNumberOfReflections(){
+	displayNumberOfReflections() {
 		this.displayHeaderText(this.refl.numReflections + " reflections");
 		this.displayingTextFromHTMLEvent = true;
 	}
 
-	stopDisplayingText(){
+	stopDisplayingText() {
 		this.displayingTextFromHTMLEvent = false;
 	}
 
 
-	highlightObject(obj){
+	highlightObject(obj) {
 		obj.material.color = new THREE.Color(ReciprocalLatticeViewer.colors()["highlight"]);
 	}
 
-	beamHidden(){
-		if (this.beamMeshes.length === 0){
+	beamHidden() {
+		if (this.beamMeshes.length === 0) {
 			return true;
 		}
 		return this.beamMeshes[0].material.opacity < 0.01;
 	}
 
-	sampleHidden(){
-		if (this.sampleMesh === null){
+	sampleHidden() {
+		if (this.sampleMesh === null) {
 			return true;
 		}
 		return this.sampleMesh.material.opacity < 0.01;
@@ -740,19 +780,19 @@ class ReciprocalLatticeViewer{
 
 	updateGUIInfo() {
 
-		function updateReflectionInfo(viewer){
+		function updateReflectionInfo(viewer) {
 			const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
 			window.rayCaster.setFromCamera(window.mousePosition, window.camera);
 			if (intersects.length > 0) {
-				for (var i = 0; i < intersects.length; i++){
-					const millerIdx = viewer.refl.getMillerIndexById(intersects[i].index); 
-					viewer.appendHeaderText(" (" + millerIdx+")");
+				for (var i = 0; i < intersects.length; i++) {
+					const millerIdx = viewer.refl.getMillerIndexById(intersects[i].index);
+					viewer.displayHeaderText(" (" + millerIdx + ")");
 				}
 			}
 		}
 
-		function updateBeamInfo(viewer){
-			if (viewer.beamHidden()){
+		function updateBeamInfo(viewer) {
+			if (viewer.beamHidden()) {
 				return;
 			}
 			const intersects = window.rayCaster.intersectObjects(viewer.beamMeshes);
@@ -763,11 +803,11 @@ class ReciprocalLatticeViewer{
 			}
 		}
 
-		function updateCrystalInfo(viewer){
-			if (viewer.sampleHidden()){
+		function updateCrystalInfo(viewer) {
+			if (viewer.sampleHidden()) {
 				return;
 			}
-			if (viewer.expt.getCrystalSummary() === null){
+			if (viewer.expt.getCrystalSummary() === null) {
 				return;
 			}
 			const intersects = window.rayCaster.intersectObjects([viewer.sampleMesh]);
@@ -779,45 +819,45 @@ class ReciprocalLatticeViewer{
 
 		}
 
-		if (this.displayingTextFromHTMLEvent){ return; }
+		if (this.displayingTextFromHTMLEvent) { return; }
 		this.displayDefaultHeaderText();
 		updateReflectionInfo(this);
 		updateBeamInfo(this);
 		updateCrystalInfo(this);
 	}
 
-	updateOriginObjectsOpacity(){
-		if (!this.hasExperiment()){
+	updateOriginObjectsOpacity() {
+		if (!this.hasExperiment()) {
 			return;
 		}
 		const minCameraDistance = 55000;
 		const maxCameraDistance = 1000000;
 		const cameraPos = window.camera.position;
 		const cameraDistance = Math.pow(cameraPos.x, 2) + Math.pow(cameraPos.y, 2) + Math.pow(cameraPos.z, 2);
-	 	var opacity = ((cameraDistance - minCameraDistance) / (maxCameraDistance - minCameraDistance));
+		var opacity = ((cameraDistance - minCameraDistance) / (maxCameraDistance - minCameraDistance));
 		opacity = Math.min(1., Math.max(opacity, 0.))
 		this.beamMeshes[0].material.opacity = opacity;
-		this.beamMeshes[1].material.opacity = opacity*.25;
+		this.beamMeshes[1].material.opacity = opacity * .25;
 		this.sampleMesh.material.opacity = opacity;
-		for (var i = 0; i < this.axesMeshes.length; i++){
+		for (var i = 0; i < this.axesMeshes.length; i++) {
 			this.axesMeshes[i].material.opacity = opacity * .5;
 		}
 	}
 
-	rotateToPos(pos){
-		gsap.to( window.camera.position, {
+	rotateToPos(pos) {
+		gsap.to(window.camera.position, {
 			duration: 1,
 			x: -pos.x,
 			y: -pos.y,
-			z: -pos.z, 
-			onUpdate: function() {
-				window.camera.lookAt( pos );
+			z: -pos.z,
+			onUpdate: function () {
+				window.camera.lookAt(pos);
 				window.viewer.requestRender();
 			}
-		} );
+		});
 	}
 
-	zoomInOnReflection(reflection, fitOffset=1.1){
+	zoomInOnReflection(reflection, fitOffset = 1.1) {
 
 		const size = new THREE.Vector3();
 		const center = new THREE.Vector3();
@@ -825,35 +865,35 @@ class ReciprocalLatticeViewer{
 
 		box.makeEmpty();
 		box.expandByObject(reflection);
-		
+
 		box.getSize(size);
 		box.getCenter(center);
-		
+
 		const maxSize = Math.max(size.x, size.y, size.z);
 		const fitHeightDistance = maxSize / (2 * Math.atan(Math.PI * window.camera.fov / 360));
 		const fitWidthDistance = fitHeightDistance / window.camera.aspect;
 		const distance = fitOffset * Math.max(fitHeightDistance, fitWidthDistance);
-		
+
 		const direction = center.clone()
 			.normalize()
 			.multiplyScalar(distance);
 
 		const target = center.clone().sub(direction);
-		gsap.to( window.camera.position, {
+		gsap.to(window.camera.position, {
 			duration: 1,
 			x: target.x,
 			y: target.y,
-			z: target.z, 
-			onUpdate: function() {
+			z: target.z,
+			onUpdate: function () {
 				window.camera.lookAt(target);
 				window.viewer.requestRender();
 			}
-		} );
+		});
 		window.controls.update();
 	}
 
 	animate() {
-		if (!this.renderRequested){
+		if (!this.renderRequested) {
 			return;
 		}
 		window.viewer.updateOriginObjectsOpacity();
@@ -863,8 +903,8 @@ class ReciprocalLatticeViewer{
 		this.renderRequested = false;
 	}
 
-	requestRender(){
-		if (typeof window !== "undefined" && !this.renderRequested){
+	requestRender() {
+		if (typeof window !== "undefined" && !this.renderRequested) {
 			this.renderRequested = true;
 			window.requestAnimationFrame(this.animate.bind(this));
 		}
@@ -872,14 +912,14 @@ class ReciprocalLatticeViewer{
 
 }
 
-function setupScene(){
+function setupScene() {
 
 	/**
 	 * Sets the renderer, camera, controls
 	 */
 
 
-	if (typeof window.viewer === "undefined"){ return;}
+	if (typeof window.viewer === "undefined") { return; }
 
 	// Renderer
 	window.renderer = new THREE.WebGLRenderer();
@@ -908,7 +948,7 @@ function setupScene(){
 	window.controls.enablePan = false;
 	window.controls.rotateSpeed = 0.2;
 	window.controls.update();
-	window.controls.addEventListener("change", function(){window.viewer.requestRender();});
+	window.controls.addEventListener("change", function () { window.viewer.requestRender(); });
 
 	// Events
 	window.mousePosition = new THREE.Vector2();
@@ -918,7 +958,7 @@ function setupScene(){
 		window.viewer.requestRender();
 	});
 
-	window.addEventListener("resize", function() {
+	window.addEventListener("resize", function () {
 		window.camera.aspect = window.innerWidth / window.innerHeight;
 		window.camera.updateProjectionMatrix();
 		window.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -933,30 +973,30 @@ function setupScene(){
 		event.preventDefault();
 	});
 
-	window.addEventListener('drop', function(event) {
+	window.addEventListener('drop', function (event) {
 
 		event.preventDefault();
 		event.stopPropagation();
 		const file = event.dataTransfer.files[0];
 		const fileExt = file.name.split(".").pop();
-		if (fileExt == "refl"){
+		if (fileExt == "refl") {
 			window.viewer.addReflectionTable(file);
 		}
-		else if (fileExt == "expt"){
+		else if (fileExt == "expt") {
 			window.viewer.addExperiment(file);
 		}
 	});
 
-	window.addEventListener('dblclick', function(event){
+	window.addEventListener('dblclick', function (event) {
 	});
 
-	window.addEventListener('mousedown', function(event){
-		if (event.button == 2) { 
+	window.addEventListener('mousedown', function (event) {
+		if (event.button == 2) {
 			window.viewer.rotateToPos(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
 		}
 	});
-	window.addEventListener('keydown', function(event){
-		if (event.key === "s"){
+	window.addEventListener('keydown', function (event) {
+		if (event.key === "s") {
 			window.viewer.toggleSidebar();
 		}
 	});
