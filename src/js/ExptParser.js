@@ -9,6 +9,7 @@ export class ExptParser{
 		this.filename = null;
 		this.imageFilenames = null;
 		this.crystalSummary = null;
+		this.goniometer = null;
 	}
 
 	hasExptJSON(){
@@ -47,6 +48,7 @@ export class ExptParser{
 					this.exptJSON = JSON.parse(reader.result);
 					this.loadPanelData();
 					this.loadCrystalSummary();
+					this.loadGoniometer();
 					this.filename = file.name;
 					this.imageFilenames = this.getImageFilenames();
 				}
@@ -92,6 +94,119 @@ export class ExptParser{
 			text += " wavelength: " + wavelength;
 		}
 		return text;
+	}
+
+	loadGoniometer(){
+
+		function isMultiAxesGoniometer(goniometerData){
+			const requiredFields = ["axes", "angles", "scan_axis"];
+			for (var i = 0; i < requiredFields.length; i++){
+				if (!(requiredFields[i] in goniometerData)){
+					return false;
+				}
+			}
+			return true;
+		}
+
+		function loadBasicGoniometer(goniometerData){
+			const fr = goniometerData["fixed_rotation"];
+			const sr = goniometerData["setting_rotation"];
+			const ra = goniometerData["rotation_axis"];
+			return  {
+				"fixedRotation" : new THREE.Matrix3(
+					fr[0], fr[1], fr[2],
+					fr[3], fr[4], fr[5],
+					fr[6], fr[7], fr[i]
+				),
+				"settingRotation": new THREE.Matrix3(
+					sr[0], sr[1], sr[2],
+					sr[3], sr[4], sr[5],
+					sr[6], sr[7], sr[i]
+				),
+				"rotationAxis" : new THREE.Vector3(
+					ra[0], ra[1], ra[2]
+				)
+			}
+		}
+
+		function loadMultiAxesGoniometer(goniometerData){
+
+			function axisAngleToMatrix(axis, angle) {
+
+				const axisNormalized = new THREE.Vector3(axis[0], axis[1], axis[2]).normalize();
+
+				const c = Math.cos(angle * Math.PI/180.);
+				const s = Math.sin(angle * Math.PI/180.);
+
+				const [x, y, z] = axisNormalized.toArray();
+
+				const m11 = c + (1 - c) * x * x;
+				const m12 = (1 - c) * x * y - s * z;
+				const m13 = (1 - c) * x * z + s * y;
+
+				const m21 = (1 - c) * x * y + s * z;
+				const m22 = c + (1 - c) * y * y;
+				const m23 = (1 - c) * y * z - s * x;
+
+				const m31 = (1 - c) * x * z - s * y;
+				const m32 = (1 - c) * y * z + s * x;
+				const m33 = c + (1 - c) * z * z;
+
+				return new THREE.Matrix3().set(
+					m11, m12, m13,
+					m21, m22, m23,
+					m31, m32, m33
+				);
+			}
+
+			const axes = goniometerData["axes"];
+			const angles = goniometerData["angles"];
+			const scanAxis = goniometerData["scan_axis"];
+
+			const rotationAxisRaw = axes[scanAxis];
+			const rotationAxis = new THREE.Vector3(
+				rotationAxisRaw[0],
+				rotationAxisRaw[1],
+				rotationAxisRaw[2]
+			);
+
+			const fixedRotation = new THREE.Matrix3(
+				1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0
+			);
+
+			const settingRotation = new THREE.Matrix3(
+				1.0, 0.0, 0.0,
+				0.0, 1.0, 0.0,
+				0.0, 0.0, 1.0
+			);
+
+			for (var i = 0; i < scanAxis; i++){
+				const R = axisAngleToMatrix(axes[i], angles[i]);
+				fixedRotation.multiplyMatrices(R, fixedRotation);
+				settingRotation.multiplyMatrices(R, settingRotation);
+			}
+
+			return {
+				"fixedRotation" : fixedRotation,
+				"settingRotation" : settingRotation,
+				"rotationAxis" : rotationAxis
+			};
+
+		}
+
+		const goniometerList = this.exptJSON["goniometer"];
+		if (!goniometerList || goniometerList.length === 0){
+			this.goniometer = null;
+			return;
+		}
+		const goniometerData = goniometerList[0];
+		if (isMultiAxesGoniometer(goniometerData)){
+			this.goniometer = loadMultiAxesGoniometer(goniometerData);
+			return;
+		}
+		this.goniometer = loadBasicGoniometer(goniometerData);
 	}
 
 	getCrystalData(){
