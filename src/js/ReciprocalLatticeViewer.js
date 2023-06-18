@@ -346,8 +346,8 @@ class ReciprocalLatticeViewer {
 		const containsMillerIndices = this.refl.containsMillerIndices();
 		const containsWavelengths = this.refl.containsWavelengths();
 		const containsWavelengthsCal = this.refl.containsWavelengthsCal();
-		var wavelength = this.expt.getBeamData["wavelength"];
-		var wavelengthCal = this.expt.getBeamData["wavelength"];
+		var wavelength = this.expt.getBeamData()["wavelength"];
+		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
