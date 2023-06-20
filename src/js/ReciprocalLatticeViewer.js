@@ -323,8 +323,18 @@ class ReciprocalLatticeViewer {
 
 	addReflections() {
 
-		function getRLP(s1, wavelength, unitS0, viewer) {
+		function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle) {
 			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
+			if (goniometer === null){
+				return rlp.multiplyScalar(viewer.rlpScaleFactor);
+			}
+			const fixedRotation = goniometer["fixedRotation"];
+			const settingRotation = goniometer["settingRotation"];
+			const rotationAxis = goniometer["rotationAxis"];
+
+			rlp.applyMatrix3(settingRotation.clone().invert());
+			rlp.applyAxisAngle(rotationAxis, -angle);
+			rlp.applyMatrix3(fixedRotation.clone().invert());
 			return rlp.multiplyScalar(viewer.rlpScaleFactor);
 		}
 
@@ -346,9 +356,12 @@ class ReciprocalLatticeViewer {
 		const containsMillerIndices = this.refl.containsMillerIndices();
 		const containsWavelengths = this.refl.containsWavelengths();
 		const containsWavelengthsCal = this.refl.containsWavelengthsCal();
+		const containsAngleObs = this.refl.containsRotationAnglesObs();
+		const containsAngleCal = this.refl.containsRotationAnglesCal();
 		var wavelength = this.expt.getBeamData()["wavelength"];
 		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
+		var goniometer = this.expt.goniometer;
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
 
@@ -373,7 +386,8 @@ class ReciprocalLatticeViewer {
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzObs, pOrigin, fa, sa, pxSize);
-					const rlp = getRLP(s1, wavelength, unitS0, this);
+					const angle = panelReflections[j]["angleObs"];
+					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle);
 
 					if (containsMillerIndices && panelReflections[j]["indexed"]) {
 						positionsObsIndexed.push(rlp.x);
@@ -395,7 +409,8 @@ class ReciprocalLatticeViewer {
 						continue;
 					}
 					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
-					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer);
+					const angle = panelReflections[j]["angleCal"];
+					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer, goniometer, angle);
 					positionsCal.push(rlp.x);
 					positionsCal.push(rlp.y);
 					positionsCal.push(rlp.z);

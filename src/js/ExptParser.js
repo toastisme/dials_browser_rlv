@@ -141,22 +141,22 @@ export class ExptParser{
 				const [x, y, z] = axisNormalized.toArray();
 
 				const m11 = c + (1 - c) * x * x;
-				const m12 = (1 - c) * x * y - s * z;
-				const m13 = (1 - c) * x * z + s * y;
+				const m12 = ((1 - c) * x * y) - (s * z);
+				const m13 = ((1 - c) * x * z) + (s * y);
 
-				const m21 = (1 - c) * x * y + s * z;
-				const m22 = c + (1 - c) * y * y;
-				const m23 = (1 - c) * y * z - s * x;
+				const m21 = ((1 - c) * x * y) + (s * z);
+				const m22 = c + ((1 - c) * y * y);
+				const m23 = ((1 - c) * y * z) - (s * x);
 
-				const m31 = (1 - c) * x * z - s * y;
-				const m32 = (1 - c) * y * z + s * x;
+				const m31 = ((1 - c) * x * z) - (s * y);
+				const m32 = ((1 - c) * y * z) + (s * x);
 				const m33 = c + (1 - c) * z * z;
 
 				return new THREE.Matrix3().set(
 					m11, m12, m13,
 					m21, m22, m23,
 					m31, m32, m33
-				);
+				).transpose();
 			}
 
 			const axes = goniometerData["axes"];
@@ -184,13 +184,16 @@ export class ExptParser{
 
 			for (var i = 0; i < scanAxis; i++){
 				const R = axisAngleToMatrix(axes[i], angles[i]);
-				fixedRotation.multiplyMatrices(R, fixedRotation);
-				settingRotation.multiplyMatrices(R, settingRotation);
+				fixedRotation.multiply(R);
+			}
+			for (var i = scanAxis + 1; i < axes.length; i++){
+				const R = axisAngleToMatrix(axes[i], angles[i]);
+				settingRotation.multiply(R);
 			}
 
 			return {
-				"fixedRotation" : fixedRotation,
-				"settingRotation" : settingRotation,
+				"fixedRotation" : fixedRotation.clone().multiply(fixedRotation),
+				"settingRotation" : settingRotation.clone().multiply(settingRotation),
 				"rotationAxis" : rotationAxis
 			};
 

@@ -155,6 +155,32 @@ export class ReflParser{
 		return this.containsColumn("xyzobs.px.value");
 	}
 
+	containsRotationAnglesObs(){
+		return this.containsColumn("xyzobs.mm.value");
+	}
+
+	getRotationAnglesObs(){
+		const column = this.getVec3DoubleArray("xyzobs.mm.value");
+		const angles = [];
+		for (var i = 0; i < column.length; i++){
+			angles.push(column[i][2]);
+		}
+		return angles;
+	}
+
+	containsRotationAnglesCal(){
+		return this.containsColumn("xyzcal.mm");
+	}
+
+	getRotationAnglesCal(){
+		const column = this.getVec3DoubleArray("xyzcal.mm");
+		const angles = [];
+		for (var i = 0; i < column.length; i++){
+			angles.push(column[i][2]);
+		}
+		return angles;
+	}
+
 	getXYZCal(){
 		return this.getVec3DoubleArray("xyzcal.px");
 	}
@@ -194,7 +220,9 @@ export class ReflParser{
 	loadReflectionData(){
 		const panelNums = this.getPanelNumbers();
 		var xyzObs;
+		var anglesObs;
 		var xyzCal;
+		var anglesCal;
 		var millerIndices;
 		var wavelengths;
 		var wavelengthsCal;
@@ -213,6 +241,12 @@ export class ReflParser{
 		}
 		if (this.containsWavelengthsCal()){
 			wavelengthsCal = this.getWavelengthsCal();
+		}
+		if (this.containsRotationAnglesObs()){
+			anglesObs = this.getRotationAnglesObs();
+		}
+		if (this.containsRotationAnglesCal()){
+			anglesCal = this.getRotationAnglesCal();
 		}
 
 		console.assert(xyzObs || xyzCal);
@@ -252,6 +286,12 @@ export class ReflParser{
 			}
 			if (wavelengthsCal){
 				refl["wavelengthCal"] = wavelengthsCal[i];
+			}
+			if (anglesObs){
+				refl["angleObs"] = anglesObs[i];
+			}
+			if (anglesCal){
+				refl["angleCal"] = anglesCal[i];
 			}
 			if (panel in this.reflData){
 				this.reflData[panel].push(refl);
