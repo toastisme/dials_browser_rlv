@@ -541,18 +541,13 @@ class ReciprocalLatticeViewer {
 			new THREE.Vector3(bd.x * -beamLength * .5, bd.y * -beamLength * .5, bd.z * -beamLength * .5)
 		);
 		incidentVertices.push(new THREE.Vector3(0, 0, 0));
-		const incidentLine = new MeshLine();
-		incidentLine.setPoints(incidentVertices);
-		const incidentMaterial = new MeshLineMaterial({
-			lineWidth: 5,
+		const incidentLine = new THREE.BufferGeometry().setFromPoints(incidentVertices);
+		const incidentMaterial = new THREE.LineBasicMaterial( { 
 			color: ReciprocalLatticeViewer.colors()["beam"],
 			fog: true,
-			transparent: true,
-			opacity: 0.,
-			depthWrite: false
-		});
-		const incidentMesh = new THREE.Mesh(incidentLine, incidentMaterial);
-		incidentMesh.raycast = MeshLineRaycast;
+			depthWrite: false 
+		} );
+		const incidentMesh = new THREE.Line(incidentLine, incidentMaterial);
 		this.beamMeshes.push(incidentMesh);
 		window.scene.add(incidentMesh);
 
@@ -564,24 +559,21 @@ class ReciprocalLatticeViewer {
 		outgoingVertices.push(
 			new THREE.Vector3(bd.x * beamLength, bd.y * beamLength, bd.z * beamLength)
 		);
-		const outgoingLine = new MeshLine();
-		outgoingLine.setPoints(outgoingVertices);
-		const outgoingMaterial = new MeshLineMaterial({
-			lineWidth: 5,
-			color: ReciprocalLatticeViewer.colors()["beam"],
-			transparent: true,
-			opacity: .25,
+		const outgoingLine = new THREE.BufferGeometry().setFromPoints(outgoingVertices);
+		const outgoingMaterial = new THREE.LineBasicMaterial( {
+			 color: ReciprocalLatticeViewer.colors()["beam"],
+			 transparent : true,
+			 opacity: .25,
 			fog: true,
 			depthWrite: false
-		});
-		const outgoingMesh = new THREE.Mesh(outgoingLine, outgoingMaterial);
-		outgoingMesh.raycast = MeshLineRaycast;
+		} );
+		const outgoingMesh = new THREE.Line(outgoingLine, outgoingMaterial);
 		this.beamMeshes.push(outgoingMesh);
 		window.scene.add(outgoingMesh);
 	}
 
 	addSample() {
-		const sphereGeometry = new THREE.SphereGeometry(5);
+		const sphereGeometry = new THREE.SphereGeometry(1);
 		const sphereMaterial = new THREE.MeshBasicMaterial({
 			color: ReciprocalLatticeViewer.colors()["sample"],
 			transparent: true,
@@ -866,24 +858,6 @@ class ReciprocalLatticeViewer {
 		updateCrystalInfo(this);
 	}
 
-	updateOriginObjectsOpacity() {
-		if (!this.hasExperiment()) {
-			return;
-		}
-		const minCameraDistance = 500;
-		const maxCameraDistance = 50000;
-		const cameraPos = window.camera.position;
-		const cameraDistance = Math.pow(cameraPos.x, 2) + Math.pow(cameraPos.y, 2) + Math.pow(cameraPos.z, 2);
-		var opacity = ((cameraDistance - minCameraDistance) / (maxCameraDistance - minCameraDistance));
-		opacity = Math.min(1., Math.max(opacity, 0.))
-		this.beamMeshes[0].material.opacity = opacity;
-		this.beamMeshes[1].material.opacity = opacity * .25;
-		this.sampleMesh.material.opacity = opacity;
-		for (var i = 0; i < this.axesMeshes.length; i++) {
-			this.axesMeshes[i].material.opacity = opacity * .5;
-		}
-	}
-
 	rotateToPos(pos) {
 		gsap.to(window.camera.position, {
 			duration: 1,
@@ -936,7 +910,6 @@ class ReciprocalLatticeViewer {
 		if (!this.renderRequested) {
 			return;
 		}
-		window.viewer.updateOriginObjectsOpacity();
 		window.viewer.updateGUIInfo();
 		window.controls.update();
 		window.renderer.render(window.scene, window.camera);
