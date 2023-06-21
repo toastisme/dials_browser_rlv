@@ -65,6 +65,14 @@ class ReciprocalLatticeViewer {
 		};
 	}
 
+	static sizes(){
+		return {
+			"minRLVLineWidth" : 1,
+			"maxRLVLineWidth" : 8,
+			"minRLVLabelSize" : 18,
+		};
+	}
+
 	static cameraPositions() {
 		return {
 			"default": new THREE.Vector3(0, 0, -1000),
@@ -587,27 +595,42 @@ class ReciprocalLatticeViewer {
 
 	addCrystalRLV() {
 
+		function getAvgRLVLength(crystalRLV){
+			const a = crystalRLV[0].length();
+			const b = crystalRLV[1].length();
+			const c = crystalRLV[2].length();
+			return (a+b+c)/3.;
+		}
+
 		if (!this.expt.hasCrystal()) {
 			return;
 		}
 
 		const crystalRLV = this.expt.getCrystalRLV();
 
+		const avgRLVLength = getAvgRLVLength(crystalRLV);
+		const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
+		const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
+		const lineWidth = Math.min(Math.max(avgRLVLength * 3, minLineWidth), maxLineWidth);
+
 		const material = new MeshLineMaterial({
-			lineWidth: 5,
+			lineWidth: lineWidth,
 			color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
 			transparent: true,
 			opacity: 0.5,
-			depthWrite: false
+			depthWrite: false,
+			sizeAttenuation: true
 		});
 
 		const a = crystalRLV[0].clone().multiplyScalar(100);
 		const b = crystalRLV[1].clone().multiplyScalar(100);
 		const c = crystalRLV[2].clone().multiplyScalar(100);
 		const origin = new THREE.Vector3(0, 0, 0);
-		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), "white");
-		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), "white");
-		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), "white");
+
+		const labelScaleFactor = Math.max(avgRLVLength, 1);
+		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), "white", labelScaleFactor);
+		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), "white", labelScaleFactor);
+		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), "white", labelScaleFactor);
 
 		const cellVertices = [
 			origin,
@@ -666,18 +689,20 @@ class ReciprocalLatticeViewer {
 		this.axesCheckbox.disabled = false;
 	}
 
-	addRLVLabel(text, pos, color){
+	addRLVLabel(text, pos, color, scaleFactor){
 		var canvas = document.createElement('canvas');
 
-		canvas.width = 512;
-		canvas.height = 256;
+		canvas.width = 256;
+		canvas.height = 128;
+		var fontSize = ReciprocalLatticeViewer.sizes()["minRLVLabelSize"];
+		fontSize *= scaleFactor;
 
-		var context = canvas.getContext('2d');
+		var context = canvas.getContext("2d");
 
-		context.font = 'Bold 18px Tahoma';
+		context.font = "Bold " + fontSize.toString() + "px Tahoma";
 		context.fillStyle = color;
-		context.textAlign = 'center';
-		context.textBaseline = 'middle';
+		context.textAlign = "center";
+		context.textBaseline = "middle";
 
 		context.fillText(text, canvas.width / 2, canvas.height / 2);
 
@@ -689,10 +714,11 @@ class ReciprocalLatticeViewer {
 		alphaTest: 0.5,
 		depthWrite: false,
 		depthTest: false,
+		sizeAttenuation: true
 		});
 
 		var sprite = new THREE.Sprite(material);
-		sprite.scale.set(1000, 500, 1); 
+		sprite.scale.set(100 * scaleFactor, 50 * scaleFactor, 1); 
 		sprite.position.copy(pos);
 
 		this.reciprocalCellMeshes.push(sprite);
