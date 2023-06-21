@@ -869,8 +869,8 @@ class ReciprocalLatticeViewer {
 		if (!this.hasExperiment()) {
 			return;
 		}
-		const minCameraDistance = 55000;
-		const maxCameraDistance = 1000000;
+		const minCameraDistance = 500;
+		const maxCameraDistance = 50000;
 		const cameraPos = window.camera.position;
 		const cameraDistance = Math.pow(cameraPos.x, 2) + Math.pow(cameraPos.y, 2) + Math.pow(cameraPos.z, 2);
 		var opacity = ((cameraDistance - minCameraDistance) / (maxCameraDistance - minCameraDistance));
@@ -966,7 +966,6 @@ function setupScene() {
 	window.renderer.setSize(window.innerWidth, window.innerHeight);
 	document.body.appendChild(window.renderer.domElement);
 
-	// Two elements used to write text to the screen
 	headerText = window.document.getElementById("headerText")
 	sidebar = window.document.getElementById("sidebar")
 
@@ -975,7 +974,7 @@ function setupScene() {
 	window.camera = new THREE.PerspectiveCamera(
 		45,
 		window.innerWidth / window.innerHeight,
-		100,
+		0.01,
 		10000
 	);
 	window.renderer.render(window.scene, window.camera);

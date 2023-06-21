@@ -235,14 +235,10 @@ export class ExptParser{
 		const pi = Math.PI;
 
 		const bxc = b.clone().cross(c);
-		const adot_bxc = 1/(a.clone().dot(bxc));
-		const aStar = bxc.clone().multiplyScalar(adot_bxc * 2 * pi); 
-
-		const cxa = c.clone().cross(a);
-		const bStar = cxa.clone().multiplyScalar(adot_bxc * 2 * pi); 
-
-		const axb = a.clone().cross(b);
-		const cStar = axb.clone().multiplyScalar(adot_bxc * 2 * pi);
+		const V = (2*pi)/a.clone().dot(bxc);
+		const aStar = bxc.clone().multiplyScalar(V); 
+		const bStar = c.clone().cross(a).multiplyScalar(V); 
+		const cStar = a.clone().cross(b).multiplyScalar(V);
 		return [aStar, bStar, cStar];
 	}
 
