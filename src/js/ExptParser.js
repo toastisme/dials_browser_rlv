@@ -87,11 +87,12 @@ export class ExptParser{
 
 	getBeamSummary(){
 		const beamData = this.getBeamData();
-		const direction = beamData["direction"];
+		var direction = beamData["direction"];
+		direction = [direction[0].toFixed(3), direction[1].toFixed(3), direction[2].toFixed(3)];
 		const wavelength = beamData["wavelength"];
 		var text = "direction: (" + direction + "), ";
 		if (wavelength){
-			text += " wavelength: " + wavelength;
+			text += " wavelength: " + wavelength.toFixed(3);
 		}
 		return text;
 	}
