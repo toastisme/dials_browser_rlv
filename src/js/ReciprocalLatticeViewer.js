@@ -531,7 +531,7 @@ class ReciprocalLatticeViewer {
 
 	addBeam() {
 		var beamLength = 800.;
-		var bd = this.expt.getBeamDirection();;
+		var bd = this.expt.getBeamDirection();
 
 		var incidentVertices = []
 		incidentVertices.push(
@@ -820,6 +820,7 @@ class ReciprocalLatticeViewer {
 	updateGUIInfo() {
 
 		function updateReflectionInfo(viewer) {
+			if (!viewer.observedIndexedReflsCheckbox.checked){return;}
 			const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
 			window.rayCaster.setFromCamera(window.mousePosition, window.camera);
 			if (intersects.length > 0) {
