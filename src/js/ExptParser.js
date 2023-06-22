@@ -225,6 +225,91 @@ export class ExptParser{
 	}
 
 	getCrystalRLV(){
+
+		function latticeParameters(a, b, c) {
+			const aLength = a.length();
+			const bLength = b.length();
+			const cLength = c.length();
+			const alpha = Math.acos(b.dot(c) / (bLength * cLength));
+			const beta = Math.acos(a.dot(c) / (aLength * cLength));
+			const gamma = Math.acos(a.dot(b) / (aLength * bLength));
+			return [aLength, bLength, cLength, alpha, beta, gamma];
+		}
+
+		function unitCellVolume(a, b, c, alpha, beta, gamma) {
+
+			const cosAlphaSq = Math.cos(alpha) ** 2;
+			const cosBetaSq = Math.cos(beta) ** 2;
+			const cosGammaSq = Math.cos(gamma) ** 2;
+			const cosAlpha = Math.cos(alpha);
+			const cosBeta = Math.cos(beta);
+			const cosGamma = Math.cos(gamma);
+
+			const volume =
+				a * b * c *
+				Math.sqrt(
+				1 -
+					cosAlphaSq -
+					cosBetaSq -
+					cosGammaSq +
+					2 * cosAlpha * cosBeta * cosGamma
+				);
+
+			return volume;
+		}
+
+		function reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V){
+			const rlcs = new Array(6);
+			rlcs[0] = b * c * Math.sin(alpha) / V;
+			rlcs[1] = c * a * Math.sin(beta) / V;
+			rlcs[2] = a * b * Math.sin(gamma) / V;
+
+			rlcs[3] = Math.cos(beta) * Math.cos(gamma) - Math.cos(alpha);
+			rlcs[3] /= Math.sin(beta) * Math.sin(gamma);
+
+			rlcs[4] = Math.cos(gamma) * Math.cos(alpha) - Math.cos(beta);
+			rlcs[4] /= Math.sin(gamma) * Math.sin(alpha);
+
+			rlcs[5] = Math.cos(alpha) * Math.cos(beta) - Math.cos(gamma);
+			rlcs[5] /= Math.sin(alpha) * Math.sin(beta);
+
+			return rlcs;
+		}
+
+		function fractionalRLVs(aVec, bVec, cVec){
+			const [a, b, c, alpha, beta, gamma] = latticeParameters(aVec, bVec, cVec);
+			const V = unitCellVolume(a, b, c, alpha, beta, gamma);
+			const rlcs = reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V);
+			const rAlpha = Math.sqrt(1 - rlcs[3] * rlcs[3]);
+
+			console.log("lattice params ", a, b, c, alpha, beta, gamma);
+			console.log("volume ", V);
+			console.log("rlcs ", rlcs);
+			console.log("rAlpha ", rAlpha);
+			const fcs = new Array(9);
+
+			fcs[0] = 1./a;
+			fcs[1] = -Math.cos(gamma) / (Math.sin(gamma) * a);
+
+			fcs[2] = -(
+				Math.cos(gamma) * Math.sin(beta) * rlcs[3] + Math.cos(beta) * Math.sin(gamma)
+				);
+			fcs[2] /= Math.sin(beta) * rAlpha * Math.sin(gamma) * a;
+
+			fcs[3] = 0.;
+			fcs[4] = 1. / (Math.sin(gamma) * b);
+			fcs[5] = rlcs[3] / (rAlpha * Math.sin(gamma) * b);
+			fcs[6] = 0.;
+			fcs[7] = 0.;
+			fcs[8] = 1. / (Math.sin(beta) * rAlpha * c);
+
+			return [
+				new THREE.Vector3(fcs[0], fcs[1], fcs[2]),
+				new THREE.Vector3(fcs[3], fcs[4], fcs[5]),
+				new THREE.Vector3(fcs[6], fcs[7], fcs[8]),
+			]
+		}
+
 		const crystalData = this.getCrystalData();
 		var a = crystalData["real_space_a"];
 		a = new THREE.Vector3(a[0], a[1], a[2]);
@@ -233,14 +318,8 @@ export class ExptParser{
 		var c = crystalData["real_space_c"];
 		c = new THREE.Vector3(c[0], c[1], c[2]);
 
-		const pi = Math.PI;
+		return fractionalRLVs(a, b, c);
 
-		const bxc = b.clone().cross(c);
-		const V = (2*pi)/a.clone().dot(bxc);
-		const aStar = bxc.clone().multiplyScalar(V); 
-		const bStar = c.clone().cross(a).multiplyScalar(V); 
-		const cStar = a.clone().cross(b).multiplyScalar(V);
-		return [aStar, bStar, cStar];
 	}
 
 	loadCrystalSummary(){
@@ -293,13 +372,19 @@ export class ExptParser{
 		var fa = new THREE.Vector3(panelData["fast_axis"][0], panelData["fast_axis"][1], panelData["fast_axis"][2]).multiplyScalar(panelSize.x);
 		var sa = new THREE.Vector3(panelData["slow_axis"][0], panelData["slow_axis"][1], panelData["slow_axis"][2]).multiplyScalar(panelSize.y);
 		var o = new THREE.Vector3(panelData["origin"][0], panelData["origin"][1], panelData["origin"][2]);
+		var dMatrix = new THREE.Matrix3(
+			panelData["fast_axis"][0], panelData["slow_axis"][0], o.x,
+			panelData["fast_axis"][1], panelData["slow_axis"][1], o.y,
+			panelData["fast_axis"][2], panelData["slow_axis"][2], o.z
+		);
 		return {
 			"panelSize" : panelSize,
 			"pxSize" : pxSize,
 			"pxs" : pxs,
 			"fastAxis" : fa,
 			"slowAxis" : sa,
-			"origin" : o
+			"origin" : o,
+			"dMatrix" : dMatrix
 		}
 
 	}
