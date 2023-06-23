@@ -276,16 +276,12 @@ export class ExptParser{
 			return rlcs;
 		}
 
-		function fractionalRLVs(aVec, bVec, cVec){
+		function getBMatrix(aVec, bVec, cVec){
 			const [a, b, c, alpha, beta, gamma] = latticeParameters(aVec, bVec, cVec);
 			const V = unitCellVolume(a, b, c, alpha, beta, gamma);
 			const rlcs = reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V);
 			const rAlpha = Math.sqrt(1 - rlcs[3] * rlcs[3]);
 
-			console.log("lattice params ", a, b, c, alpha, beta, gamma);
-			console.log("volume ", V);
-			console.log("rlcs ", rlcs);
-			console.log("rAlpha ", rAlpha);
 			const fcs = new Array(9);
 
 			fcs[0] = 1./a;
@@ -318,7 +314,21 @@ export class ExptParser{
 		var c = crystalData["real_space_c"];
 		c = new THREE.Vector3(c[0], c[1], c[2]);
 
-		return fractionalRLVs(a, b, c);
+		const UB = new THREE.Matrix3(
+			a.x, a.y, a.z,
+			b.x, b.y, b.z,
+			c.x, c.y, c.z,
+		);
+
+
+		UB.invert();
+		const UBArr = UB.elements;
+
+		return [
+			new THREE.Vector3(UBArr[0], UBArr[1], UBArr[2]),
+			new THREE.Vector3(UBArr[3], UBArr[4], UBArr[5]),
+			new THREE.Vector3(UBArr[6], UBArr[7], UBArr[8]),
+		]
 
 	}
 
@@ -359,6 +369,10 @@ export class ExptParser{
 		return data;
 	}
 
+	getDetectorOrientationData(){
+		return this.exptJSON["detector"][0]["hierarchy"]
+	}
+
 	getPanelDataByIdx(idx){
 
 		/**
@@ -372,11 +386,50 @@ export class ExptParser{
 		var fa = new THREE.Vector3(panelData["fast_axis"][0], panelData["fast_axis"][1], panelData["fast_axis"][2]).multiplyScalar(panelSize.x);
 		var sa = new THREE.Vector3(panelData["slow_axis"][0], panelData["slow_axis"][1], panelData["slow_axis"][2]).multiplyScalar(panelSize.y);
 		var o = new THREE.Vector3(panelData["origin"][0], panelData["origin"][1], panelData["origin"][2]);
-		var dMatrix = new THREE.Matrix3(
+
+		var detectorData = this.getDetectorOrientationData();
+
+		var localDMatrix = new THREE.Matrix3(
 			panelData["fast_axis"][0], panelData["slow_axis"][0], o.x,
 			panelData["fast_axis"][1], panelData["slow_axis"][1], o.y,
 			panelData["fast_axis"][2], panelData["slow_axis"][2], o.z
 		);
+
+		var detectorFa = new THREE.Vector3(
+			detectorData["fast_axis"][0],
+			detectorData["fast_axis"][1],
+			detectorData["fast_axis"][2],
+		);
+		var detectorSa = new THREE.Vector3(
+			detectorData["slow_axis"][0],
+			detectorData["slow_axis"][1],
+			detectorData["slow_axis"][2],
+		);
+		var detectorNormal = detectorFa.clone().cross(detectorSa);
+
+		var parentOrientation = new THREE.Matrix3(
+			detectorData["fast_axis"][0], detectorData["slow_axis"][0], detectorNormal.x,
+			detectorData["fast_axis"][1], detectorData["slow_axis"][1], detectorNormal.y,
+			detectorData["fast_axis"][2], detectorData["slow_axis"][2], detectorNormal.z
+		);
+
+		var parentOrigin = new THREE.Vector3(
+			detectorData["origin"][0],
+			detectorData["origin"][1],
+			detectorData["origin"][2],
+		)
+
+
+		var dMatrixOffset = parentOrientation.clone().multiply(localDMatrix);
+		var elems = dMatrixOffset.elements;
+		elems[6] += parentOrigin.x;
+		elems[7] += parentOrigin.y;
+		elems[8] += parentOrigin.z;
+		var dMatrix = new THREE.Matrix3().fromArray(
+			elems
+		)
+
+
 		return {
 			"panelSize" : panelSize,
 			"pxSize" : pxSize,

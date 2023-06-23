@@ -211,6 +211,12 @@ class ReciprocalLatticeViewer {
 		return pos;
 	}
 
+	getS1(point, dMatrix, scaleFactor = [1, 1]){
+		const point3 = new THREE.Vector3(point[0] * scaleFactor[0], point[1] * scaleFactor[1], 1.0);
+		point3.applyMatrix3(dMatrix);
+		return point3;
+	}
+
 	hasExperiment() {
 		return (this.expt.hasExptJSON());
 	}
@@ -380,6 +386,7 @@ class ReciprocalLatticeViewer {
 			const sa = panelData["slowAxis"];
 			const pOrigin = panelData["origin"];
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
+			const dMatrix = panelData["dMatrix"];
 
 			for (var j = 0; j < panelReflections.length; j++) {
 
@@ -393,7 +400,7 @@ class ReciprocalLatticeViewer {
 					if (!wavelength) {
 						continue;
 					}
-					const s1 = this.mapPointToGlobal(xyzObs, pOrigin, fa, sa, pxSize);
+					const s1 = this.getS1(xyzObs, dMatrix, pxSize);
 					const angle = panelReflections[j]["angleObs"];
 					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle);
 
@@ -614,9 +621,10 @@ class ReciprocalLatticeViewer {
 			sizeAttenuation: true
 		});
 
-		const a = crystalRLV[0].clone().multiplyScalar(100);
-		const b = crystalRLV[1].clone().multiplyScalar(100);
-		const c = crystalRLV[2].clone().multiplyScalar(100);
+		const a = crystalRLV[0].clone().multiplyScalar(this.rlpScaleFactor);
+		const b = crystalRLV[1].clone().multiplyScalar(this.rlpScaleFactor);
+		const c = crystalRLV[2].clone().multiplyScalar(this.rlpScaleFactor);
+
 		const origin = new THREE.Vector3(0, 0, 0);
 
 		const labelScaleFactor = Math.max(avgRLVLength, 1);
