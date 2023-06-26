@@ -10,6 +10,7 @@ export class ExptParser{
 		this.imageFilenames = null;
 		this.crystalSummary = null;
 		this.goniometer = null;
+		this.crystal = null;
 	}
 
 	hasExptJSON(){
@@ -31,6 +32,7 @@ export class ExptParser{
 		this.filename = null;
 		this.imageFilenames = null;
 		this.crystalSummary = null;
+		this.goniometer = null;
 	}
 
 	parseExperiment = (file) => {
@@ -49,6 +51,7 @@ export class ExptParser{
 					this.loadPanelData();
 					this.loadCrystalSummary();
 					this.loadGoniometer();
+					this.loadCrystal();
 					this.filename = file.name;
 					this.imageFilenames = this.getImageFilenames();
 				}
@@ -171,7 +174,7 @@ export class ExptParser{
 				rotationAxisRaw[2]
 			);
 
-			const fixedRotation = new THREE.Matrix3(
+			var fixedRotation = new THREE.Matrix3(
 				1.0, 0.0, 0.0,
 				0.0, 1.0, 0.0,
 				0.0, 0.0, 1.0
@@ -185,7 +188,7 @@ export class ExptParser{
 
 			for (var i = 0; i < scanAxis; i++){
 				const R = axisAngleToMatrix(axes[i], angles[i]);
-				fixedRotation.multiply(R);
+				fixedRotation = fixedRotation.clone().multiply(R);
 			}
 			for (var i = scanAxis + 1; i < axes.length; i++){
 				const R = axisAngleToMatrix(axes[i], angles[i]);
@@ -193,8 +196,8 @@ export class ExptParser{
 			}
 
 			return {
-				"fixedRotation" : fixedRotation.clone().multiply(fixedRotation),
-				"settingRotation" : settingRotation.clone().multiply(settingRotation),
+				"fixedRotation" : fixedRotation,
+				"settingRotation" : settingRotation,
 				"rotationAxis" : rotationAxis
 			};
 
@@ -221,10 +224,10 @@ export class ExptParser{
 		if (this.exptJSON === null){
 			return false;
 		}
-		return this.exptJSON["crystal"].length > 0;
+		return this.crystal !== null;
 	}
 
-	getCrystalRLV(){
+	loadCrystal(){
 
 		function latticeParameters(a, b, c) {
 			const aLength = a.length();
@@ -299,14 +302,18 @@ export class ExptParser{
 			fcs[7] = 0.;
 			fcs[8] = 1. / (Math.sin(beta) * rAlpha * c);
 
-			return [
-				new THREE.Vector3(fcs[0], fcs[1], fcs[2]),
-				new THREE.Vector3(fcs[3], fcs[4], fcs[5]),
-				new THREE.Vector3(fcs[6], fcs[7], fcs[8]),
-			]
+			return new THREE.Matrix3(
+				fcs[0], fcs[1], fcs[2],
+				fcs[3], fcs[4], fcs[5],
+				fcs[6], fcs[7], fcs[8],
+			);
 		}
 
 		const crystalData = this.getCrystalData();
+		if (!crystalData){
+			this.crystalSummary = null;
+			return;
+		}
 		var a = crystalData["real_space_a"];
 		a = new THREE.Vector3(a[0], a[1], a[2]);
 		var b = crystalData["real_space_b"];
@@ -314,22 +321,40 @@ export class ExptParser{
 		var c = crystalData["real_space_c"];
 		c = new THREE.Vector3(c[0], c[1], c[2]);
 
+		const B = getBMatrix(a.clone(), b.clone(), c.clone());
+
 		const UB = new THREE.Matrix3(
 			a.x, a.y, a.z,
 			b.x, b.y, b.z,
 			c.x, c.y, c.z,
-		);
+		).invert();
 
 
-		UB.invert();
 		const UBArr = UB.elements;
+		UB.transpose();
+		const U = new THREE.Matrix3();
+		U.multiplyMatrices(B.clone().invert(), UB.clone());
 
-		return [
-			new THREE.Vector3(UBArr[0], UBArr[1], UBArr[2]),
-			new THREE.Vector3(UBArr[3], UBArr[4], UBArr[5]),
-			new THREE.Vector3(UBArr[6], UBArr[7], UBArr[8]),
+		const reciprocalCell =  [
+			new THREE.Vector3(UBArr[0], UBArr[3], UBArr[6]),
+			new THREE.Vector3(UBArr[1], UBArr[4], UBArr[7]),
+			new THREE.Vector3(UBArr[2], UBArr[5], UBArr[8]),
 		]
 
+		this.crystal = {
+			"U" : U,
+			"B" : B,
+			"UB": UB,
+			"reciprocalCell": reciprocalCell
+		}
+	}
+
+	getCrystalRLV(){
+		return this.crystal["reciprocalCell"];
+	}
+
+	getCrystalU(){
+		return this.crystal["U"];
 	}
 
 	loadCrystalSummary(){
@@ -390,9 +415,9 @@ export class ExptParser{
 		var detectorData = this.getDetectorOrientationData();
 
 		var localDMatrix = new THREE.Matrix3(
-			panelData["fast_axis"][0], panelData["slow_axis"][0], o.x,
-			panelData["fast_axis"][1], panelData["slow_axis"][1], o.y,
-			panelData["fast_axis"][2], panelData["slow_axis"][2], o.z
+			panelData["fast_axis"][0], panelData["slow_axis"][0], parseFloat(o.x.toFixed(3)),
+			panelData["fast_axis"][1], panelData["slow_axis"][1], parseFloat(o.y.toFixed(3)),
+			panelData["fast_axis"][2], panelData["slow_axis"][2], parseFloat(o.z.toFixed(3))
 		);
 
 		var detectorFa = new THREE.Vector3(
@@ -428,7 +453,6 @@ export class ExptParser{
 		var dMatrix = new THREE.Matrix3().fromArray(
 			elems
 		)
-
 
 		return {
 			"panelSize" : panelSize,

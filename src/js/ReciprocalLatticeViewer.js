@@ -65,11 +65,11 @@ class ReciprocalLatticeViewer {
 		};
 	}
 
-	static sizes(){
+	static sizes() {
 		return {
-			"minRLVLineWidth" : 1,
-			"maxRLVLineWidth" : 8,
-			"minRLVLabelSize" : 18,
+			"minRLVLineWidth": 1,
+			"maxRLVLineWidth": 8,
+			"minRLVLabelSize": 18,
 		};
 	}
 
@@ -211,9 +211,10 @@ class ReciprocalLatticeViewer {
 		return pos;
 	}
 
-	getS1(point, dMatrix, scaleFactor = [1, 1]){
+	getS1(point, dMatrix, wavelength, scaleFactor = [1, 1]) {
 		const point3 = new THREE.Vector3(point[0] * scaleFactor[0], point[1] * scaleFactor[1], 1.0);
 		point3.applyMatrix3(dMatrix);
+		point3.normalize().multiplyScalar(1/wavelength);
 		return point3;
 	}
 
@@ -337,18 +338,21 @@ class ReciprocalLatticeViewer {
 
 	addReflections() {
 
-		function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle) {
+		function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
+
 			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
-			if (goniometer === null){
+
+			if (goniometer === null) {
 				return rlp.multiplyScalar(viewer.rlpScaleFactor);
 			}
-			const fixedRotation = goniometer["fixedRotation"];
+			var fixedRotation = goniometer["fixedRotation"];
 			const settingRotation = goniometer["settingRotation"];
 			const rotationAxis = goniometer["rotationAxis"];
 
+			//fixedRotation = fixedRotation.clone().multiply(U);
 			rlp.applyMatrix3(settingRotation.clone().invert());
 			rlp.applyAxisAngle(rotationAxis, -angle);
-			rlp.applyMatrix3(fixedRotation.clone().invert());
+			rlp.applyMatrix3(fixedRotation.clone().invert().transpose());
 			return rlp.multiplyScalar(viewer.rlpScaleFactor);
 		}
 
@@ -387,6 +391,10 @@ class ReciprocalLatticeViewer {
 			const pOrigin = panelData["origin"];
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
 			const dMatrix = panelData["dMatrix"];
+			var U = null; 
+			if (this.expt.hasCrystal()){
+				U = this.expt.getCrystalU();
+			}
 
 			for (var j = 0; j < panelReflections.length; j++) {
 
@@ -400,9 +408,9 @@ class ReciprocalLatticeViewer {
 					if (!wavelength) {
 						continue;
 					}
-					const s1 = this.getS1(xyzObs, dMatrix, pxSize);
+					const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
 					const angle = panelReflections[j]["angleObs"];
-					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle);
+					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, false);
 
 					if (containsMillerIndices && panelReflections[j]["indexed"]) {
 						positionsObsIndexed.push(rlp.x);
@@ -415,7 +423,7 @@ class ReciprocalLatticeViewer {
 						positionsObsUnindexed.push(rlp.z);
 					}
 				}
-				if (containsXYZCal) {
+				if (containsXYZCal && false) {
 					const xyzCal = panelReflections[j]["xyzCal"];
 					if (containsWavelengthsCal) {
 						wavelengthCal = panelReflections[j]["wavelengthCal"];
@@ -425,7 +433,7 @@ class ReciprocalLatticeViewer {
 					}
 					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
 					const angle = panelReflections[j]["angleCal"];
-					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer, goniometer, angle);
+					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer, goniometer, angle, U);
 					positionsCal.push(rlp.x);
 					positionsCal.push(rlp.y);
 					positionsCal.push(rlp.z);
@@ -549,11 +557,11 @@ class ReciprocalLatticeViewer {
 		);
 		incidentVertices.push(new THREE.Vector3(0, 0, 0));
 		const incidentLine = new THREE.BufferGeometry().setFromPoints(incidentVertices);
-		const incidentMaterial = new THREE.LineBasicMaterial( { 
+		const incidentMaterial = new THREE.LineBasicMaterial({
 			color: ReciprocalLatticeViewer.colors()["beam"],
 			fog: true,
-			depthWrite: false 
-		} );
+			depthWrite: false
+		});
 		const incidentMesh = new THREE.Line(incidentLine, incidentMaterial);
 		this.beamMeshes.push(incidentMesh);
 		window.scene.add(incidentMesh);
@@ -567,13 +575,13 @@ class ReciprocalLatticeViewer {
 			new THREE.Vector3(bd.x * beamLength, bd.y * beamLength, bd.z * beamLength)
 		);
 		const outgoingLine = new THREE.BufferGeometry().setFromPoints(outgoingVertices);
-		const outgoingMaterial = new THREE.LineBasicMaterial( {
-			 color: ReciprocalLatticeViewer.colors()["beam"],
-			 transparent : true,
-			 opacity: .25,
+		const outgoingMaterial = new THREE.LineBasicMaterial({
+			color: ReciprocalLatticeViewer.colors()["beam"],
+			transparent: true,
+			opacity: .25,
 			fog: true,
 			depthWrite: false
-		} );
+		});
 		const outgoingMesh = new THREE.Line(outgoingLine, outgoingMaterial);
 		this.beamMeshes.push(outgoingMesh);
 		window.scene.add(outgoingMesh);
@@ -594,11 +602,11 @@ class ReciprocalLatticeViewer {
 
 	addCrystalRLV() {
 
-		function getAvgRLVLength(crystalRLV){
+		function getAvgRLVLength(crystalRLV) {
 			const a = crystalRLV[0].length();
 			const b = crystalRLV[1].length();
 			const c = crystalRLV[2].length();
-			return (a+b+c)/3.;
+			return (a + b + c) / 3.;
 		}
 
 		if (!this.expt.hasCrystal()) {
@@ -689,7 +697,7 @@ class ReciprocalLatticeViewer {
 		this.axesCheckbox.disabled = false;
 	}
 
-	addRLVLabel(text, pos, color, scaleFactor){
+	addRLVLabel(text, pos, color, scaleFactor) {
 		var canvas = document.createElement('canvas');
 
 		canvas.width = 256;
@@ -709,16 +717,16 @@ class ReciprocalLatticeViewer {
 		var texture = new THREE.CanvasTexture(canvas);
 
 		var material = new THREE.SpriteMaterial({
-		map: texture,
-		transparent: true,
-		alphaTest: 0.5,
-		depthWrite: false,
-		depthTest: false,
-		sizeAttenuation: true
+			map: texture,
+			transparent: true,
+			alphaTest: 0.5,
+			depthWrite: false,
+			depthTest: false,
+			sizeAttenuation: true
 		});
 
 		var sprite = new THREE.Sprite(material);
-		sprite.scale.set(100 * scaleFactor, 50 * scaleFactor, 1); 
+		sprite.scale.set(100 * scaleFactor, 50 * scaleFactor, 1);
 		sprite.position.copy(pos);
 
 		this.reciprocalCellMeshes.push(sprite);
@@ -820,7 +828,7 @@ class ReciprocalLatticeViewer {
 	updateGUIInfo() {
 
 		function updateReflectionInfo(viewer) {
-			if (!viewer.observedIndexedReflsCheckbox.checked){return;}
+			if (!viewer.observedIndexedReflsCheckbox.checked) { return; }
 			const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
 			window.rayCaster.setFromCamera(window.mousePosition, window.camera);
 			if (intersects.length > 0) {
