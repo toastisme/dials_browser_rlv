@@ -618,7 +618,7 @@ class ReciprocalLatticeViewer {
 		const avgRLVLength = getAvgRLVLength(crystalRLV);
 		const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
 		const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
-		const lineWidth = Math.min(Math.max(avgRLVLength * 3, minLineWidth), maxLineWidth);
+		const lineWidth = Math.min(Math.max(avgRLVLength * 15, minLineWidth), maxLineWidth);
 
 		const material = new MeshLineMaterial({
 			lineWidth: lineWidth,
@@ -635,7 +635,7 @@ class ReciprocalLatticeViewer {
 
 		const origin = new THREE.Vector3(0, 0, 0);
 
-		const labelScaleFactor = Math.max(avgRLVLength, 1);
+		const labelScaleFactor = Math.max(avgRLVLength * 7, 1);
 		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), "white", labelScaleFactor);
 		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), "white", labelScaleFactor);
 		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), "white", labelScaleFactor);
