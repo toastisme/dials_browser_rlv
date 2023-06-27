@@ -56,7 +56,7 @@ class ReciprocalLatticeViewer {
 		return {
 			"background": 0x222222,
 			"sample": 0xfdf6e3,
-			"reflectionObsUnindexed": 0xFFFFFF,
+			"reflectionObsUnindexed": 0xaaa9a9,
 			"reflectionObsIndexed": 0xe74c3c,
 			"reflectionCal": 0xffaaaa,
 			"highlight": 0xFFFFFF,
@@ -624,7 +624,6 @@ class ReciprocalLatticeViewer {
 		const material = new MeshLineMaterial({
 			lineWidth: lineWidth,
 			color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
-			opacity: 0.5,
 			depthWrite: false,
 			sizeAttenuation: true
 		});
