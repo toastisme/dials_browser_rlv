@@ -23,7 +23,6 @@ class ReciprocalLatticeViewer {
 		this.observedUnindexedReflsCheckbox = document.getElementById("observedUnindexedReflections");
 		this.calculatedReflsCheckbox = document.getElementById("calculatedReflections");
 		this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
-		this.axesCheckbox = document.getElementById("showAxes");
 		this.reflectionSize = document.getElementById("reflectionSize");
 
 		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
@@ -36,7 +35,6 @@ class ReciprocalLatticeViewer {
 		this.reflPointsCal = [];
 		this.reflPositionsCal = []
 		this.beamMeshes = [];
-		this.axesMeshes = [];
 		this.sampleMesh = null;
 		this.reciprocalCellMeshes = [];
 
@@ -63,7 +61,6 @@ class ReciprocalLatticeViewer {
 			"reflectionCal": 0xffaaaa,
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
-			"axes": [0xffaaaa, 0xaaffaa, 0xaaaaff],
 			"reciprocalCell": 0x119dff
 		};
 	}
@@ -123,16 +120,6 @@ class ReciprocalLatticeViewer {
 			this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
 			this.requestRender();
 		}
-	}
-
-	updateAxes(val = null) {
-		if (val !== null) {
-			this.axesCheckbox.checked = val;
-		}
-		for (var i = 0; i < this.axesMeshes.length; i++) {
-			this.axesMeshes[i].visible = this.axesCheckbox.checked;
-		}
-		this.requestRender();
 	}
 
 	updateReciprocalCell(val = null) {
@@ -383,21 +370,17 @@ class ReciprocalLatticeViewer {
 		const containsMillerIndices = this.refl.containsMillerIndices();
 		const containsWavelengths = this.refl.containsWavelengths();
 		const containsWavelengthsCal = this.refl.containsWavelengthsCal();
-		const containsAngleObs = this.refl.containsRotationAnglesObs();
-		const containsAngleCal = this.refl.containsRotationAnglesCal();
 		var wavelength = this.expt.getBeamData()["wavelength"];
 		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 		var goniometer = this.expt.goniometer;
+		console.log(this.expt.detectorPanelData);
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
 
 			const panelReflections = this.refl.getReflectionsForPanel(i);
-			const panelData = this.expt.getPanelDataByIdx(i);
+			const panelData = this.expt.getDetectorPanelDataByIdx(i);
 
-			const fa = panelData["fastAxis"];
-			const sa = panelData["slowAxis"];
-			const pOrigin = panelData["origin"];
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
 			const dMatrix = panelData["dMatrix"];
 			var U = null; 
@@ -419,7 +402,7 @@ class ReciprocalLatticeViewer {
 					}
 					const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
 					const angle = panelReflections[j]["angleObs"];
-					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, false);
+					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U);
 
 					if (containsMillerIndices && panelReflections[j]["indexed"]) {
 						positionsObsIndexed.push(rlp.x);
@@ -432,7 +415,7 @@ class ReciprocalLatticeViewer {
 						positionsObsUnindexed.push(rlp.z);
 					}
 				}
-				if (containsXYZCal && false) {
+				if (containsXYZCal) {
 					const xyzCal = panelReflections[j]["xyzCal"];
 					if (containsWavelengthsCal) {
 						wavelengthCal = panelReflections[j]["wavelengthCal"];
@@ -440,9 +423,9 @@ class ReciprocalLatticeViewer {
 					if (!wavelengthCal) {
 						continue;
 					}
-					const s1 = this.mapPointToGlobal(xyzCal, pOrigin, fa, sa, pxSize);
+					const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
 					const angle = panelReflections[j]["angleCal"];
-					const rlp = getRLP(s1, wavelengthCal, unitS0, viewer, goniometer, angle, U);
+					const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U);
 					positionsCal.push(rlp.x);
 					positionsCal.push(rlp.y);
 					positionsCal.push(rlp.z);
@@ -680,36 +663,6 @@ class ReciprocalLatticeViewer {
 		const Mesh = new THREE.Mesh(line, material);
 		viewer.reciprocalCellMeshes.push(Mesh);
 		window.scene.add(Mesh);
-	}
-
-	addAxes() {
-		function addAxis(viewer, vertices, color) {
-			const line = new MeshLine();
-			line.setPoints(vertices);
-			const Material = new MeshLineMaterial({
-				lineWidth: 5,
-				color: color,
-				fog: true,
-				transparent: true,
-				opacity: 0.5,
-				depthWrite: false
-			});
-			const Mesh = new THREE.Mesh(line, Material);
-			viewer.axesMeshes.push(Mesh);
-			window.scene.add(Mesh);
-		}
-
-		const length = 200.;
-		this.axesMeshes = [];
-
-		const xVertices = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(length, 0, 0)];
-		const yVertices = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, length, 0)];
-		const zVertices = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, length)];
-
-		addAxis(this, xVertices, ReciprocalLatticeViewer.colors()["axes"][0]);
-		addAxis(this, yVertices, ReciprocalLatticeViewer.colors()["axes"][1]);
-		addAxis(this, zVertices, ReciprocalLatticeViewer.colors()["axes"][2]);
-		this.axesCheckbox.disabled = false;
 	}
 
 	addRLVLabel(text, pos, color, scaleFactor) {
@@ -1043,8 +996,6 @@ function setupScene() {
 			window.viewer.toggleSidebar();
 		}
 	});
-	window.viewer.addAxes();
-	window.viewer.updateAxes(false);
 	window.viewer.updateReciprocalCell(false);
 	window.viewer.setCameraToDefaultPosition();
 	window.viewer.requestRender();

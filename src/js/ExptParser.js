@@ -2,15 +2,19 @@ import * as THREE from 'three';
 
 export class ExptParser{
 
+	/*
+	 * Class for reading DIALS Experiment list files (.expt)
+	 * https://dials.github.io/documentation/data_files.html
+	 */
+
 	constructor(){
 		this.exptJSON = null;
-		this.nameIdxMap = {};
-		this.panelCentroids = {};
 		this.filename = null;
 		this.imageFilenames = null;
 		this.crystalSummary = null;
 		this.goniometer = null;
 		this.crystal = null;
+		this.detectorPanelData = [];
 	}
 
 	hasExptJSON(){
@@ -27,12 +31,12 @@ export class ExptParser{
 
 	clearExperiment(){
 		this.exptJSON = null;
-		this.nameIdxMap = {};
-		this.panelCentroids = {};
 		this.filename = null;
 		this.imageFilenames = null;
 		this.crystalSummary = null;
 		this.goniometer = null;
+		this.crystal = null;
+		this.detectorPanelData = [];
 	}
 
 	parseExperiment = (file) => {
@@ -41,14 +45,14 @@ export class ExptParser{
 		return new Promise((resolve, reject) => {
 			reader.onerror = () => {
 				reader.abort();
-				reject(new DOMException("Problem parsing input file."));
+				reject(new DOMException("Problem parsing .expt file."));
 			};
 
 			reader.onloadend = () => {
 				resolve(reader.result);
 				if (ExptParser.isDIALSExpt(file, reader.result)){
 					this.exptJSON = JSON.parse(reader.result);
-					this.loadPanelData();
+					this.loadDetectorPanelData();
 					this.loadCrystalSummary();
 					this.loadGoniometer();
 					this.loadCrystal();
@@ -64,23 +68,81 @@ export class ExptParser{
 		return this.exptJSON["imageset"][0]["template"];
 	}
 
-	loadPanelData(){
-		for (var i = 0; i < this.getNumDetectorPanels(); i++){
-			const data = this.getPanelDataByIdx(i);
-			const name = this.getDetectorPanelName(i);
-			this.nameIdxMap[name] = i;
-			const centroid = data["origin"];
-			centroid.add(data["fastAxis"].multiplyScalar(.5));
-			centroid.add(data["slowAxis"].multiplyScalar(.5));
-			this.panelCentroids[name] = centroid;
+	loadDetectorPanelData(){
+
+		const rawDetectorPanelData = this.getRawDetectorPanelData();
+		var detectorData = this.getDetectorOrientationData();
+		this.detectorPanelData = [];
+
+		for (var i = 0; i < rawDetectorPanelData.length; i++){
+
+			const panelData = rawDetectorPanelData[i];
+
+			var pxSize = new THREE.Vector2(panelData["pixel_size"][0], panelData["pixel_size"][1]);
+			var pxs = new THREE.Vector2(panelData["image_size"][0], panelData["image_size"][1]);
+			var panelSize = new THREE.Vector2(pxSize.x*pxs.x, pxSize.y*pxs.y);
+			var fa = new THREE.Vector3(panelData["fast_axis"][0], panelData["fast_axis"][1], panelData["fast_axis"][2]);
+			var sa = new THREE.Vector3(panelData["slow_axis"][0], panelData["slow_axis"][1], panelData["slow_axis"][2]);
+			var o = new THREE.Vector3(panelData["origin"][0], panelData["origin"][1], panelData["origin"][2]);
+
+			var localDMatrix = new THREE.Matrix3(
+				fa.x, sa.x, o.x,
+				fa.y, sa.y, o.y,
+				fa.z, sa.z, o.z
+			);
+
+			var detectorFa = new THREE.Vector3(
+				detectorData["fast_axis"][0],
+				detectorData["fast_axis"][1],
+				detectorData["fast_axis"][2],
+			);
+			var detectorSa = new THREE.Vector3(
+				detectorData["slow_axis"][0],
+				detectorData["slow_axis"][1],
+				detectorData["slow_axis"][2],
+			);
+			var detectorNormal = detectorFa.clone().cross(detectorSa);
+
+			var parentOrientation = new THREE.Matrix3(
+				detectorFa.x, detectorSa.x, detectorNormal.x,
+				detectorFa.y, detectorSa.y, detectorNormal.y,
+				detectorFa.z, detectorSa.z, detectorNormal.z
+			);
+
+			var parentOrigin = new THREE.Vector3(
+				detectorData["origin"][0],
+				detectorData["origin"][1],
+				detectorData["origin"][2],
+			)
+
+
+			var dMatrixOffset = parentOrientation.clone().multiply(localDMatrix);
+			var elems = dMatrixOffset.elements;
+			elems[6] += parentOrigin.x;
+			elems[7] += parentOrigin.y;
+			elems[8] += parentOrigin.z;
+			var dMatrix = new THREE.Matrix3().fromArray(
+				elems
+			)
+
+			fa.multiplyScalar(panelSize.x);
+			sa.multiplyScalar(panelSize.y);
+
+			this.detectorPanelData.push({
+				"panelSize" : panelSize,
+				"pxSize" : pxSize,
+				"pxs" : pxs,
+				"fastAxis" : fa,
+				"slowAxis" : sa,
+				"origin" : o,
+				"dMatrix" : dMatrix
+			});
+
 		}
+
 	}
 
-	getPanelCentroid(name){
-		return this.panelCentroids[name];
-	}
-
-	getDetectorPanelData(){
+	getRawDetectorPanelData(){
 		return this.exptJSON["detector"][0]["panels"];
 	}
 
@@ -388,82 +450,12 @@ export class ExptParser{
 		return this.crystalSummary;
 	}
 
-	getPanelDataByName(name){
-		const idx = this.nameIdxMap[name];
-		const data = this.getPanelDataByIdx(idx);
-		return data;
-	}
-
 	getDetectorOrientationData(){
 		return this.exptJSON["detector"][0]["hierarchy"]
 	}
 
-	getPanelDataByIdx(idx){
-
-		/**
-		 * Returns dictionary of panel data in mm
-		 */
-
-		const panelData = this.getDetectorPanelData()[idx];
-		var pxSize = new THREE.Vector2(panelData["pixel_size"][0], panelData["pixel_size"][1]);
-		var pxs = new THREE.Vector2(panelData["image_size"][0], panelData["image_size"][1]);
-		var panelSize = new THREE.Vector2(pxSize.x*pxs.x, pxSize.y*pxs.y);
-		var fa = new THREE.Vector3(panelData["fast_axis"][0], panelData["fast_axis"][1], panelData["fast_axis"][2]).multiplyScalar(panelSize.x);
-		var sa = new THREE.Vector3(panelData["slow_axis"][0], panelData["slow_axis"][1], panelData["slow_axis"][2]).multiplyScalar(panelSize.y);
-		var o = new THREE.Vector3(panelData["origin"][0], panelData["origin"][1], panelData["origin"][2]);
-
-		var detectorData = this.getDetectorOrientationData();
-
-		var localDMatrix = new THREE.Matrix3(
-			panelData["fast_axis"][0], panelData["slow_axis"][0], parseFloat(o.x.toFixed(3)),
-			panelData["fast_axis"][1], panelData["slow_axis"][1], parseFloat(o.y.toFixed(3)),
-			panelData["fast_axis"][2], panelData["slow_axis"][2], parseFloat(o.z.toFixed(3))
-		);
-
-		var detectorFa = new THREE.Vector3(
-			detectorData["fast_axis"][0],
-			detectorData["fast_axis"][1],
-			detectorData["fast_axis"][2],
-		);
-		var detectorSa = new THREE.Vector3(
-			detectorData["slow_axis"][0],
-			detectorData["slow_axis"][1],
-			detectorData["slow_axis"][2],
-		);
-		var detectorNormal = detectorFa.clone().cross(detectorSa);
-
-		var parentOrientation = new THREE.Matrix3(
-			detectorData["fast_axis"][0], detectorData["slow_axis"][0], detectorNormal.x,
-			detectorData["fast_axis"][1], detectorData["slow_axis"][1], detectorNormal.y,
-			detectorData["fast_axis"][2], detectorData["slow_axis"][2], detectorNormal.z
-		);
-
-		var parentOrigin = new THREE.Vector3(
-			detectorData["origin"][0],
-			detectorData["origin"][1],
-			detectorData["origin"][2],
-		)
-
-
-		var dMatrixOffset = parentOrientation.clone().multiply(localDMatrix);
-		var elems = dMatrixOffset.elements;
-		elems[6] += parentOrigin.x;
-		elems[7] += parentOrigin.y;
-		elems[8] += parentOrigin.z;
-		var dMatrix = new THREE.Matrix3().fromArray(
-			elems
-		)
-
-		return {
-			"panelSize" : panelSize,
-			"pxSize" : pxSize,
-			"pxs" : pxs,
-			"fastAxis" : fa,
-			"slowAxis" : sa,
-			"origin" : o,
-			"dMatrix" : dMatrix
-		}
-
+	getDetectorPanelDataByIdx(idx){
+		return this.detectorPanelData[idx];
 	}
 
 	getBeamDirection(){
@@ -476,31 +468,6 @@ export class ExptParser{
 	}
 
 	getNumDetectorPanels(){
-		return this.getDetectorPanelData().length;
+		return this.detectorPanelData.length;
 	}
-
-	getDetectorPanelName(idx){
-		return this.getDetectorPanelData()[idx]["name"];
-	}
-
-	getDetectorPanelCorners(idx){
-
-		const vecs = this.getPanelDataByIdx(idx);
-
-		// Corners
-		var c1 = vecs["origin"].clone();
-		var c2 = vecs["origin"].clone().add(vecs["fastAxis"]);
-		var c3 = vecs["origin"].clone().add(vecs["fastAxis"]).add(vecs["slowAxis"]);
-		var c4 = vecs["origin"].clone().add(vecs["slowAxis"]);
-		return [c1, c2, c3, c4];
-	}
-
-	getDetectorPanelNormal(idx){
-		const vecs = this.getPanelDataByIdx(idx);
-		return vecs["fastAxis"].cross(vecs["slowAxis"]).normalize();
-
-	}
-
-
-
 }
