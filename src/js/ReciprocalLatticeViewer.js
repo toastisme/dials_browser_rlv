@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { gsap } from "gsap";
-import { MeshLine, MeshLineMaterial, MeshLineRaycast } from 'three.meshline';
+import { MeshLine, MeshLineMaterial} from 'three.meshline';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
+import reflSprite from "../../resources/disc.png";
 
 class ReciprocalLatticeViewer {
 	constructor(exptParser, reflParser) {
@@ -24,6 +25,8 @@ class ReciprocalLatticeViewer {
 		this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
 		this.axesCheckbox = document.getElementById("showAxes");
 		this.reflectionSize = document.getElementById("reflectionSize");
+
+		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
 
 		// Bookkeeping for meshes
 		this.reflPointsObsUnindexed = [];
@@ -157,6 +160,8 @@ class ReciprocalLatticeViewer {
 				const reflMaterialObs = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
 					transparent: true,
+					map: this.reflSprite,
+					alphaTest: 0.5,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
 				});
 				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
@@ -174,6 +179,8 @@ class ReciprocalLatticeViewer {
 				const reflMaterialObs = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
 					transparent: true,
+					map: this.reflSprite,
+					alphaTest: 0.5,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
 				});
 				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
@@ -193,6 +200,8 @@ class ReciprocalLatticeViewer {
 			const reflMaterialCal = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
 				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
 				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
 			});
 			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
@@ -451,6 +460,8 @@ class ReciprocalLatticeViewer {
 
 				const reflMaterialObsIndexed = new THREE.PointsMaterial({
 					size: this.reflectionSize.value,
+					map: this.reflSprite,
+					alphaTest: 0.5,
 					transparent: true,
 					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
 				});
@@ -468,6 +479,8 @@ class ReciprocalLatticeViewer {
 			const reflMaterialObsUnindexed = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
 				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
 				color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
 			});
 			const pointsObsUnindexed = new THREE.Points(reflGeometryObsUnindexed, reflMaterialObsUnindexed);
@@ -485,6 +498,8 @@ class ReciprocalLatticeViewer {
 			const reflMaterialCal = new THREE.PointsMaterial({
 				size: this.reflectionSize.value,
 				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
 				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
 			});
 			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
