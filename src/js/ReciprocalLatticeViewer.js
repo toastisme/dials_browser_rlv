@@ -61,7 +61,7 @@ class ReciprocalLatticeViewer {
 			"reflectionCal": 0xffaaaa,
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
-			"reciprocalCell": 0x119dff
+			"reciprocalCell": 0xFFFFFF
 		};
 	}
 
@@ -129,6 +129,9 @@ class ReciprocalLatticeViewer {
 		}
 		for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
 			this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
+		}
+		if (this.reciprocalCellCheckbox.checked){
+			this.zoomInOnObject(this.reciprocalCellMeshes[0]);
 		}
 		this.requestRender();
 	}
@@ -621,7 +624,6 @@ class ReciprocalLatticeViewer {
 		const material = new MeshLineMaterial({
 			lineWidth: lineWidth,
 			color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
-			transparent: true,
 			opacity: 0.5,
 			depthWrite: false,
 			sizeAttenuation: true
@@ -855,14 +857,14 @@ class ReciprocalLatticeViewer {
 		});
 	}
 
-	zoomInOnReflection(reflection, fitOffset = 1.1) {
+	zoomInOnObject(obj, fitOffset = 1.1) {
 
 		const size = new THREE.Vector3();
 		const center = new THREE.Vector3();
 		const box = new THREE.Box3();
 
 		box.makeEmpty();
-		box.expandByObject(reflection);
+		box.expandByObject(obj);
 
 		box.getSize(size);
 		box.getCenter(center);
