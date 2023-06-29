@@ -389,7 +389,6 @@ class ReciprocalLatticeViewer {
 
 			if (goniometer != null){
 				if (!this.refl.containsRotationAnglesObs() || !this.refl.containsRotationAnglesCal()){
-					console.log("updating panel reflections");
 					panelReflections = this.expt.addAnglesToReflections(panelReflections);
 				}
 			}
@@ -866,7 +865,7 @@ class ReciprocalLatticeViewer {
 		});
 	}
 
-	zoomInOnObject(obj, fitOffset = 1.1) {
+	zoomInOnObject(obj, fitOffset=1.1) {
 
 		const size = new THREE.Vector3();
 		const center = new THREE.Vector3();

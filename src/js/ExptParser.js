@@ -475,6 +475,9 @@ export class ExptParser{
 	}
 
 	getScanData(){
+		if (!("scan" in this.exptJSON)){
+			return null;
+		}
 		return this.exptJSON["scan"][0];
 	}
 
