@@ -2,27 +2,34 @@ import { deserialize } from "@ygoe/msgpack";
 
 export class ReflParser{
 
+	/*
+	 * Class for reading DIALS reflection table files (.refl)
+	 * https://dials.github.io/documentation/data_files.html
+	 */
+
 	constructor(){
-		this.refl = null;
-		this.reflData = {};
-		this.indexedMap = {};
-		this.unindexedMap = {};
+		this.reflTable = null; // Raw msgpack table
+		this.reflData = {}; // Parsed data mapped to each detector panel
+		this.indexedMap = {}; // indexed refl number mapped to miller index
 		this.filename = null;
 		this.numReflections = null
 	}
 
 	hasReflTable(){
-		return (this.refl != null);
+		return (this.reflTable != null);
 	}
 
 	clearReflectionTable(){
-		this.refl = null;
+		this.reflTable = null;
 		this.reflData = {};
 		this.filename = null;
 		this.numReflections = null;
 	}
 
 	hasXYZObsData(){
+
+		// px, py, frame
+
 		if (!this.hasReflTable()){
 			return false;
 		}
@@ -35,6 +42,9 @@ export class ReflParser{
 	}
 
 	hasXYZCalData(){
+
+		// px, py, frame
+
 		if (!this.hasReflTable()){
 			return false;
 		}
@@ -70,7 +80,7 @@ export class ReflParser{
 			reader.onloadend = () => {
 				resolve(reader.result);
 				const decoded = deserialize(new Uint8Array(reader.result));
-				this.refl = decoded[2]["data"];
+				this.reflTable = decoded[2]["data"];
 				this.loadReflectionData();
 			};
 			reader.readAsArrayBuffer(file);    
@@ -79,11 +89,11 @@ export class ReflParser{
 	};
 
 	containsColumn(column_name){
-		return (column_name in this.refl);
+		return (column_name in this.reflTable);
 	}
 
 	getColumnBuffer(column_name){
-		return this.refl[column_name][1][1];
+		return this.reflTable[column_name][1][1];
 	}
 
 	getUint32Array(column_name) {
