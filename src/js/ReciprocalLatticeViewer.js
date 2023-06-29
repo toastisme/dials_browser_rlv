@@ -341,7 +341,11 @@ class ReciprocalLatticeViewer {
 
 			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
 
-			if (goniometer === null) {
+			if (goniometer == null) {
+				return rlp.multiplyScalar(viewer.rlpScaleFactor);
+			}
+			if (angle == null){
+				console.warn("Rotation angles not in reflection table. Cannot generate rlps correctly.");
 				return rlp.multiplyScalar(viewer.rlpScaleFactor);
 			}
 			var fixedRotation = goniometer["fixedRotation"];
@@ -377,12 +381,18 @@ class ReciprocalLatticeViewer {
 		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 		var goniometer = this.expt.goniometer;
-		console.log(this.expt.detectorPanelData);
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
 
-			const panelReflections = this.refl.getReflectionsForPanel(i);
+			var panelReflections = this.refl.getReflectionsForPanel(i);
 			const panelData = this.expt.getDetectorPanelDataByIdx(i);
+
+			if (goniometer != null){
+				if (!this.refl.containsRotationAnglesObs() || !this.refl.containsRotationAnglesCal()){
+					console.log("updating panel reflections");
+					panelReflections = this.expt.addAnglesToReflections(panelReflections);
+				}
+			}
 
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
 			const dMatrix = panelData["dMatrix"];

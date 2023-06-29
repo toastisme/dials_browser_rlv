@@ -14,6 +14,7 @@ export class ExptParser{
 		this.crystalSummary = null;
 		this.goniometer = null;
 		this.crystal = null;
+		this.scan = null;
 		this.detectorPanelData = [];
 	}
 
@@ -36,6 +37,7 @@ export class ExptParser{
 		this.crystalSummary = null;
 		this.goniometer = null;
 		this.crystal = null;
+		this.scan = null;
 		this.detectorPanelData = [];
 	}
 
@@ -56,6 +58,7 @@ export class ExptParser{
 					this.loadCrystalSummary();
 					this.loadGoniometer();
 					this.loadCrystal();
+					this.loadScan();
 					this.filename = file.name;
 					this.imageFilenames = this.getImageFilenames();
 				}
@@ -469,5 +472,60 @@ export class ExptParser{
 
 	getNumDetectorPanels(){
 		return this.detectorPanelData.length;
+	}
+
+	getScanData(){
+		return this.exptJSON["scan"][0];
+	}
+
+	loadScan(){
+		const scanData = this.getScanData();
+		if (!scanData){
+			this.scan = null;
+			return;
+		}
+
+		const osc = new THREE.Vector2(
+			scanData["oscillation"][0],
+			scanData["oscillation"][1]
+		);
+
+		const ir = new THREE.Vector2(
+			scanData["image_range"][0],
+			scanData["image_range"][1]
+		);
+
+		this.scan = {
+			"oscillation" : osc,
+			"imageRange" : ir
+		};
+	}
+
+	getAngleFromFrame(frame){
+		if (this.scan === null){
+			return null;
+		}
+		const osc = this.scan["oscillation"];
+		const ir = this.scan["imageRange"];
+		return osc.x + ((frame - ir.x) * osc.y)
+	}
+
+	addAnglesToReflections(reflections){
+		for (var i = 0; i < reflections.length; i++){
+			if ("xyzObs" in reflections[i]){
+				const angleObs = this.getAngleFromFrame(
+					reflections[i]["xyzObs"][2]
+				);
+				reflections[i]["angleObs"] = angleObs;
+
+			}
+			if ("xyzCal" in reflections[i]){
+				const angleCal = this.getAngleFromFrame(
+					reflections[i]["xyzCal"][2]
+				);
+				reflections[i]["angleCal"] = angleCal;
+			}
+		}
+		return reflections;
 	}
 }
