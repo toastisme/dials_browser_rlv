@@ -15,7 +15,6 @@ class ReciprocalLatticeViewer {
 
 		// Html elements
 		this.headerText = window.document.getElementById("headerText");
-		this.footerText = window.document.getElementById("footerText");
 		this.sidebar = window.document.getElementById("sidebar");
 		this.closeExptButton = document.getElementById("closeExpt");
 		this.closeReflButton = document.getElementById("closeRefl");
@@ -24,7 +23,6 @@ class ReciprocalLatticeViewer {
 		this.calculatedReflsCheckbox = document.getElementById("calculatedReflections");
 		this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
 		this.reflectionSize = document.getElementById("reflectionSize");
-
 
 		// Bookkeeping for meshes
 		this.reflPointsObsUnindexed = [];
@@ -37,6 +35,7 @@ class ReciprocalLatticeViewer {
 		this.sampleMesh = null;
 		this.reciprocalCellMeshes = [];
 
+		// Colors that are used often
 		this.hightlightColor = new THREE.Color(ReciprocalLatticeViewer.colors()["highlight"]);
 		this.reflectionUnindexedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]);
 		this.reflectionInexedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]);
@@ -61,7 +60,8 @@ class ReciprocalLatticeViewer {
 			"reflectionCal": 0xffaaaa,
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
-			"reciprocalCell": 0xFFFFFF
+			"reciprocalCell": 0xFFFFFF,
+			"RLVLabels" : "white"
 		};
 	}
 
@@ -70,6 +70,10 @@ class ReciprocalLatticeViewer {
 			"minRLVLineWidth": 1,
 			"maxRLVLineWidth": 8,
 			"minRLVLabelSize": 18,
+			"beamLength" : 800.,
+			"sample" : 1,
+			"RLVLineWidthScaleFactor" : 15,
+			"RLVLabelScaleFactor": 7
 		};
 	}
 
@@ -201,13 +205,6 @@ class ReciprocalLatticeViewer {
 			this.updateCalculatedReflections();
 		}
 		this.requestRender();
-	}
-
-	mapPointToGlobal(point, pOrigin, fa, sa, scaleFactor = [1, 1]) {
-		const pos = pOrigin.clone();
-		pos.add(fa.clone().normalize().multiplyScalar(point[0] * scaleFactor[0]));
-		pos.add(sa.clone().normalize().multiplyScalar(point[1] * scaleFactor[1]));
-		return pos;
 	}
 
 	getS1(point, dMatrix, wavelength, scaleFactor = [1, 1]) {
@@ -555,9 +552,10 @@ class ReciprocalLatticeViewer {
 	}
 
 	addBeam() {
-		var beamLength = 800.;
+		var beamLength = ReciprocalLatticeViewer.sizes()["beamLength"];
 		var bd = this.expt.getBeamDirection();
 
+		// Incident beam to sample
 		var incidentVertices = []
 		incidentVertices.push(
 			new THREE.Vector3(bd.x * -beamLength, bd.y * -beamLength, bd.z * -beamLength)
@@ -576,6 +574,7 @@ class ReciprocalLatticeViewer {
 		this.beamMeshes.push(incidentMesh);
 		window.scene.add(incidentMesh);
 
+		// Outgoing beam from sample
 		var outgoingVertices = []
 		outgoingVertices.push(new THREE.Vector3(0, 0, 0));
 		outgoingVertices.push(
@@ -598,7 +597,9 @@ class ReciprocalLatticeViewer {
 	}
 
 	addSample() {
-		const sphereGeometry = new THREE.SphereGeometry(1);
+		const sphereGeometry = new THREE.SphereGeometry(
+			ReciprocalLatticeViewer.sizes()["sample"]
+		);
 		const sphereMaterial = new THREE.MeshBasicMaterial({
 			color: ReciprocalLatticeViewer.colors()["sample"],
 			transparent: true,
@@ -628,7 +629,10 @@ class ReciprocalLatticeViewer {
 		const avgRLVLength = getAvgRLVLength(crystalRLV);
 		const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
 		const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
-		const lineWidth = Math.min(Math.max(avgRLVLength * 15, minLineWidth), maxLineWidth);
+		const lineWidthScaleFactor = ReciprocalLatticeViewer.sizes()["RLVLineWidthScaleFactor"];
+		const lineWidth = Math.min(
+			Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
+		);
 
 		const material = new MeshLineMaterial({
 			lineWidth: lineWidth,
@@ -643,10 +647,13 @@ class ReciprocalLatticeViewer {
 
 		const origin = new THREE.Vector3(0, 0, 0);
 
-		const labelScaleFactor = Math.max(avgRLVLength * 7, 1);
-		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), "white", labelScaleFactor);
-		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), "white", labelScaleFactor);
-		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), "white", labelScaleFactor);
+		const labelScaleFactor = Math.max(
+			avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
+		);
+		const labelColor = ReciprocalLatticeViewer.colors()["RLVLabels"];
+		this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
+		this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
+		this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
 
 		const cellVertices = [
 			origin,
@@ -745,19 +752,6 @@ class ReciprocalLatticeViewer {
 
 	showHeaderText() {
 		this.headerText.style.display = "block";
-	}
-
-	displayFooterText(text) {
-		this.showFooterText();
-		this.footerText.textContent = text;
-	}
-
-	hideFooterText() {
-		this.footerText.style.display = "none";
-	}
-
-	showFooterText() {
-		this.footerText.style.display = "block";
 	}
 
 	displayDefaultHeaderText() {
@@ -922,7 +916,7 @@ class ReciprocalLatticeViewer {
 function setupScene() {
 
 	/**
-	 * Sets the renderer, camera, controls
+	 * Sets the renderer, camera, controls, event listeners
 	 */
 
 
