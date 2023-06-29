@@ -25,7 +25,6 @@ class ReciprocalLatticeViewer {
 		this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
 		this.reflectionSize = document.getElementById("reflectionSize");
 
-		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
 
 		// Bookkeeping for meshes
 		this.reflPointsObsUnindexed = [];
@@ -44,6 +43,7 @@ class ReciprocalLatticeViewer {
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
 		this.rlpScaleFactor = 1000;
+		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
 
 		this.displayingTextFromHTMLEvent = false;
 

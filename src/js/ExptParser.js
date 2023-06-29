@@ -486,13 +486,13 @@ export class ExptParser{
 		}
 
 		const osc = new THREE.Vector2(
-			scanData["oscillation"][0],
-			scanData["oscillation"][1]
+			scanData["oscillation"][0] * Math.PI/180.,
+			scanData["oscillation"][1] * Math.PI/180.
 		);
 
 		const ir = new THREE.Vector2(
-			scanData["image_range"][0],
-			scanData["image_range"][1]
+			scanData["image_range"][0] - 1,
+			scanData["image_range"][1] - 1
 		);
 
 		this.scan = {
