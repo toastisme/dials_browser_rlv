@@ -995,6 +995,11 @@ function setupScene() {
 			window.viewer.rotateToPos(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
 		}
 	});
+
+	window.addEventListener('contextmenu', function (event) {
+		window.viewer.rotateToPos(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
+	});
+
 	window.addEventListener('keydown', function (event) {
 		if (event.key === "s") {
 			window.viewer.toggleSidebar();
