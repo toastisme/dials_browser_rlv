@@ -1,7 +1,7 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { gsap } from "gsap";
-import { MeshLine, MeshLineMaterial} from 'three.meshline';
+import * as THREE from "https://threejs.org/build/three.module.js";
+import { OrbitControls } from "https://unpkg.com/three@0.127.0/examples/jsm/controls/OrbitControls.js";
+import { gsap } from "https://cdn.skypack.dev/gsap@3.9.1";
+import * as meshline from './THREE.MeshLine.js';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
 import reflSprite from "../../resources/disc.png";
@@ -634,7 +634,7 @@ class ReciprocalLatticeViewer {
 			Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
 		);
 
-		const material = new MeshLineMaterial({
+		const material = new meshline.MeshLineMaterial({
 			lineWidth: lineWidth,
 			color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
 			depthWrite: false,
@@ -675,7 +675,7 @@ class ReciprocalLatticeViewer {
 			origin
 		];
 
-		const line = new MeshLine();
+		const line = new meshline.MeshLine();
 		line.setPoints(cellVertices);
 		const Mesh = new THREE.Mesh(line, material);
 		viewer.reciprocalCellMeshes.push(Mesh);
