@@ -4,7 +4,7 @@ import { gsap } from "https://cdn.skypack.dev/gsap@3.9.1";
 import * as meshline from './THREE.MeshLine.js';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
-import reflSprite from "../../resources/disc.png";
+import reflSprite from "../resources/disc.png";
 
 class ReciprocalLatticeViewer {
 	constructor(exptParser, reflParser) {
