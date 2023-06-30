@@ -4,7 +4,7 @@ import { gsap } from "https://cdn.skypack.dev/gsap@3.9.1";
 import * as meshline from './THREE.MeshLine.js';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
-import reflSprite from "../resources/disc.png";
+//import reflSprite from "../resources/disc.png";
 
 class ReciprocalLatticeViewer {
 	constructor(exptParser, reflParser) {
@@ -42,7 +42,7 @@ class ReciprocalLatticeViewer {
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
 		this.rlpScaleFactor = 1000;
-		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
+		this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
 
 		this.displayingTextFromHTMLEvent = false;
 
