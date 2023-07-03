@@ -800,13 +800,27 @@ class ReciprocalLatticeViewer {
 	updateGUIInfo() {
 
 		function updateReflectionInfo(viewer) {
+
+			function getDSpacing(arr, idx, viewer){
+				const rlp = new THREE.Vector3(
+					arr[3 * idx] / viewer.rlpScaleFactor,
+					arr[(3*idx) + 1] / viewer.rlpScaleFactor,
+					arr[(3*idx) + 2] / viewer.rlpScaleFactor
+				);
+				return (1/rlp.length()).toFixed(3);
+			}
+
 			if (viewer.observedIndexedReflsCheckbox.checked) { 
 				const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
 				window.rayCaster.setFromCamera(window.mousePosition, window.camera);
 				if (intersects.length > 0) {
 					for (var i = 0; i < intersects.length; i++) {
 						const summary = viewer.refl.getIndexedSummaryById(intersects[i].index);
-						viewer.displayHeaderText(summary);
+						viewer.displayHeaderText(
+							summary + " <b>res: </b>" + getDSpacing(
+								viewer.reflPositionsIndexed, intersects[i].index, viewer
+							) + " Angstrom"	
+						);
 					}
 				}
 			}
@@ -816,7 +830,11 @@ class ReciprocalLatticeViewer {
 				if (intersects.length > 0) {
 					for (var i = 0; i < intersects.length; i++) {
 						const summary = viewer.refl.getUnindexedSummaryById(intersects[i].index);
-						viewer.displayHeaderText(summary);
+						viewer.displayHeaderText(
+							summary + " <b>res: </b>" + getDSpacing(
+								viewer.reflPositionsUnindexed, intersects[i].index, viewer
+							) + " Angstrom"	
+						);
 					}
 				}
 			}

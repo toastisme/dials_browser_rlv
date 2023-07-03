@@ -228,14 +228,6 @@ export class ReflParser{
 		return this.getDoubleArray("wavelength_cal");
 	}
 
-	containsDSpacing(){
-		return this.containsColumn("d_spacing");
-	}
-
-	getDSpacing(){
-		return this.getDoubleArray("d_spacing");
-	}
-
 	loadReflectionData(){
 		const panelNums = this.getPanelNumbers();
 		var xyzObs;
@@ -245,7 +237,6 @@ export class ReflParser{
 		var millerIndices;
 		var wavelengths;
 		var wavelengthsCal;
-		var dSpacing;
 
 		if (this.containsXYZObs()){
 			xyzObs = this.getXYZObs();
@@ -267,9 +258,6 @@ export class ReflParser{
 		}
 		if (this.containsRotationAnglesCal()){
 			anglesCal = this.getRotationAnglesCal();
-		}
-		if (this.containsDSpacing()){
-			dSpacing = this.getDSpacing();
 		}
 
 		console.assert(xyzObs || xyzCal);
@@ -296,10 +284,6 @@ export class ReflParser{
 				displaySummary += xyzCal[i][0].toFixed(3) + ", ";
 				displaySummary += xyzCal[i][1].toFixed(3) + ", ";
 				displaySummary += xyzCal[i][2].toFixed(3) + ")";
-			}
-			if (dSpacing){
-				refl["dSpacing"] = dSpacing[i];
-				displaySummary += " <b>res: </b>" + dSpacing[i] + " Angstrom"
 			}
 			if (millerIndices){
 				refl["millerIdx"] = millerIndices[i];
