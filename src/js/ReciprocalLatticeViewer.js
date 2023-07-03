@@ -800,13 +800,24 @@ class ReciprocalLatticeViewer {
 	updateGUIInfo() {
 
 		function updateReflectionInfo(viewer) {
-			if (!viewer.observedIndexedReflsCheckbox.checked) { return; }
-			const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
-			window.rayCaster.setFromCamera(window.mousePosition, window.camera);
-			if (intersects.length > 0) {
-				for (var i = 0; i < intersects.length; i++) {
-					const millerIdx = viewer.refl.getMillerIndexById(intersects[i].index);
-					viewer.displayHeaderText(" (" + millerIdx + ")");
+			if (viewer.observedIndexedReflsCheckbox.checked) { 
+				const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
+				window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+				if (intersects.length > 0) {
+					for (var i = 0; i < intersects.length; i++) {
+						const summary = viewer.refl.getIndexedSummaryById(intersects[i].index);
+						viewer.displayHeaderText(summary);
+					}
+				}
+			}
+			if (viewer.observedUnindexedReflsCheckbox.checked) { 
+				const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsUnindexed);
+				window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+				if (intersects.length > 0) {
+					for (var i = 0; i < intersects.length; i++) {
+						const summary = viewer.refl.getUnindexedSummaryById(intersects[i].index);
+						viewer.displayHeaderText(summary);
+					}
 				}
 			}
 		}
