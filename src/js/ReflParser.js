@@ -271,26 +271,26 @@ export class ReflParser{
 			};
 			var displaySummary = "<b>id: </b>" + i + " <b>panel: </b>" + panel;
 
-			if (xyzObs){
+			if (xyzObs != null){
 				refl["xyzObs"] = xyzObs[i];
 				displaySummary += " <b>xyzObs: </b> ("; 
-				displaySummary += xyzObs[i][0].toFixed(3) + ", ";
-				displaySummary += xyzObs[i][1].toFixed(3) + ", ";
-				displaySummary += xyzObs[i][2].toFixed(3) + ")";
+				displaySummary += xyzObs[i][0].toFixed(1) + ", ";
+				displaySummary += xyzObs[i][1].toFixed(1) + ", ";
+				displaySummary += xyzObs[i][2].toFixed(1) + ")";
 			}
-			if (xyzCal){
+			if (xyzCal != null){
 				refl["xyzCal"] = xyzCal[i];
 				displaySummary += " <b>xyzCal: </b> ("; 
-				displaySummary += xyzCal[i][0].toFixed(3) + ", ";
-				displaySummary += xyzCal[i][1].toFixed(3) + ", ";
-				displaySummary += xyzCal[i][2].toFixed(3) + ")";
+				displaySummary += xyzCal[i][0].toFixed(1) + ", ";
+				displaySummary += xyzCal[i][1].toFixed(1) + ", ";
+				displaySummary += xyzCal[i][2].toFixed(1) + ")\n";
 			}
-			if (millerIndices){
+			if (millerIndices != null){
 				refl["millerIdx"] = millerIndices[i];
 				if (this.isValidMillerIndex(millerIndices[i])){
 					refl["indexed"] = true;
 					refl["id"] = numIndexed;
-					displaySummary += " <b>hkl </b>(" + millerIndices[i] + ")";
+					displaySummary += "<b>hkl </b>(" + millerIndices[i] + ")";
 					this.reflIndexedDisplaySummary[numIndexed] = displaySummary;
 					numIndexed++; 
 				}
@@ -302,18 +302,19 @@ export class ReflParser{
 			}
 			else{
 				refl["id"] = numUnindexed;
+				this.reflUnindexedDisplaySummary[numUnindexed] = displaySummary;
 				numUnindexed++;
 			}
-			if (wavelengths){
+			if (wavelengths != null){
 				refl["wavelength"] = wavelengths[i];
 			}
-			if (wavelengthsCal){
+			if (wavelengthsCal != null){
 				refl["wavelengthCal"] = wavelengthsCal[i];
 			}
-			if (anglesObs){
+			if (anglesObs != null){
 				refl["angleObs"] = anglesObs[i];
 			}
-			if (anglesCal){
+			if (anglesCal != null){
 				refl["angleCal"] = anglesCal[i];
 			}
 			if (panel in this.panelReflData){

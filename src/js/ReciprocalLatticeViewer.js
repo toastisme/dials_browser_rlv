@@ -145,39 +145,23 @@ class ReciprocalLatticeViewer {
 			return;
 		}
 		if (this.refl.containsXYZObs()) {
-			if (this.reflPointsObsUnindexed) {
-				const reflGeometryObs = new THREE.BufferGeometry();
-				reflGeometryObs.setAttribute(
-					"position", new THREE.Float32BufferAttribute(this.reflPositionsUnindexed, 3)
+			if (this.reflPositionsUnindexed) {
+				const pointsObs = this.createPoints(
+					this.reflPositionsUnindexed, 
+					ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"],
+					this.reflectionSize.value
 				);
-
-				const reflMaterialObs = new THREE.PointsMaterial({
-					size: this.reflectionSize.value,
-					transparent: true,
-					map: this.reflSprite,
-					alphaTest: 0.5,
-					color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
-				});
-				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
 				this.clearReflPointsObsUnindexed();
 				window.scene.add(pointsObs);
 				this.reflPointsObsUnindexed = [pointsObs];
 				this.updateObservedUnindexedReflections();
 			}
-			if (this.reflPointsObsIndexed) {
-				const reflGeometryObs = new THREE.BufferGeometry();
-				reflGeometryObs.setAttribute(
-					"position", new THREE.Float32BufferAttribute(this.reflPositionsIndexed, 3)
+			if (this.reflPositionsIndexed) {
+				const pointsObs = this.createPoints(
+					this.reflPositionsIndexed, 
+					ReciprocalLatticeViewer.colors()["reflectionObsIndexed"],
+					this.reflectionSize.value
 				);
-
-				const reflMaterialObs = new THREE.PointsMaterial({
-					size: this.reflectionSize.value,
-					transparent: true,
-					map: this.reflSprite,
-					alphaTest: 0.5,
-					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
-				});
-				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
 				this.clearReflPointsObsIndexed();
 				window.scene.add(pointsObs);
 				this.reflPointsObsIndexed = [pointsObs];
@@ -186,19 +170,11 @@ class ReciprocalLatticeViewer {
 		}
 
 		if (this.refl.containsXYZCal() && this.reflPositionsCal) {
-			const reflGeometryCal = new THREE.BufferGeometry();
-			reflGeometryCal.setAttribute(
-				"position", new THREE.Float32BufferAttribute(this.reflPositionsCal, 3)
+			const pointsCal = this.createPoints(
+				this.reflPositionsCal,
+				ReciprocalLatticeViewer.colors()["reflectionCal"],
+				this.reflectionSize.value
 			);
-
-			const reflMaterialCal = new THREE.PointsMaterial({
-				size: this.reflectionSize.value,
-				transparent: true,
-				map: this.reflSprite,
-				alphaTest: 0.5,
-				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
-			});
-			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
 			this.clearReflPointsCal();
 			window.scene.add(pointsCal);
 			this.reflPointsCal = [pointsCal];
@@ -311,6 +287,22 @@ class ReciprocalLatticeViewer {
 		this.setDefaultReflectionsDisplay();
 		this.hideCloseReflButton();
 		this.requestRender();
+	}
+
+	createPoints(positions, color, size){
+		const reflGeometry = new THREE.BufferGeometry();
+		reflGeometry.setAttribute(
+			"position", new THREE.Float32BufferAttribute(positions, 3)
+		);
+
+		const reflMaterial= new THREE.PointsMaterial({
+			size: size,
+			map: this.reflSprite,
+			alphaTest: 0.5,
+			transparent: true,
+			color: color
+		});
+		return new THREE.Points(reflGeometry, reflMaterial);
 	}
 
 	showCloseReflButton() {
@@ -445,56 +437,32 @@ class ReciprocalLatticeViewer {
 		if (containsXYZObs) {
 			if (containsMillerIndices) {
 
-				const reflGeometryObsIndexed = new THREE.BufferGeometry();
-				reflGeometryObsIndexed.setAttribute(
-					"position", new THREE.Float32BufferAttribute(positionsObsIndexed, 3)
+				const pointsObsIndexed = this.createPoints(
+					positionsObsIndexed, 
+					ReciprocalLatticeViewer.colors()["reflectionObsIndexed"],
+					this.reflectionSize.value
 				);
-
-				const reflMaterialObsIndexed = new THREE.PointsMaterial({
-					size: this.reflectionSize.value,
-					map: this.reflSprite,
-					alphaTest: 0.5,
-					transparent: true,
-					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
-				});
-				const pointsObsIndexed = new THREE.Points(reflGeometryObsIndexed, reflMaterialObsIndexed);
 				window.scene.add(pointsObsIndexed);
 				this.reflPointsObsIndexed = [pointsObsIndexed];
 				this.reflPositionsIndexed = positionsObsIndexed;
 
 			}
-			const reflGeometryObsUnindexed = new THREE.BufferGeometry();
-			reflGeometryObsUnindexed.setAttribute(
-				"position", new THREE.Float32BufferAttribute(positionsObsUnindexed, 3)
+			const pointsObsUnindexed = this.createPoints(
+				positionsObsUnindexed, 
+				ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"],
+				this.reflectionSize.value
 			);
-
-			const reflMaterialObsUnindexed = new THREE.PointsMaterial({
-				size: this.reflectionSize.value,
-				transparent: true,
-				map: this.reflSprite,
-				alphaTest: 0.5,
-				color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
-			});
-			const pointsObsUnindexed = new THREE.Points(reflGeometryObsUnindexed, reflMaterialObsUnindexed);
 			window.scene.add(pointsObsUnindexed);
 			this.reflPointsObsUnindexed = [pointsObsUnindexed];
 			this.reflPositionsUnindexed = positionsObsUnindexed;
 		}
 
 		if (containsXYZCal) {
-			const reflGeometryCal = new THREE.BufferGeometry();
-			reflGeometryCal.setAttribute(
-				"position", new THREE.Float32BufferAttribute(positionsCal, 3)
+			const pointsCal = this.createPoints(
+				positionsCal, 
+				ReciprocalLatticeViewer.colors()["reflectionCal"],
+				this.reflectionSize.value
 			);
-
-			const reflMaterialCal = new THREE.PointsMaterial({
-				size: this.reflectionSize.value,
-				transparent: true,
-				map: this.reflSprite,
-				alphaTest: 0.5,
-				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
-			});
-			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
 			window.scene.add(pointsCal);
 			this.reflPointsCal = [pointsCal];
 			this.reflPositionsCal = positionsCal;
