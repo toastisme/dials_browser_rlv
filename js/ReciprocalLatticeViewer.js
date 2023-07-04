@@ -41,7 +41,7 @@ class ReciprocalLatticeViewer {
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
 		this.rlpScaleFactor = 1000;
-		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
+		this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
 
 		this.displayingTextFromHTMLEvent = false;
 
