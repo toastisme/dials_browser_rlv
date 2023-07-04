@@ -9,9 +9,8 @@ export class ReflParser{
 
 	constructor(){
 		this.reflTable = null; // Raw msgpack table
-		this.panelReflData = {}; // Parsed data mapped to each detector panel
-		this.reflUnindexedDisplaySummary = {} // For mapping point raycasts to reflections 
-		this.reflIndexedDisplaySummary = {} // For mapping point raycasts to reflections
+		this.reflData = {}; // Parsed data mapped to each detector panel
+		this.indexedMap = {}; // indexed refl number mapped to miller index
 		this.filename = null;
 		this.numReflections = null
 	}
@@ -22,7 +21,7 @@ export class ReflParser{
 
 	clearReflectionTable(){
 		this.reflTable = null;
-		this.panelReflData = {};
+		this.reflData = {};
 		this.filename = null;
 		this.numReflections = null;
 	}
@@ -34,8 +33,8 @@ export class ReflParser{
 		if (!this.hasReflTable()){
 			return false;
 		}
-		for (var i in this.panelReflData){
-			if (!("xyzObs" in this.panelReflData[i][0])){
+		for (var i in this.reflData){
+			if (!("xyzObs" in this.reflData[i][0])){
 				return false;
 			}
 		}
@@ -49,8 +48,8 @@ export class ReflParser{
 		if (!this.hasReflTable()){
 			return false;
 		}
-		for (var i in this.panelReflData){
-			if (!("xyzCal" in this.panelReflData[i][0])){
+		for (var i in this.reflData){
+			if (!("xyzCal" in this.reflData[i][0])){
 				return false;
 			}
 		}
@@ -61,8 +60,8 @@ export class ReflParser{
 		if (!this.hasReflTable()){
 			return false;
 		}
-		for (var i in this.panelReflData){
-			if (!("millerIdx" in this.panelReflData[i][0])){
+		for (var i in this.reflData){
+			if (!("millerIdx" in this.reflData[i][0])){
 				return false;
 			}
 		}
@@ -269,74 +268,57 @@ export class ReflParser{
 			const refl = {
 				"indexed" : false
 			};
-			var displaySummary = "<b>id: </b>" + i + " <b>panel: </b>" + panel;
-
-			if (xyzObs != null){
+			if (xyzObs){
 				refl["xyzObs"] = xyzObs[i];
-				displaySummary += " <b>xyzObs: </b> ("; 
-				displaySummary += xyzObs[i][0].toFixed(1) + ", ";
-				displaySummary += xyzObs[i][1].toFixed(1) + ", ";
-				displaySummary += xyzObs[i][2].toFixed(1) + ")";
 			}
-			if (xyzCal != null){
+			if (xyzCal){
 				refl["xyzCal"] = xyzCal[i];
-				displaySummary += " <b>xyzCal: </b> ("; 
-				displaySummary += xyzCal[i][0].toFixed(1) + ", ";
-				displaySummary += xyzCal[i][1].toFixed(1) + ", ";
-				displaySummary += xyzCal[i][2].toFixed(1) + ")\n";
 			}
-			if (millerIndices != null){
+			if (millerIndices){
 				refl["millerIdx"] = millerIndices[i];
 				if (this.isValidMillerIndex(millerIndices[i])){
 					refl["indexed"] = true;
 					refl["id"] = numIndexed;
-					displaySummary += "<b>hkl </b>(" + millerIndices[i] + ")";
-					this.reflIndexedDisplaySummary[numIndexed] = displaySummary;
+					this.indexedMap[numIndexed] = millerIndices[i];
 					numIndexed++; 
 				}
 				else{
 					refl["id"] = numUnindexed;
-					this.reflUnindexedDisplaySummary[numUnindexed] = displaySummary;
 					numUnindexed++;
 				}
 			}
 			else{
 				refl["id"] = numUnindexed;
-				this.reflUnindexedDisplaySummary[numUnindexed] = displaySummary;
 				numUnindexed++;
 			}
-			if (wavelengths != null){
+			if (wavelengths){
 				refl["wavelength"] = wavelengths[i];
 			}
-			if (wavelengthsCal != null){
+			if (wavelengthsCal){
 				refl["wavelengthCal"] = wavelengthsCal[i];
 			}
-			if (anglesObs != null){
+			if (anglesObs){
 				refl["angleObs"] = anglesObs[i];
 			}
-			if (anglesCal != null){
+			if (anglesCal){
 				refl["angleCal"] = anglesCal[i];
 			}
-			if (panel in this.panelReflData){
-				this.panelReflData[panel].push(refl);
+			if (panel in this.reflData){
+				this.reflData[panel].push(refl);
 			}
 			else{
-				this.panelReflData[panel] = [refl];
+				this.reflData[panel] = [refl];
 			}
 		}
 		this.numReflections = panelNums.length;
 	}
 
-	getIndexedSummaryById(id){
-		return this.reflIndexedDisplaySummary[id];
-	}
-
-	getUnindexedSummaryById(id){
-		return this.reflUnindexedDisplaySummary[id];
+	getMillerIndexById(id){
+		return this.indexedMap[id];
 	}
 
 	getReflectionsForPanel(panelIdx){
 		console.assert(this.hasReflTable());
-		return this.panelReflData[panelIdx];
+		return this.reflData[panelIdx];
 	}
 }

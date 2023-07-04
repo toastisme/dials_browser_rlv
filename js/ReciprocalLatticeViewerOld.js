@@ -4,6 +4,7 @@ import { gsap } from "https://cdn.skypack.dev/gsap@3.9.1";
 import * as meshline from './THREE.MeshLine.js';
 import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
+//import reflSprite from "../resources/disc.png";
 
 class ReciprocalLatticeViewer {
 	constructor(exptParser, reflParser) {
@@ -41,7 +42,7 @@ class ReciprocalLatticeViewer {
 		this.reflectionCalculatedColor = new THREE.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
 
 		this.rlpScaleFactor = 1000;
-		this.reflSprite = new THREE.TextureLoader().load(reflSprite);
+		this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
 
 		this.displayingTextFromHTMLEvent = false;
 
@@ -144,23 +145,39 @@ class ReciprocalLatticeViewer {
 			return;
 		}
 		if (this.refl.containsXYZObs()) {
-			if (this.reflPositionsUnindexed) {
-				const pointsObs = this.createPoints(
-					this.reflPositionsUnindexed, 
-					ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"],
-					this.reflectionSize.value
+			if (this.reflPointsObsUnindexed) {
+				const reflGeometryObs = new THREE.BufferGeometry();
+				reflGeometryObs.setAttribute(
+					"position", new THREE.Float32BufferAttribute(this.reflPositionsUnindexed, 3)
 				);
+
+				const reflMaterialObs = new THREE.PointsMaterial({
+					size: this.reflectionSize.value,
+					transparent: true,
+					map: this.reflSprite,
+					alphaTest: 0.5,
+					color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
+				});
+				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
 				this.clearReflPointsObsUnindexed();
 				window.scene.add(pointsObs);
 				this.reflPointsObsUnindexed = [pointsObs];
 				this.updateObservedUnindexedReflections();
 			}
-			if (this.reflPositionsIndexed) {
-				const pointsObs = this.createPoints(
-					this.reflPositionsIndexed, 
-					ReciprocalLatticeViewer.colors()["reflectionObsIndexed"],
-					this.reflectionSize.value
+			if (this.reflPointsObsIndexed) {
+				const reflGeometryObs = new THREE.BufferGeometry();
+				reflGeometryObs.setAttribute(
+					"position", new THREE.Float32BufferAttribute(this.reflPositionsIndexed, 3)
 				);
+
+				const reflMaterialObs = new THREE.PointsMaterial({
+					size: this.reflectionSize.value,
+					transparent: true,
+					map: this.reflSprite,
+					alphaTest: 0.5,
+					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
+				});
+				const pointsObs = new THREE.Points(reflGeometryObs, reflMaterialObs);
 				this.clearReflPointsObsIndexed();
 				window.scene.add(pointsObs);
 				this.reflPointsObsIndexed = [pointsObs];
@@ -169,11 +186,19 @@ class ReciprocalLatticeViewer {
 		}
 
 		if (this.refl.containsXYZCal() && this.reflPositionsCal) {
-			const pointsCal = this.createPoints(
-				this.reflPositionsCal,
-				ReciprocalLatticeViewer.colors()["reflectionCal"],
-				this.reflectionSize.value
+			const reflGeometryCal = new THREE.BufferGeometry();
+			reflGeometryCal.setAttribute(
+				"position", new THREE.Float32BufferAttribute(this.reflPositionsCal, 3)
 			);
+
+			const reflMaterialCal = new THREE.PointsMaterial({
+				size: this.reflectionSize.value,
+				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
+				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
+			});
+			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
 			this.clearReflPointsCal();
 			window.scene.add(pointsCal);
 			this.reflPointsCal = [pointsCal];
@@ -286,22 +311,6 @@ class ReciprocalLatticeViewer {
 		this.setDefaultReflectionsDisplay();
 		this.hideCloseReflButton();
 		this.requestRender();
-	}
-
-	createPoints(positions, color, size){
-		const reflGeometry = new THREE.BufferGeometry();
-		reflGeometry.setAttribute(
-			"position", new THREE.Float32BufferAttribute(positions, 3)
-		);
-
-		const reflMaterial= new THREE.PointsMaterial({
-			size: size,
-			map: this.reflSprite,
-			alphaTest: 0.5,
-			transparent: true,
-			color: color
-		});
-		return new THREE.Points(reflGeometry, reflMaterial);
 	}
 
 	showCloseReflButton() {
@@ -436,32 +445,56 @@ class ReciprocalLatticeViewer {
 		if (containsXYZObs) {
 			if (containsMillerIndices) {
 
-				const pointsObsIndexed = this.createPoints(
-					positionsObsIndexed, 
-					ReciprocalLatticeViewer.colors()["reflectionObsIndexed"],
-					this.reflectionSize.value
+				const reflGeometryObsIndexed = new THREE.BufferGeometry();
+				reflGeometryObsIndexed.setAttribute(
+					"position", new THREE.Float32BufferAttribute(positionsObsIndexed, 3)
 				);
+
+				const reflMaterialObsIndexed = new THREE.PointsMaterial({
+					size: this.reflectionSize.value,
+					map: this.reflSprite,
+					alphaTest: 0.5,
+					transparent: true,
+					color: ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]
+				});
+				const pointsObsIndexed = new THREE.Points(reflGeometryObsIndexed, reflMaterialObsIndexed);
 				window.scene.add(pointsObsIndexed);
 				this.reflPointsObsIndexed = [pointsObsIndexed];
 				this.reflPositionsIndexed = positionsObsIndexed;
 
 			}
-			const pointsObsUnindexed = this.createPoints(
-				positionsObsUnindexed, 
-				ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"],
-				this.reflectionSize.value
+			const reflGeometryObsUnindexed = new THREE.BufferGeometry();
+			reflGeometryObsUnindexed.setAttribute(
+				"position", new THREE.Float32BufferAttribute(positionsObsUnindexed, 3)
 			);
+
+			const reflMaterialObsUnindexed = new THREE.PointsMaterial({
+				size: this.reflectionSize.value,
+				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
+				color: ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]
+			});
+			const pointsObsUnindexed = new THREE.Points(reflGeometryObsUnindexed, reflMaterialObsUnindexed);
 			window.scene.add(pointsObsUnindexed);
 			this.reflPointsObsUnindexed = [pointsObsUnindexed];
 			this.reflPositionsUnindexed = positionsObsUnindexed;
 		}
 
 		if (containsXYZCal) {
-			const pointsCal = this.createPoints(
-				positionsCal, 
-				ReciprocalLatticeViewer.colors()["reflectionCal"],
-				this.reflectionSize.value
+			const reflGeometryCal = new THREE.BufferGeometry();
+			reflGeometryCal.setAttribute(
+				"position", new THREE.Float32BufferAttribute(positionsCal, 3)
 			);
+
+			const reflMaterialCal = new THREE.PointsMaterial({
+				size: this.reflectionSize.value,
+				transparent: true,
+				map: this.reflSprite,
+				alphaTest: 0.5,
+				color: ReciprocalLatticeViewer.colors()["reflectionCal"]
+			});
+			const pointsCal = new THREE.Points(reflGeometryCal, reflMaterialCal);
 			window.scene.add(pointsCal);
 			this.reflPointsCal = [pointsCal];
 			this.reflPositionsCal = positionsCal;
@@ -767,42 +800,13 @@ class ReciprocalLatticeViewer {
 	updateGUIInfo() {
 
 		function updateReflectionInfo(viewer) {
-
-			function getDSpacing(arr, idx, viewer){
-				const rlp = new THREE.Vector3(
-					arr[3 * idx] / viewer.rlpScaleFactor,
-					arr[(3*idx) + 1] / viewer.rlpScaleFactor,
-					arr[(3*idx) + 2] / viewer.rlpScaleFactor
-				);
-				return (1/rlp.length()).toFixed(3);
-			}
-
-			if (viewer.observedIndexedReflsCheckbox.checked) { 
-				const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
-				window.rayCaster.setFromCamera(window.mousePosition, window.camera);
-				if (intersects.length > 0) {
-					for (var i = 0; i < intersects.length; i++) {
-						const summary = viewer.refl.getIndexedSummaryById(intersects[i].index);
-						viewer.displayHeaderText(
-							summary + " <b>res: </b>" + getDSpacing(
-								viewer.reflPositionsIndexed, intersects[i].index, viewer
-							) + " Angstrom"	
-						);
-					}
-				}
-			}
-			if (viewer.observedUnindexedReflsCheckbox.checked) { 
-				const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsUnindexed);
-				window.rayCaster.setFromCamera(window.mousePosition, window.camera);
-				if (intersects.length > 0) {
-					for (var i = 0; i < intersects.length; i++) {
-						const summary = viewer.refl.getUnindexedSummaryById(intersects[i].index);
-						viewer.displayHeaderText(
-							summary + " <b>res: </b>" + getDSpacing(
-								viewer.reflPositionsUnindexed, intersects[i].index, viewer
-							) + " Angstrom"	
-						);
-					}
+			if (!viewer.observedIndexedReflsCheckbox.checked) { return; }
+			const intersects = window.rayCaster.intersectObjects(viewer.reflPointsObsIndexed);
+			window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+			if (intersects.length > 0) {
+				for (var i = 0; i < intersects.length; i++) {
+					const millerIdx = viewer.refl.getMillerIndexById(intersects[i].index);
+					viewer.displayHeaderText(" (" + millerIdx + ")");
 				}
 			}
 		}

@@ -567,8 +567,11 @@ class ReflParser {
 	 * https://dials.github.io/documentation/data_files.html
 	 */ constructor(){
         this.reflTable = null; // Raw msgpack table
-        this.reflData = {}; // Parsed data mapped to each detector panel
-        this.indexedMap = {}; // indexed refl number mapped to miller index
+        this.panelReflData = {}; // Parsed data mapped to each detector panel
+        this.reflUnindexedDisplaySummary = {} // For mapping point raycasts to reflections 
+        ;
+        this.reflIndexedDisplaySummary = {} // For mapping point raycasts to reflections
+        ;
         this.filename = null;
         this.numReflections = null;
     }
@@ -577,30 +580,30 @@ class ReflParser {
     }
     clearReflectionTable() {
         this.reflTable = null;
-        this.reflData = {};
+        this.panelReflData = {};
         this.filename = null;
         this.numReflections = null;
     }
     hasXYZObsData() {
         // px, py, frame
         if (!this.hasReflTable()) return false;
-        for(var i in this.reflData){
-            if (!("xyzObs" in this.reflData[i][0])) return false;
+        for(var i in this.panelReflData){
+            if (!("xyzObs" in this.panelReflData[i][0])) return false;
         }
         return true;
     }
     hasXYZCalData() {
         // px, py, frame
         if (!this.hasReflTable()) return false;
-        for(var i in this.reflData){
-            if (!("xyzCal" in this.reflData[i][0])) return false;
+        for(var i in this.panelReflData){
+            if (!("xyzCal" in this.panelReflData[i][0])) return false;
         }
         return true;
     }
     hasMillerIndicesData() {
         if (!this.hasReflTable()) return false;
-        for(var i in this.reflData){
-            if (!("millerIdx" in this.reflData[i][0])) return false;
+        for(var i in this.panelReflData){
+            if (!("millerIdx" in this.panelReflData[i][0])) return false;
         }
         return true;
     }
@@ -757,40 +760,59 @@ class ReflParser {
             const refl = {
                 "indexed": false
             };
-            if (xyzObs) refl["xyzObs"] = xyzObs[i];
-            if (xyzCal) refl["xyzCal"] = xyzCal[i];
-            if (millerIndices) {
+            var displaySummary = "<b>id: </b>" + i + " <b>panel: </b>" + panel;
+            if (xyzObs != null) {
+                refl["xyzObs"] = xyzObs[i];
+                displaySummary += " <b>xyzObs: </b> (";
+                displaySummary += xyzObs[i][0].toFixed(1) + ", ";
+                displaySummary += xyzObs[i][1].toFixed(1) + ", ";
+                displaySummary += xyzObs[i][2].toFixed(1) + ")";
+            }
+            if (xyzCal != null) {
+                refl["xyzCal"] = xyzCal[i];
+                displaySummary += " <b>xyzCal: </b> (";
+                displaySummary += xyzCal[i][0].toFixed(1) + ", ";
+                displaySummary += xyzCal[i][1].toFixed(1) + ", ";
+                displaySummary += xyzCal[i][2].toFixed(1) + ")\n";
+            }
+            if (millerIndices != null) {
                 refl["millerIdx"] = millerIndices[i];
                 if (this.isValidMillerIndex(millerIndices[i])) {
                     refl["indexed"] = true;
                     refl["id"] = numIndexed;
-                    this.indexedMap[numIndexed] = millerIndices[i];
+                    displaySummary += "<b>hkl </b>(" + millerIndices[i] + ")";
+                    this.reflIndexedDisplaySummary[numIndexed] = displaySummary;
                     numIndexed++;
                 } else {
                     refl["id"] = numUnindexed;
+                    this.reflUnindexedDisplaySummary[numUnindexed] = displaySummary;
                     numUnindexed++;
                 }
             } else {
                 refl["id"] = numUnindexed;
+                this.reflUnindexedDisplaySummary[numUnindexed] = displaySummary;
                 numUnindexed++;
             }
-            if (wavelengths) refl["wavelength"] = wavelengths[i];
-            if (wavelengthsCal) refl["wavelengthCal"] = wavelengthsCal[i];
-            if (anglesObs) refl["angleObs"] = anglesObs[i];
-            if (anglesCal) refl["angleCal"] = anglesCal[i];
-            if (panel in this.reflData) this.reflData[panel].push(refl);
-            else this.reflData[panel] = [
+            if (wavelengths != null) refl["wavelength"] = wavelengths[i];
+            if (wavelengthsCal != null) refl["wavelengthCal"] = wavelengthsCal[i];
+            if (anglesObs != null) refl["angleObs"] = anglesObs[i];
+            if (anglesCal != null) refl["angleCal"] = anglesCal[i];
+            if (panel in this.panelReflData) this.panelReflData[panel].push(refl);
+            else this.panelReflData[panel] = [
                 refl
             ];
         }
         this.numReflections = panelNums.length;
     }
-    getMillerIndexById(id) {
-        return this.indexedMap[id];
+    getIndexedSummaryById(id) {
+        return this.reflIndexedDisplaySummary[id];
+    }
+    getUnindexedSummaryById(id) {
+        return this.reflUnindexedDisplaySummary[id];
     }
     getReflectionsForPanel(panelIdx) {
         console.assert(this.hasReflTable());
-        return this.reflData[panelIdx];
+        return this.panelReflData[panelIdx];
     }
 }
 
