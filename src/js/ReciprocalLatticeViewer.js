@@ -6,8 +6,14 @@ import { ExptParser } from "./ExptParser.js";
 import { ReflParser } from "./ReflParser.js";
 import reflSprite from "../../resources/disc.png";
 
-class ReciprocalLatticeViewer {
-	constructor(exptParser, reflParser) {
+export class ReciprocalLatticeViewer {
+	constructor(exptParser, reflParser, standalone=true) {
+
+		/*
+		 * if isStandalone, the user can add and remove .expt and .refl files
+		 * manually
+		 */
+		this.isStandalone = standalone; 
 
 		// Data parsers
 		this.expt = exptParser;
@@ -233,7 +239,9 @@ class ReciprocalLatticeViewer {
 		this.updateReciprocalCell();
 		this.setCameraToDefaultPositionWithExperiment();
 		this.showSidebar();
-		this.showCloseExptButton();
+		if (this.isStandalone){
+			this.showCloseExptButton();
+		}
 		this.requestRender();
 
 	}
@@ -318,7 +326,7 @@ class ReciprocalLatticeViewer {
 		this.clearReflectionTable();
 		await this.refl.parseReflectionTable(file);
 		this.addReflections();
-		if (this.hasReflectionTable()) {
+		if (this.hasReflectionTable() && this.isStandalone) {
 			this.showCloseReflButton();
 		}
 		this.requestRender();
@@ -723,7 +731,7 @@ class ReciprocalLatticeViewer {
 	}
 
 	displayDefaultHeaderText() {
-		if (this.hasExperiment()) {
+		if (this.hasExperiment() || !this.isStandalone) {
 			this.hideHeaderText();
 		}
 		else {
@@ -910,7 +918,7 @@ class ReciprocalLatticeViewer {
 
 }
 
-function setupScene() {
+export function setupScene() {
 
 	/**
 	 * Sets the renderer, camera, controls, event listeners
@@ -976,10 +984,10 @@ function setupScene() {
 		event.stopPropagation();
 		const file = event.dataTransfer.files[0];
 		const fileExt = file.name.split(".").pop();
-		if (fileExt == "refl") {
+		if (fileExt == "refl" && window.viewer.isStandalone) {
 			window.viewer.addReflectionTable(file);
 		}
-		else if (fileExt == "expt") {
+		else if (fileExt == "expt" && window.viewer.isStandalone) {
 			window.viewer.addExperiment(file);
 		}
 	});
@@ -1001,6 +1009,3 @@ function setupScene() {
 	window.viewer.setCameraToDefaultPosition();
 	window.viewer.requestRender();
 }
-
-window.viewer = new ReciprocalLatticeViewer(new ExptParser(), new ReflParser());
-setupScene();
