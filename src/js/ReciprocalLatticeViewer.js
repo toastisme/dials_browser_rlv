@@ -698,7 +698,7 @@ export class ReciprocalLatticeViewer {
 
 	setCameraSmooth(position) {
 		this.rotateToPos(position);
-		window.controls.update();
+		this.resetCameraZoomSmooth();
 	}
 
 	setCameraToDefaultPosition() {
@@ -864,7 +864,20 @@ export class ReciprocalLatticeViewer {
 		});
 	}
 
-	zoomInOnObject(obj, fitOffset=1.1) {
+	resetCameraZoomSmooth(){
+		gsap.to(window.camera, {
+			duration: 1,
+			zoom: 1,
+			onUpdate: function () {
+				window.camera.updateProjectionMatrix();
+				window.viewer.requestRender();
+			}
+		});
+		window.controls.update();
+
+	}
+
+	zoomInOnObject(obj, screenWidthFraction=0.2){
 
 		const size = new THREE.Vector3();
 		const center = new THREE.Vector3();
@@ -876,27 +889,47 @@ export class ReciprocalLatticeViewer {
 		box.getSize(size);
 		box.getCenter(center);
 
-		const maxSize = Math.max(size.x, size.y, size.z);
-		const fitHeightDistance = maxSize / (2 * Math.atan(Math.PI * window.camera.fov / 360));
-		const fitWidthDistance = fitHeightDistance / window.camera.aspect;
-		const distance = fitOffset * Math.max(fitHeightDistance, fitWidthDistance);
+		const vertices = [
+		new THREE.Vector3(center.x - size.x / 2, center.y - size.y / 2, center.z - size.z / 2),
+		new THREE.Vector3(center.x - size.x / 2, center.y - size.y / 2, center.z + size.z / 2),
+		new THREE.Vector3(center.x - size.x / 2, center.y + size.y / 2, center.z - size.z / 2),
+		new THREE.Vector3(center.x - size.x / 2, center.y + size.y / 2, center.z + size.z / 2),
+		new THREE.Vector3(center.x + size.x / 2, center.y - size.y / 2, center.z - size.z / 2),
+		new THREE.Vector3(center.x + size.x / 2, center.y - size.y / 2, center.z + size.z / 2),
+		new THREE.Vector3(center.x + size.x / 2, center.y + size.y / 2, center.z - size.z / 2),
+		new THREE.Vector3(center.x + size.x / 2, center.y + size.y / 2, center.z + size.z / 2),
+		];
 
-		const direction = center.clone()
-			.normalize()
-			.multiplyScalar(distance);
+		const screenVertices = vertices.map(vertex => {
+			const projectedVertex = vertex.clone().project(camera);
+			projectedVertex.x = (projectedVertex.x + 1) / 2 * window.innerWidth;
+			projectedVertex.y = (1 - projectedVertex.y) / 2 * window.innerHeight;
+			return projectedVertex;
+		});
 
-		const target = center.clone().sub(direction);
-		gsap.to(window.camera.position, {
+		let largestDimension = 0;
+		for (let i = 0; i < screenVertices.length; i++) {
+			for (let j = i + 1; j < screenVertices.length; j++) {
+				const distance = screenVertices[i].distanceTo(screenVertices[j]);
+				if (distance > largestDimension) {
+					largestDimension = distance;
+				}
+			}
+		}
+
+		const zoomTarget = window.camera.zoom* (window.innerWidth * screenWidthFraction)/largestDimension;
+
+
+		gsap.to(window.camera, {
 			duration: 1,
-			x: target.x,
-			y: target.y,
-			z: target.z,
+			zoom: zoomTarget,
 			onUpdate: function () {
-				window.camera.lookAt(target);
+				window.camera.updateProjectionMatrix();
 				window.viewer.requestRender();
 			}
 		});
 		window.controls.update();
+
 	}
 
 	animate() {
@@ -915,7 +948,6 @@ export class ReciprocalLatticeViewer {
 			window.requestAnimationFrame(this.animate.bind(this));
 		}
 	}
-
 }
 
 export function setupScene() {
@@ -944,6 +976,18 @@ export function setupScene() {
 		0.01,
 		10000
 	);
+	var frustumSize = 500;
+	var aspect = window.innerWidth / window.innerHeight;
+	window.camera = new THREE.OrthographicCamera(
+		frustumSize * aspect / -2,
+		frustumSize * aspect / 2,
+		frustumSize / 2,
+		frustumSize / -2,
+		1,
+		50000
+	);
+
+	window.camera.frustrumCulled = false;
 	window.renderer.render(window.scene, window.camera);
 	window.rayCaster = new THREE.Raycaster(); // used for all raycasting
 
@@ -997,7 +1041,7 @@ export function setupScene() {
 
 	window.addEventListener('mousedown', function (event) {
 		if (event.button == 2) {
-			window.viewer.rotateToPos(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
+			window.viewer.setCameraToDefaultPositionWithExperiment();
 		}
 	});
 	window.addEventListener('keydown', function (event) {
