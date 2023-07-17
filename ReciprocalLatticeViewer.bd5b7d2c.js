@@ -142,13 +142,13 @@
       this[globalName] = mainExports;
     }
   }
-})({"gFiVl":[function(require,module,exports) {
+})({"5t9j5":[function(require,module,exports) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
-module.bundle.HMR_BUNDLE_ID = "1ccecf93f393cd27";
+module.bundle.HMR_BUNDLE_ID = "91a34b56bd5b7d2c";
 "use strict";
 /* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, globalThis, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
 import type {
@@ -558,6 +558,8 @@ function hmrAccept(bundle, id) {
 
 },{}],"41c7t":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "ReciprocalLatticeViewer", ()=>ReciprocalLatticeViewer);
 var _three = require("three");
 var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
 var _gsap = require("gsap");
@@ -566,8 +568,6 @@ var _exptParserJs = require("./ExptParser.js");
 var _reflParserJs = require("./ReflParser.js");
 var _discPng = require("../../resources/disc.png");
 var _discPngDefault = parcelHelpers.interopDefault(_discPng);
-var global = arguments[3];
-global.UM = {};
 class ReciprocalLatticeViewer {
     constructor(exptParser, reflParser){
         // Data parsers
@@ -1320,7 +1320,7 @@ function setupScene() {
 } //window.viewer = new ReciprocalLatticeViewer(new ExptParser(), new ReflParser());
  //setupScene();
 
-},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","gsap":"fPSuC","three.meshline":"4n0f9","./ExptParser.js":"dbzGd","./ReflParser.js":"g6Vmg","../../resources/disc.png":"1z1iA","@parcel/transformer-js/src/esmodule-helpers.js":"fD7H8"}],"7mqRv":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","gsap":"fPSuC","three.meshline":"4n0f9","./ExptParser.js":"dbzGd","./ReflParser.js":"g6Vmg","../../resources/disc.png":"8NTbh","@parcel/transformer-js/src/esmodule-helpers.js":"fD7H8"}],"7mqRv":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "OrbitControls", ()=>OrbitControls);
@@ -6633,10 +6633,10 @@ var CSSPlugin = {
     exports.MeshLineRaycast = MeshLineRaycast;
 }).call(this);
 
-},{"2c577d9d017dc749":"ktPTu"}],"1z1iA":[function(require,module,exports) {
-module.exports = require("484e2e00e1e03144").getBundleURL("2tliy") + "disc.e9075a1f.png" + "?" + Date.now();
+},{"2c577d9d017dc749":"ktPTu"}],"8NTbh":[function(require,module,exports) {
+module.exports = require("3ae5216e2cf2c5a8").getBundleURL("cve4p") + "disc.e9075a1f.png" + "?" + Date.now();
 
-},{"484e2e00e1e03144":"jMDco"}],"jMDco":[function(require,module,exports) {
+},{"3ae5216e2cf2c5a8":"jMDco"}],"jMDco":[function(require,module,exports) {
 "use strict";
 var bundleURL = {};
 function getBundleURLCached(id) {
@@ -6670,6 +6670,6 @@ exports.getBundleURL = getBundleURLCached;
 exports.getBaseURL = getBaseURL;
 exports.getOrigin = getOrigin;
 
-},{}]},["gFiVl","41c7t"], "41c7t", "parcelRequirea13c")
+},{}]},["5t9j5"], null, "parcelRequirea13c")
 
-//# sourceMappingURL=ReciprocalLatticeViewer.f393cd27.js.map
+//# sourceMappingURL=ReciprocalLatticeViewer.bd5b7d2c.js.map

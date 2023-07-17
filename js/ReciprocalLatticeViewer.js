@@ -924,9 +924,6 @@ function setupScene() {
 	window.renderer.setSize(window.innerWidth, window.innerHeight);
 	document.body.appendChild(window.renderer.domElement);
 
-	headerText = window.document.getElementById("headerText")
-	sidebar = window.document.getElementById("sidebar")
-
 	window.scene = new THREE.Scene()
 	window.scene.fog = new THREE.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 8000);
 	window.camera = new THREE.PerspectiveCamera(
