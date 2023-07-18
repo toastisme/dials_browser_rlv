@@ -970,12 +970,7 @@ export function setupScene() {
 
 	window.scene = new THREE.Scene()
 	window.scene.fog = new THREE.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 8000);
-	window.camera = new THREE.PerspectiveCamera(
-		45,
-		window.innerWidth / window.innerHeight,
-		0.01,
-		10000
-	);
+
 	var frustumSize = 500;
 	var aspect = window.innerWidth / window.innerHeight;
 	window.camera = new THREE.OrthographicCamera(
@@ -987,7 +982,6 @@ export function setupScene() {
 		50000
 	);
 
-	window.camera.frustrumCulled = false;
 	window.renderer.render(window.scene, window.camera);
 	window.rayCaster = new THREE.Raycaster(); // used for all raycasting
 
