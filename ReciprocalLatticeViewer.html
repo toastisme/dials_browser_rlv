@@ -5,7 +5,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Experiment</title>
+	<title>DIALS Reciprocal Lattice Viewer</title>
 	<style>body {
   margin: 0;
 }
@@ -1218,7 +1218,7 @@ class ReciprocalLatticeViewer {
     }
     setCameraSmooth(position) {
         this.rotateToPos(position);
-        window.controls.update();
+        this.resetCameraZoomSmooth();
     }
     setCameraToDefaultPosition() {
         this.setCameraSmooth(ReciprocalLatticeViewer.cameraPositions()["default"]);
@@ -1330,7 +1330,18 @@ class ReciprocalLatticeViewer {
             }
         });
     }
-    zoomInOnObject(obj, fitOffset = 1.1) {
+    resetCameraZoomSmooth() {
+        (0, _gsap.gsap).to(window.camera, {
+            duration: 1,
+            zoom: 1,
+            onUpdate: function() {
+                window.camera.updateProjectionMatrix();
+                window.viewer.requestRender();
+            }
+        });
+        window.controls.update();
+    }
+    zoomInOnObject(obj, screenWidthFraction = 0.2) {
         const size = new _three.Vector3();
         const center = new _three.Vector3();
         const box = new _three.Box3();
@@ -1338,19 +1349,33 @@ class ReciprocalLatticeViewer {
         box.expandByObject(obj);
         box.getSize(size);
         box.getCenter(center);
-        const maxSize = Math.max(size.x, size.y, size.z);
-        const fitHeightDistance = maxSize / (2 * Math.atan(Math.PI * window.camera.fov / 360));
-        const fitWidthDistance = fitHeightDistance / window.camera.aspect;
-        const distance = fitOffset * Math.max(fitHeightDistance, fitWidthDistance);
-        const direction = center.clone().normalize().multiplyScalar(distance);
-        const target = center.clone().sub(direction);
-        (0, _gsap.gsap).to(window.camera.position, {
+        const vertices = [
+            new _three.Vector3(center.x - size.x / 2, center.y - size.y / 2, center.z - size.z / 2),
+            new _three.Vector3(center.x - size.x / 2, center.y - size.y / 2, center.z + size.z / 2),
+            new _three.Vector3(center.x - size.x / 2, center.y + size.y / 2, center.z - size.z / 2),
+            new _three.Vector3(center.x - size.x / 2, center.y + size.y / 2, center.z + size.z / 2),
+            new _three.Vector3(center.x + size.x / 2, center.y - size.y / 2, center.z - size.z / 2),
+            new _three.Vector3(center.x + size.x / 2, center.y - size.y / 2, center.z + size.z / 2),
+            new _three.Vector3(center.x + size.x / 2, center.y + size.y / 2, center.z - size.z / 2),
+            new _three.Vector3(center.x + size.x / 2, center.y + size.y / 2, center.z + size.z / 2)
+        ];
+        const screenVertices = vertices.map((vertex)=>{
+            const projectedVertex = vertex.clone().project(camera);
+            projectedVertex.x = (projectedVertex.x + 1) / 2 * window.innerWidth;
+            projectedVertex.y = (1 - projectedVertex.y) / 2 * window.innerHeight;
+            return projectedVertex;
+        });
+        let largestDimension = 0;
+        for(let i = 0; i < screenVertices.length; i++)for(let j = i + 1; j < screenVertices.length; j++){
+            const distance = screenVertices[i].distanceTo(screenVertices[j]);
+            if (distance > largestDimension) largestDimension = distance;
+        }
+        const zoomTarget = window.camera.zoom * (window.innerWidth * screenWidthFraction) / largestDimension;
+        (0, _gsap.gsap).to(window.camera, {
             duration: 1,
-            x: target.x,
-            y: target.y,
-            z: target.z,
+            zoom: zoomTarget,
             onUpdate: function() {
-                window.camera.lookAt(target);
+                window.camera.updateProjectionMatrix();
                 window.viewer.requestRender();
             }
         });
@@ -1383,7 +1408,9 @@ function setupScene() {
     sidebar = window.document.getElementById("sidebar");
     window.scene = new _three.Scene();
     window.scene.fog = new _three.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 8000);
-    window.camera = new _three.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000);
+    var frustumSize = 500;
+    var aspect = window.innerWidth / window.innerHeight;
+    window.camera = new _three.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 1, 50000);
     window.renderer.render(window.scene, window.camera);
     window.rayCaster = new _three.Raycaster(); // used for all raycasting
     // Controls
@@ -1424,7 +1451,7 @@ function setupScene() {
     });
     window.addEventListener("dblclick", function(event) {});
     window.addEventListener("mousedown", function(event) {
-        if (event.button == 2) window.viewer.rotateToPos(ReciprocalLatticeViewer.cameraPositions()["defaultWithExperiment"]);
+        if (event.button == 2) window.viewer.setCameraToDefaultPositionWithExperiment();
     });
     window.addEventListener("keydown", function(event) {
         if (event.key === "s") window.viewer.toggleSidebar();
