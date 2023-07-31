@@ -67,6 +67,16 @@ export class ExptParser{
 		});
 	};
 
+	parseExperimentJSON(jsonString){
+		this.exptJSON = jsonString 
+		this.loadDetectorPanelData();
+		this.loadCrystalSummary();
+		this.loadGoniometer();
+		this.loadCrystal();
+		this.loadScan();
+		this.imageFilenames = this.getImageFilenames();
+	}
+
 	getImageFilenames(){
 		return this.exptJSON["imageset"][0]["template"];
 	}

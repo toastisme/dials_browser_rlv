@@ -15,6 +15,33 @@
 <body>
 	<header id="headerText"> </header>
 	<sidebar id="sidebar"> 
+		<script>
+			function updateObservedUnindexedReflections(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateObservedUnindexedReflections()
+			}
+
+			function updateObservedIndexedReflections(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateObservedIndexedReflections()
+			}
+
+			function updateCalculatedReflections(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateObservedIndexedReflections()
+			}
+
+			function updateReflectionSize(){
+				window.viewer.disableMouseClick();
+				window.viewer.updateReflectionSize();
+			}
+
+			function updateReciprocalCell(){
+				window.viewer.disableMouseClick();
+				window.viewer.updateReciprocalCell();
+			}
+
+		</script>
 		<b>s</b>          = toggle sidebar <br>
 		<b>left click</b> = navigate <br>
 		<b>right click</b> = reset view <br>
@@ -22,18 +49,18 @@
 		-------------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
 		id="observedUnindexedReflections", checked=false, 
-		onclick="window.viewer.updateObservedUnindexedReflections()", disabled=true>
+		onclick="updateObservedUnindexedReflections()", disabled=true><br>
 		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" 
 		id="observedIndexedReflections", checked=false, 
-		onclick="window.viewer.updateObservedIndexedReflections()", disabled=true>
+		onclick="updateObservedIndexedReflections()", disabled=true><br>
 		<span style="color: #ffaaaa"><b>calculated reflections:</b> </span><input type="checkbox" 
 		id="calculatedReflections", checked=false, 
-		onclick="window.viewer.updateCalculatedReflections()", disabled=true>
+		onclick="updateCalculatedReflections()", disabled=true><br>
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell", 
-		checked=false, onclick="window.viewer.updateReciprocalCell()", disabled=false>
+		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
 		<b>reflection size:</b>  <input type="range" min="1" max="75" value="10" 
 		class="slider" id="reflectionSize" 
-		onmouseup="window.viewer.updateReflectionSize()">
+		onmouseup="updateReflectionSize()">
 	</sidebar>
 	<footer id="footerText"> </footer>
 	<button class="btn" id="closeExpt" onmouseout="window.viewer.stopDisplayingText()" onmouseover="window.viewer.displayImageFilenames() "onclick="window.viewer.clearExperiment()"><i class="fa fa-trash"></i> expt file</button>
@@ -57,7 +84,7 @@
 		#sidebar {
 			display: none;
 			font-family: Tahoma, Verdana, sans-serif;
-			font-size: 16px;
+			font-size: 12px;
 			color: #ddd;
 			background-color: rgba(0,1,0,0.7);
 			position: absolute;
@@ -69,7 +96,7 @@
 			border-radius: 10px;
 			z-index: 9;
 			white-space: pre-line;
-			line-height: .7;
+			line-height: 1.2;
 		}
 		#closeExpt{
 			display: none;
@@ -110,7 +137,77 @@
 	import { ReciprocalLatticeViewer, setupScene } from "./src/js/ReciprocalLatticeViewer.js";
 	import { ExptParser } from "./src/js/ExptParser.js";
 	import { ReflParser } from "./src/js/ReflParser.js";
-	window.viewer = new ReciprocalLatticeViewer(new ExptParser(), new ReflParser(), true);
+
+	function isRLVMsg(msg){
+		return "channel" in msg && msg["channel"] == "rlv";
+	}
+
+	const serverWSAddr = "ws://127.0.0.1:8888/";
+
+	const colors = {
+			"background": 0x020817,
+			"sample": 0xfdf6e3,
+			"reflectionObsUnindexed": 0xaaa9a9,
+			"reflectionObsIndexed": 0xe74c3c,
+			"reflectionCal": 0xffaaaa,
+			"highlight": 0xFFFFFF,
+			"beam": 0xFFFFFF,
+			"reciprocalCell": 0xFFFFFF,
+			"RLVLabels" : "white"
+	};
+
+	window.viewer = new ReciprocalLatticeViewer(
+		new ExptParser(), 
+		new ReflParser(), 
+		false,
+		colors
+	);
+	window.viewer.serverWS = new WebSocket(serverWSAddr);
+
+	window.viewer.serverWS.onopen = () => {
+		console.log('Opened Connection')
+
+		window.viewer.serverWS.send(JSON.stringify({
+			"channel": "server",
+			"command": "record_connection", 
+			"id": "rlv"
+			}
+		));
+
+	};
+
+	window.viewer.serverWS.onclose = () => {
+		console.log('Closed Connection')
+	};
+
+	window.viewer.serverWS.onmessage = (event) => {
+
+		console.log("msg received", event.data);
+		const msg = JSON.parse(event.data);
+
+		if (!isRLVMsg(msg)){
+			return;
+		}
+
+		const command = msg["command"];
+
+		switch(command){
+			case "update_experiment":
+				window.viewer.addExperimentFromJSONString(msg);
+			break;
+			case "update_reflection_table":
+				delete msg["command"];
+				delete msg["channel"];
+				window.viewer.addReflectionsFromData(msg);
+				break;
+			default:
+				console.warn("Unrecognised command ", command);
+		}
+
+
+
+	};
+
 	setupScene();
 	</script>
 
