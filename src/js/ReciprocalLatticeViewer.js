@@ -389,7 +389,7 @@ export class ReciprocalLatticeViewer {
 		}
 
 		this.refl.reflData = reflData;
-		this.refl.refl = "reflData";
+		this.refl.reflTable = "reflData";
 
 		const positionsObsIndexed = new Array();
 		const positionsObsUnindexed = new Array();
