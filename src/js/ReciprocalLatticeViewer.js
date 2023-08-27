@@ -141,7 +141,7 @@ export class ReciprocalLatticeViewer {
 		}
 	}
 
-	updateReciprocalCell(val = null) {
+	updateReciprocalCell(val = null, focusOnCell=true) {
 		this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal();
 		if (val !== null) {
 			this.reciprocalCellCheckbox.checked = val;
@@ -149,7 +149,7 @@ export class ReciprocalLatticeViewer {
 		for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
 			this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
 		}
-		if (this.reciprocalCellCheckbox.checked){
+		if (this.reciprocalCellCheckbox.checked && focusOnCell){
 			this.zoomInOnObject(this.reciprocalCellMeshes[0]);
 		}
 		this.requestRender();
@@ -255,7 +255,11 @@ export class ReciprocalLatticeViewer {
 
 	}
 
-	addExperimentFromJSONString = async (jsonString) =>{
+	addExperimentFromJSONString = async (
+		jsonString, 
+		defaultSetup=true, 
+		showReciprocalCell=false) =>{
+
 		this.clearExperiment();
 		this.clearReflectionTable();
 		await this.expt.parseExperimentJSON(jsonString);
@@ -263,9 +267,14 @@ export class ReciprocalLatticeViewer {
 		this.addBeam();
 		this.addSample();
 		this.addCrystalRLV();
-		this.updateReciprocalCell();
-		this.setCameraToDefaultPositionWithExperiment();
-		this.showSidebar();
+		if (defaultSetup){
+			this.updateReciprocalCell(showReciprocalCell);
+			this.setCameraToDefaultPositionWithExperiment();
+			this.showSidebar();
+		}
+		else{
+			this.updateReciprocalCell(showReciprocalCell, false);
+		}
 		if (this.isStandalone){
 			this.showCloseExptButton();
 		}
