@@ -195,12 +195,12 @@ export class ExptParser{
 				"fixedRotation" : new THREE.Matrix3(
 					fr[0], fr[1], fr[2],
 					fr[3], fr[4], fr[5],
-					fr[6], fr[7], fr[i]
+					fr[6], fr[7], fr[8]
 				),
 				"settingRotation": new THREE.Matrix3(
 					sr[0], sr[1], sr[2],
 					sr[3], sr[4], sr[5],
-					sr[6], sr[7], sr[i]
+					sr[6], sr[7], sr[8]
 				),
 				"rotationAxis" : new THREE.Vector3(
 					ra[0], ra[1], ra[2]
