@@ -20,7 +20,7 @@
 		<b>right click</b> = reset view <br>
 		<b>mouse wheel</b> = zoom<br>
 		-------------------------------------------------------<br>
-		<span style="color: #aaa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" id="observedUnindexedReflections" ,="" checked="false," onclick="window.viewer.updateObservedUnindexedReflections()" disabled="true">
+		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" id="observedUnindexedReflections" ,="" checked="false," onclick="window.viewer.updateObservedUnindexedReflections()" disabled="true">
 		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" id="observedIndexedReflections" ,="" checked="false," onclick="window.viewer.updateObservedIndexedReflections()" disabled="true">
 		<span style="color: #faa"><b>calculated reflections:</b> </span><input type="checkbox" id="calculatedReflections" ,="" checked="false," onclick="window.viewer.updateCalculatedReflections()" disabled="true">
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell" ,="" checked="false," onclick="window.viewer.updateReciprocalCell()" disabled="false">
@@ -675,16 +675,16 @@ var _three = require("three");
 var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
 var _gsap = require("gsap");
 var _threeMeshline = require("three.meshline");
-var _exptParserJs = require("./ExptParser.js");
-var _reflParserJs = require("./ReflParser.js");
-var _discPng = require("../../resources/disc.png");
-var _discPngDefault = parcelHelpers.interopDefault(_discPng);
 class ReciprocalLatticeViewer {
-    constructor(exptParser, reflParser, standalone = true){
+    constructor(exptParser, reflParser, standalone, colors = null){
         /*
 		 * if isStandalone, the user can add and remove .expt and .refl files
 		 * manually
 		 */ this.isStandalone = standalone;
+        this.serverWS = null;
+        this.colors = null;
+        if (colors != null) this.colors = colors;
+        else this.colors = ReciprocalLatticeViewer.defaultColors();
         // Data parsers
         this.expt = exptParser;
         this.refl = reflParser;
@@ -708,18 +708,19 @@ class ReciprocalLatticeViewer {
         this.beamMeshes = [];
         this.sampleMesh = null;
         this.reciprocalCellMeshes = [];
+        this.preventMouseClick = false;
         // Colors that are used often
-        this.hightlightColor = new _three.Color(ReciprocalLatticeViewer.colors()["highlight"]);
-        this.reflectionUnindexedColor = new _three.Color(ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"]);
-        this.reflectionInexedColor = new _three.Color(ReciprocalLatticeViewer.colors()["reflectionObsIndexed"]);
-        this.reflectionCalculatedColor = new _three.Color(ReciprocalLatticeViewer.colors()["reflectionCal"]);
+        this.hightlightColor = new _three.Color(this.colors["highlight"]);
+        this.reflectionUnindexedColor = new _three.Color(this.colors["reflectionObsUnindexed"]);
+        this.reflectionInexedColor = new _three.Color(this.colors["reflectionObsIndexed"]);
+        this.reflectionCalculatedColor = new _three.Color(this.colors["reflectionCal"]);
         this.rlpScaleFactor = 1000;
-        this.reflSprite = new _three.TextureLoader().load((0, _discPngDefault.default));
+        this.reflSprite = new _three.TextureLoader().load("resources/disc.png");
         this.displayingTextFromHTMLEvent = false;
         this.updateReflectionCheckboxStatus();
         this.setDefaultReflectionsDisplay();
     }
-    static colors() {
+    static defaultColors() {
         return {
             "background": 0x222222,
             "sample": 0xfdf6e3,
@@ -779,18 +780,18 @@ class ReciprocalLatticeViewer {
             this.requestRender();
         }
     }
-    updateReciprocalCell(val = null) {
+    updateReciprocalCell(val = null, focusOnCell = true) {
         this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal();
         if (val !== null) this.reciprocalCellCheckbox.checked = val;
         for(var i = 0; i < this.reciprocalCellMeshes.length; i++)this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
-        if (this.reciprocalCellCheckbox.checked) this.zoomInOnObject(this.reciprocalCellMeshes[0]);
+        if (this.reciprocalCellCheckbox.checked && focusOnCell) this.zoomInOnObject(this.reciprocalCellMeshes[0]);
         this.requestRender();
     }
     updateReflectionSize() {
         if (!this.hasReflectionTable()) return;
-        if (this.refl.containsXYZObs()) {
+        if (this.refl.hasXYZObsData()) {
             if (this.reflPositionsUnindexed) {
-                const pointsObs = this.createPoints(this.reflPositionsUnindexed, ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"], this.reflectionSize.value);
+                const pointsObs = this.createPoints(this.reflPositionsUnindexed, this.colors["reflectionObsUnindexed"], this.reflectionSize.value);
                 this.clearReflPointsObsUnindexed();
                 window.scene.add(pointsObs);
                 this.reflPointsObsUnindexed = [
@@ -799,7 +800,7 @@ class ReciprocalLatticeViewer {
                 this.updateObservedUnindexedReflections();
             }
             if (this.reflPositionsIndexed) {
-                const pointsObs = this.createPoints(this.reflPositionsIndexed, ReciprocalLatticeViewer.colors()["reflectionObsIndexed"], this.reflectionSize.value);
+                const pointsObs = this.createPoints(this.reflPositionsIndexed, this.colors["reflectionObsIndexed"], this.reflectionSize.value);
                 this.clearReflPointsObsIndexed();
                 window.scene.add(pointsObs);
                 this.reflPointsObsIndexed = [
@@ -808,8 +809,8 @@ class ReciprocalLatticeViewer {
                 this.updateObservedIndexedReflections();
             }
         }
-        if (this.refl.containsXYZCal() && this.reflPositionsCal) {
-            const pointsCal = this.createPoints(this.reflPositionsCal, ReciprocalLatticeViewer.colors()["reflectionCal"], this.reflectionSize.value);
+        if (this.refl.hasXYZCalData() && this.reflPositionsCal) {
+            const pointsCal = this.createPoints(this.reflPositionsCal, this.colors["reflectionCal"], this.reflectionSize.value);
             this.clearReflPointsCal();
             window.scene.add(pointsCal);
             this.reflPointsCal = [
@@ -866,6 +867,22 @@ class ReciprocalLatticeViewer {
         this.updateReciprocalCell();
         this.setCameraToDefaultPositionWithExperiment();
         this.showSidebar();
+        if (this.isStandalone) this.showCloseExptButton();
+        this.requestRender();
+    };
+    addExperimentFromJSONString = async (jsonString, defaultSetup = true, showReciprocalCell = false)=>{
+        this.clearExperiment();
+        this.clearReflectionTable();
+        await this.expt.parseExperimentJSON(jsonString);
+        console.assert(this.hasExperiment());
+        this.addBeam();
+        this.addSample();
+        this.addCrystalRLV();
+        if (defaultSetup) {
+            this.updateReciprocalCell(showReciprocalCell);
+            this.setCameraToDefaultPositionWithExperiment();
+            this.showSidebar();
+        } else this.updateReciprocalCell(showReciprocalCell, false);
         if (this.isStandalone) this.showCloseExptButton();
         this.requestRender();
     };
@@ -939,7 +956,7 @@ class ReciprocalLatticeViewer {
         if (this.hasReflectionTable() && this.isStandalone) this.showCloseReflButton();
         this.requestRender();
     };
-    addReflections() {
+    addReflectionsFromData(reflData) {
         function getRLP(s1, wavelength, unitS0, viewer1, goniometer, angle, U) {
             const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
             if (goniometer == null) return rlp.multiplyScalar(viewer1.rlpScaleFactor);
@@ -956,9 +973,115 @@ class ReciprocalLatticeViewer {
             rlp.applyMatrix3(fixedRotation.clone().invert().transpose());
             return rlp.multiplyScalar(viewer1.rlpScaleFactor);
         }
-        if (!this.hasReflectionTable()) {
-            console.warn("Tried to add reflections but no table has been loaded");
+        if (!this.hasExperiment()) {
+            console.warn("Tried to add reflections but no experiment has been loaded");
+            this.clearReflectionTable();
             return;
+        }
+        this.refl.panelReflData = reflData;
+        this.refl.reflTable = "reflData";
+        const positionsObsIndexed = new Array();
+        const positionsObsUnindexed = new Array();
+        const positionsCal = new Array();
+        const panelKeys = Object.keys(reflData);
+        const refl = reflData[panelKeys[0]][0];
+        const containsXYZObs = "xyzObs" in refl;
+        const containsXYZCal = "xyzCal" in refl;
+        const containsMillerIndices = "millerIdx" in refl;
+        const containsWavelengths = "wavelength" in refl;
+        const containsWavelengthsCal = "wavelength_cal" in refl;
+        var wavelength = this.expt.getBeamData()["wavelength"];
+        var wavelengthCal = this.expt.getBeamData()["wavelength"];
+        var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
+        var goniometer = this.expt.goniometer;
+        for(var i = 0; i < this.expt.getNumDetectorPanels(); i++){
+            var panelReflections = reflData[panelKeys[i]];
+            const panelData = this.expt.getDetectorPanelDataByIdx(i);
+            if (goniometer != null) {
+                if (!this.refl.containsRotationAnglesObs() || !this.refl.containsRotationAnglesCal()) panelReflections = this.expt.addAnglesToReflections(panelReflections);
+            }
+            const pxSize = [
+                panelData["pxSize"].x,
+                panelData["pxSize"].y
+            ];
+            const dMatrix = panelData["dMatrix"];
+            var U = null;
+            if (this.expt.hasCrystal()) U = this.expt.getCrystalU();
+            for(var j = 0; j < panelReflections.length; j++){
+                if (containsXYZObs) {
+                    const xyzObs = panelReflections[j]["xyzObs"];
+                    if (containsWavelengths) wavelength = panelReflections[j]["wavelength"];
+                    if (!wavelength) continue;
+                    const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
+                    const angle = panelReflections[j]["angleObs"];
+                    const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U);
+                    if (containsMillerIndices && panelReflections[j]["indexed"]) {
+                        positionsObsIndexed.push(rlp.x);
+                        positionsObsIndexed.push(rlp.y);
+                        positionsObsIndexed.push(rlp.z);
+                    } else {
+                        positionsObsUnindexed.push(rlp.x);
+                        positionsObsUnindexed.push(rlp.y);
+                        positionsObsUnindexed.push(rlp.z);
+                    }
+                }
+                if (containsXYZCal) {
+                    const xyzCal = panelReflections[j]["xyzCal"];
+                    if (containsWavelengthsCal) wavelengthCal = panelReflections[j]["wavelengthCal"];
+                    if (!wavelengthCal) continue;
+                    const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
+                    const angle = panelReflections[j]["angleCal"];
+                    const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U);
+                    positionsCal.push(rlp.x);
+                    positionsCal.push(rlp.y);
+                    positionsCal.push(rlp.z);
+                }
+            }
+        }
+        if (containsXYZObs) {
+            if (containsMillerIndices) {
+                const pointsObsIndexed = this.createPoints(positionsObsIndexed, this.colors["reflectionObsIndexed"], this.reflectionSize.value);
+                window.scene.add(pointsObsIndexed);
+                this.reflPointsObsIndexed = [
+                    pointsObsIndexed
+                ];
+                this.reflPositionsIndexed = positionsObsIndexed;
+            }
+            const pointsObsUnindexed = this.createPoints(positionsObsUnindexed, this.colors["reflectionObsUnindexed"], this.reflectionSize.value);
+            window.scene.add(pointsObsUnindexed);
+            this.reflPointsObsUnindexed = [
+                pointsObsUnindexed
+            ];
+            this.reflPositionsUnindexed = positionsObsUnindexed;
+        }
+        if (containsXYZCal) {
+            const pointsCal = this.createPoints(positionsCal, this.colors["reflectionCal"], this.reflectionSize.value);
+            window.scene.add(pointsCal);
+            this.reflPointsCal = [
+                pointsCal
+            ];
+            this.reflPositionsCal = positionsCal;
+        }
+        this.updateReflectionCheckboxStatus();
+        this.setDefaultReflectionsDisplay();
+        this.requestRender();
+    }
+    addReflections() {
+        function getRLP(s1, wavelength, unitS0, viewer1, goniometer, angle, U) {
+            const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
+            if (goniometer == null) return rlp.multiplyScalar(viewer1.rlpScaleFactor);
+            if (angle == null) {
+                console.warn("Rotation angles not in reflection table. Cannot generate rlps correctly.");
+                return rlp.multiplyScalar(viewer1.rlpScaleFactor);
+            }
+            var fixedRotation = goniometer["fixedRotation"];
+            const settingRotation = goniometer["settingRotation"];
+            const rotationAxis = goniometer["rotationAxis"];
+            //fixedRotation = fixedRotation.clone().multiply(U);
+            rlp.applyMatrix3(settingRotation.clone().invert());
+            rlp.applyAxisAngle(rotationAxis, -angle);
+            rlp.applyMatrix3(fixedRotation.clone().invert().transpose());
+            return rlp.multiplyScalar(viewer1.rlpScaleFactor);
         }
         if (!this.hasExperiment()) {
             console.warn("Tried to add reflections but no experiment has been loaded");
@@ -1023,14 +1146,14 @@ class ReciprocalLatticeViewer {
         }
         if (containsXYZObs) {
             if (containsMillerIndices) {
-                const pointsObsIndexed = this.createPoints(positionsObsIndexed, ReciprocalLatticeViewer.colors()["reflectionObsIndexed"], this.reflectionSize.value);
+                const pointsObsIndexed = this.createPoints(positionsObsIndexed, this.colors["reflectionObsIndexed"], this.reflectionSize.value);
                 window.scene.add(pointsObsIndexed);
                 this.reflPointsObsIndexed = [
                     pointsObsIndexed
                 ];
                 this.reflPositionsIndexed = positionsObsIndexed;
             }
-            const pointsObsUnindexed = this.createPoints(positionsObsUnindexed, ReciprocalLatticeViewer.colors()["reflectionObsUnindexed"], this.reflectionSize.value);
+            const pointsObsUnindexed = this.createPoints(positionsObsUnindexed, this.colors["reflectionObsUnindexed"], this.reflectionSize.value);
             window.scene.add(pointsObsUnindexed);
             this.reflPointsObsUnindexed = [
                 pointsObsUnindexed
@@ -1038,7 +1161,7 @@ class ReciprocalLatticeViewer {
             this.reflPositionsUnindexed = positionsObsUnindexed;
         }
         if (containsXYZCal) {
-            const pointsCal = this.createPoints(positionsCal, ReciprocalLatticeViewer.colors()["reflectionCal"], this.reflectionSize.value);
+            const pointsCal = this.createPoints(positionsCal, this.colors["reflectionCal"], this.reflectionSize.value);
             window.scene.add(pointsCal);
             this.reflPointsCal = [
                 pointsCal
@@ -1098,7 +1221,7 @@ class ReciprocalLatticeViewer {
         incidentVertices.push(new _three.Vector3(0, 0, 0));
         const incidentLine = new _three.BufferGeometry().setFromPoints(incidentVertices);
         const incidentMaterial = new _three.LineBasicMaterial({
-            color: ReciprocalLatticeViewer.colors()["beam"],
+            color: this.colors["beam"],
             fog: true,
             depthWrite: false
         });
@@ -1112,7 +1235,7 @@ class ReciprocalLatticeViewer {
         outgoingVertices.push(new _three.Vector3(bd.x * beamLength, bd.y * beamLength, bd.z * beamLength));
         const outgoingLine = new _three.BufferGeometry().setFromPoints(outgoingVertices);
         const outgoingMaterial = new _three.LineBasicMaterial({
-            color: ReciprocalLatticeViewer.colors()["beam"],
+            color: this.colors["beam"],
             transparent: true,
             opacity: .25,
             fog: true,
@@ -1125,7 +1248,7 @@ class ReciprocalLatticeViewer {
     addSample() {
         const sphereGeometry = new _three.SphereGeometry(ReciprocalLatticeViewer.sizes()["sample"]);
         const sphereMaterial = new _three.MeshBasicMaterial({
-            color: ReciprocalLatticeViewer.colors()["sample"],
+            color: this.colors["sample"],
             transparent: true,
             depthWrite: false
         });
@@ -1150,7 +1273,7 @@ class ReciprocalLatticeViewer {
         const lineWidth = Math.min(Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth);
         const material = new (0, _threeMeshline.MeshLineMaterial)({
             lineWidth: lineWidth,
-            color: ReciprocalLatticeViewer.colors()["reciprocalCell"],
+            color: this.colors["reciprocalCell"],
             depthWrite: false,
             sizeAttenuation: true
         });
@@ -1159,7 +1282,7 @@ class ReciprocalLatticeViewer {
         const c = crystalRLV[2].clone().multiplyScalar(this.rlpScaleFactor);
         const origin = new _three.Vector3(0, 0, 0);
         const labelScaleFactor = Math.max(avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1);
-        const labelColor = ReciprocalLatticeViewer.colors()["RLVLabels"];
+        const labelColor = this.colors["RLVLabels"];
         this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
         this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
         this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
@@ -1258,7 +1381,7 @@ class ReciprocalLatticeViewer {
         this.displayingTextFromHTMLEvent = false;
     }
     highlightObject(obj) {
-        obj.material.color = new _three.Color(ReciprocalLatticeViewer.colors()["highlight"]);
+        obj.material.color = new _three.Color(this.colors["highlight"]);
     }
     beamHidden() {
         if (this.beamMeshes.length === 0) return true;
@@ -1267,6 +1390,12 @@ class ReciprocalLatticeViewer {
     sampleHidden() {
         if (this.sampleMesh === null) return true;
         return this.sampleMesh.material.opacity < 0.01;
+    }
+    disableMouseClick() {
+        this.preventMouseClick = true;
+    }
+    enableMouseClick() {
+        this.preventMouseClick = false;
     }
     updateGUIInfo() {
         function updateReflectionInfo(viewer1) {
@@ -1387,6 +1516,7 @@ class ReciprocalLatticeViewer {
         window.controls.update();
         window.renderer.render(window.scene, window.camera);
         this.renderRequested = false;
+        window.viewer.enableMouseClick();
     }
     requestRender() {
         if (typeof window !== "undefined" && !this.renderRequested) {
@@ -1401,13 +1531,13 @@ function setupScene() {
 	 */ if (typeof window.viewer === "undefined") return;
     // Renderer
     window.renderer = new _three.WebGLRenderer();
-    window.renderer.setClearColor(ReciprocalLatticeViewer.colors()["background"]);
+    window.renderer.setClearColor(window.viewer.colors["background"]);
     window.renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(window.renderer.domElement);
     headerText = window.document.getElementById("headerText");
     sidebar = window.document.getElementById("sidebar");
     window.scene = new _three.Scene();
-    window.scene.fog = new _three.Fog(ReciprocalLatticeViewer.colors()["background"], 500, 8000);
+    window.scene.fog = new _three.Fog(window.viewer.colors["background"], 500, 8000);
     var frustumSize = 500;
     var aspect = window.innerWidth / window.innerHeight;
     window.camera = new _three.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 1, 50000);
@@ -1461,7 +1591,7 @@ function setupScene() {
     window.viewer.requestRender();
 }
 
-},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","gsap":"fPSuC","three.meshline":"4n0f9","./ExptParser.js":"dbzGd","./ReflParser.js":"g6Vmg","../../resources/disc.png":"6zcnn","@parcel/transformer-js/src/esmodule-helpers.js":"fD7H8"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","gsap":"fPSuC","three.meshline":"4n0f9","@parcel/transformer-js/src/esmodule-helpers.js":"fD7H8"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2023 Three.js Authors
@@ -36912,6 +37042,15 @@ class ExptParser {
             reader.readAsText(file);
         });
     };
+    parseExperimentJSON(jsonString) {
+        this.exptJSON = jsonString;
+        this.loadDetectorPanelData();
+        this.loadCrystalSummary();
+        this.loadGoniometer();
+        this.loadCrystal();
+        this.loadScan();
+        this.imageFilenames = this.getImageFilenames();
+    }
     getImageFilenames() {
         return this.exptJSON["imageset"][0]["template"];
     }
@@ -36919,8 +37058,8 @@ class ExptParser {
         const rawDetectorPanelData = this.getRawDetectorPanelData();
         var detectorData = this.getDetectorOrientationData();
         this.detectorPanelData = [];
-        for(var i1 = 0; i1 < rawDetectorPanelData.length; i1++){
-            const panelData = rawDetectorPanelData[i1];
+        for(var i = 0; i < rawDetectorPanelData.length; i++){
+            const panelData = rawDetectorPanelData[i];
             var pxSize = new _three.Vector2(panelData["pixel_size"][0], panelData["pixel_size"][1]);
             var pxs = new _three.Vector2(panelData["image_size"][0], panelData["image_size"][1]);
             var panelSize = new _three.Vector2(pxSize.x * pxs.x, pxSize.y * pxs.y);
@@ -36978,8 +37117,8 @@ class ExptParser {
                 "angles",
                 "scan_axis"
             ];
-            for(var i1 = 0; i1 < requiredFields.length; i1++){
-                if (!(requiredFields[i1] in goniometerData)) return false;
+            for(var i = 0; i < requiredFields.length; i++){
+                if (!(requiredFields[i] in goniometerData)) return false;
             }
             return true;
         }
@@ -36988,8 +37127,8 @@ class ExptParser {
             const sr = goniometerData["setting_rotation"];
             const ra = goniometerData["rotation_axis"];
             return {
-                "fixedRotation": new _three.Matrix3(fr[0], fr[1], fr[2], fr[3], fr[4], fr[5], fr[6], fr[7], fr[i]),
-                "settingRotation": new _three.Matrix3(sr[0], sr[1], sr[2], sr[3], sr[4], sr[5], sr[6], sr[7], sr[i]),
+                "fixedRotation": new _three.Matrix3(fr[0], fr[1], fr[2], fr[3], fr[4], fr[5], fr[6], fr[7], fr[8]),
+                "settingRotation": new _three.Matrix3(sr[0], sr[1], sr[2], sr[3], sr[4], sr[5], sr[6], sr[7], sr[8]),
                 "rotationAxis": new _three.Vector3(ra[0], ra[1], ra[2])
             };
         }
@@ -37017,12 +37156,12 @@ class ExptParser {
             const rotationAxis = new _three.Vector3(rotationAxisRaw[0], rotationAxisRaw[1], rotationAxisRaw[2]);
             var fixedRotation = new _three.Matrix3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
             const settingRotation = new _three.Matrix3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-            for(var i1 = 0; i1 < scanAxis; i1++){
-                const R = axisAngleToMatrix(axes[i1], angles[i1]);
+            for(var i = 0; i < scanAxis; i++){
+                const R = axisAngleToMatrix(axes[i], angles[i]);
                 fixedRotation = fixedRotation.clone().multiply(R);
             }
-            for(var i1 = scanAxis + 1; i1 < axes.length; i1++){
-                const R = axisAngleToMatrix(axes[i1], angles[i1]);
+            for(var i = scanAxis + 1; i < axes.length; i++){
+                const R = axisAngleToMatrix(axes[i], angles[i]);
                 settingRotation.multiply(R);
             }
             return {
@@ -37206,14 +37345,14 @@ class ExptParser {
         return osc.x + (frame - ir.x) * osc.y;
     }
     addAnglesToReflections(reflections) {
-        for(var i1 = 0; i1 < reflections.length; i1++){
-            if ("xyzObs" in reflections[i1]) {
-                const angleObs = this.getAngleFromFrame(reflections[i1]["xyzObs"][2]);
-                reflections[i1]["angleObs"] = angleObs;
+        for(var i = 0; i < reflections.length; i++){
+            if ("xyzObs" in reflections[i]) {
+                const angleObs = this.getAngleFromFrame(reflections[i]["xyzObs"][2]);
+                reflections[i]["angleObs"] = angleObs;
             }
-            if ("xyzCal" in reflections[i1]) {
-                const angleCal = this.getAngleFromFrame(reflections[i1]["xyzCal"][2]);
-                reflections[i1]["angleCal"] = angleCal;
+            if ("xyzCal" in reflections[i]) {
+                const angleCal = this.getAngleFromFrame(reflections[i]["xyzCal"][2]);
+                reflections[i]["angleCal"] = angleCal;
             }
         }
         return reflections;
@@ -38016,43 +38155,6 @@ class ReflParser {
     else // Global object
     window[window.msgpackJsName || "msgpack"] = msgpack;
 })();
-
-},{}],"6zcnn":[function(require,module,exports) {
-module.exports = require("a725a7a2b6fe75b2").getBundleURL("9InIm") + "disc.e9075a1f.png" + "?" + Date.now();
-
-},{"a725a7a2b6fe75b2":"jMDco"}],"jMDco":[function(require,module,exports) {
-"use strict";
-var bundleURL = {};
-function getBundleURLCached(id) {
-    var value = bundleURL[id];
-    if (!value) {
-        value = getBundleURL();
-        bundleURL[id] = value;
-    }
-    return value;
-}
-function getBundleURL() {
-    try {
-        throw new Error();
-    } catch (err) {
-        var matches = ("" + err.stack).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^)\n]+/g);
-        if (matches) // The first two stack frames will be this function and getBundleURLCached.
-        // Use the 3rd one, which will be a runtime in the original bundle.
-        return getBaseURL(matches[2]);
-    }
-    return "/";
-}
-function getBaseURL(url) {
-    return ("" + url).replace(/^((?:https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/.+)\/[^/]+$/, "$1") + "/";
-} // TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-function getOrigin(url) {
-    var matches = ("" + url).match(/(https?|file|ftp|(chrome|moz|safari-web)-extension):\/\/[^/]+/);
-    if (!matches) throw new Error("Origin not found");
-    return matches[0];
-}
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
 
 },{}]},["5kwYM","aS7hQ"], "aS7hQ", "parcelRequirea13c")
 
