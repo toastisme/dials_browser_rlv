@@ -391,9 +391,9 @@ export class ReciprocalLatticeViewer {
 			return rlp.multiplyScalar(viewer.rlpScaleFactor);
 		}
 
+		this.clearReflectionTable();
 		if (!this.hasExperiment()) {
 			console.warn("Tried to add reflections but no experiment has been loaded");
-			this.clearReflectionTable();
 			return;
 		}
 
