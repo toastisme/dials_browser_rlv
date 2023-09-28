@@ -410,7 +410,7 @@ export class ReciprocalLatticeViewer {
 		const containsXYZCal = "xyzCal" in refl;
 		const containsMillerIndices = "millerIdx" in refl;
 		const containsWavelengths = "wavelength" in refl;
-		const containsWavelengthsCal = "wavelength_cal" in refl;
+		const containsWavelengthsCal = "wavelengthCal" in refl;
 		var wavelength = this.expt.getBeamData()["wavelength"];
 		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
@@ -665,35 +665,25 @@ export class ReciprocalLatticeViewer {
 
 	setDefaultReflectionsDisplay() {
 
-		/**
-		 * If both observed and calculated reflections are available,
-		 * show observed by default.
-		 */
-
+		this.observedIndexedReflsCheckbox.checked = false;
+		this.observedUnindexedReflsCheckbox.checked = false;
+		this.calculatedReflsCheckbox.checked = false;
 		if (!this.hasReflectionTable()) {
-			this.observedIndexedReflsCheckbox.checked = false;
-			this.observedUnindexedReflsCheckbox.checked = false;
-			this.calculatedReflsCheckbox.checked = false;
 			return;
 		}
 
 		if (this.reflPointsObsIndexed.length > 0) {
 			this.updateObservedIndexedReflections(true);
 			this.observedIndexedReflsCheckbox.checked = true;
-			this.updateCalculatedReflections(false);
-			this.calculatedReflsCheckbox.checked = false;
 		}
 		if (this.reflPointsObsUnindexed.length > 0) {
 			this.updateObservedUnindexedReflections(true);
 			this.observedUnindexedReflsCheckbox.checked = true;
+		}
+
+		if (this.reflPointsCal.length > 0) {
 			this.updateCalculatedReflections(false);
 			this.calculatedReflsCheckbox.checked = false;
-		}
-		else if (this.reflPointsCal.length > 0) {
-			this.showCalculatedReflections(true);
-			this.calculatedReflsCheckbox.checked = true;
-			this.observedIndexedReflsCheckbox.checked = false;
-			this.observedUnindexedReflsCheckbox.checked = false;
 		}
 	}
 
@@ -706,6 +696,7 @@ export class ReciprocalLatticeViewer {
 		}
 		this.observedUnindexedReflsCheckbox.disabled = !this.refl.hasXYZObsData();
 		this.observedIndexedReflsCheckbox.disabled = !this.refl.hasMillerIndicesData();
+		this.calculatedReflsCheckbox.disabled = !this.refl.hasXYZCalData();
 		this.reciprocalCellCheckbox.disabled = !this.refl.hasMillerIndicesData();
 		this.calculatedReflsCheckbox.disabled = !this.expt.hasCrystal();
 	}
