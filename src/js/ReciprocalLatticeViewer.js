@@ -369,11 +369,11 @@ export class ReciprocalLatticeViewer {
 
 	addReflectionsFromData(reflData){
 
-		function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
+		function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U, addAnglesToReflections) {
 
 			const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
 
-			if (goniometer == null) {
+			if (!addAnglesToReflections) {
 				return rlp.multiplyScalar(viewer.rlpScaleFactor);
 			}
 			if (angle == null){
@@ -415,16 +415,16 @@ export class ReciprocalLatticeViewer {
 		var wavelengthCal = this.expt.getBeamData()["wavelength"];
 		var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
 		var goniometer = this.expt.goniometer;
+		var scan = this.expt.scan;
+		const addAnglesToReflections = (goniometer != null && scan != null);
 
 		for (var i = 0; i < this.expt.getNumDetectorPanels(); i++) {
 
 			var panelReflections = reflData[panelKeys[i]];
 			const panelData = this.expt.getDetectorPanelDataByIdx(i);
 
-			if (goniometer != null){
-				if (!this.refl.containsRotationAnglesObs() || !this.refl.containsRotationAnglesCal()){
-					panelReflections = this.expt.addAnglesToReflections(panelReflections);
-				}
+			if (addAnglesToReflections){
+				panelReflections = this.expt.addAnglesToReflections(panelReflections);
 			}
 
 			const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
@@ -448,7 +448,7 @@ export class ReciprocalLatticeViewer {
 					}
 					const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
 					const angle = panelReflections[j]["angleObs"];
-					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U);
+					const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
 					if (containsMillerIndices && panelReflections[j]["indexed"]) {
 						positionsObsIndexed.push(rlp.x);
