@@ -150,9 +150,8 @@ export class ExptParser{
 				"origin" : o,
 				"dMatrix" : dMatrix
 			});
-
+			
 		}
-
 	}
 
 	getRawDetectorPanelData(){
