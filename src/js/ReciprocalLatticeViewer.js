@@ -985,8 +985,8 @@ export class ReciprocalLatticeViewer {
     }
   }
 
-  displayImageFilenames() {
-    this.displayHeaderText(this.expt.imageFilenames);
+  displayImageFilenames(exptID) {
+    this.displayHeaderText(this.expt.experiments[exptID].imageFilename);
     this.displayingTextFromHTMLEvent = true;
   }
 
@@ -1230,6 +1230,13 @@ export class ReciprocalLatticeViewer {
         
         label.addEventListener('click', (event) => {
             this.toggleExptVisibility(event.target.textContent);
+        });
+
+        label.addEventListener('mouseover', (event) => {
+            this.displayImageFilenames(parseInt(event.target.textContent));
+        });
+        label.addEventListener('mouseout', (event) => {
+          this.stopDisplayingText();
         });
         
         dropdownContent.appendChild(label);

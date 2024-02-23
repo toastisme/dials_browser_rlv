@@ -5,13 +5,14 @@ export class Experiment{
 	 * Class for holding DIALS experiment info
 	 */
 	
-	constructor(imageFilenames, crystalSummary, goniometer, crystal, scan, detectorPanelData){
+	constructor(imageFilenames, crystalSummary, goniometer, crystal, scan, detectorPanelData, imageFilename){
 		this.imageFilenames = imageFilenames;
 		this.crystalSummary = crystalSummary;
 		this.goniometer = goniometer;
 		this.crystal = crystal;
 		this.scan = scan;
 		this.detectorPanelData = detectorPanelData;
+		this.imageFilename = imageFilename;
 	}
 
 	clearExperiment(){
@@ -21,6 +22,7 @@ export class Experiment{
 		this.crystal = null;
 		this.scan = null;
 		this.detectorPanelData = null;
+		this.imageFilename = null;
 	}
 }
 
@@ -78,7 +80,8 @@ export class ExptParser{
 								this.getGoniometer(i),
 								this.getCrystal(0),
 								this.getScan(i),
-								this.getDetectorPanelData(i)
+								this.getDetectorPanelData(i),
+								this.getImageFilenames(i)
 							)
 						);
 					}
@@ -106,7 +109,8 @@ export class ExptParser{
 					this.getGoniometer(i),
 					this.getCrystal(0),
 					this.getScan(i),
-					this.getDetectorPanelData(i)
+					this.getDetectorPanelData(i),
+					this.getImageFilenames(i)
 				)
 			);
 		}

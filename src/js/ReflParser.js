@@ -246,6 +246,9 @@ export class ReflParser{
 	}
 
 	getExperimentIDs(){
+		if (this.containsColumn("imageset_id")){
+			return this.getInt32Array("imageset_id");
+		}
 		return this.getInt32Array("id");
 	}
 
