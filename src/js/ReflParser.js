@@ -110,6 +110,19 @@ export class ReflParser{
 		return arr;
 	}
 
+	getInt32Array(column_name) {
+		const buffer = this.getColumnBuffer(column_name);
+		const dataView = new DataView(buffer.buffer);
+		const arr = new Int32Array(buffer.byteLength / 4);
+		let count = 0;
+		
+		for (let i = 0; i < buffer.byteLength; i += 4) {
+			arr[count] = dataView.getInt32(buffer.byteOffset + i, true); 
+			count++;
+		}
+		return arr;
+	}
+
 	getDoubleArray(column_name){
 		const buffer = this.getColumnBuffer(column_name);
 		const dataView = new DataView(buffer.buffer);
@@ -228,6 +241,14 @@ export class ReflParser{
 		return this.getDoubleArray("wavelength_cal");
 	}
 
+	containsExperimentIDs(){
+		return this.containsColumn("id");
+	}
+
+	getExperimentIDs(){
+		return this.getInt32Array("id");
+	}
+
 	loadReflectionData(){
 		const panelNums = this.getPanelNumbers();
 		var xyzObs;
@@ -237,6 +258,7 @@ export class ReflParser{
 		var millerIndices;
 		var wavelengths;
 		var wavelengthsCal;
+		var experimentIDs;
 
 		if (this.containsXYZObs()){
 			xyzObs = this.getXYZObs();
@@ -259,6 +281,9 @@ export class ReflParser{
 		if (this.containsRotationAnglesCal()){
 			anglesCal = this.getRotationAnglesCal();
 		}
+		if (this.containsExperimentIDs()){
+			experimentIDs =  this.getExperimentIDs();
+		}
 
 		console.assert(xyzObs || xyzCal);
 
@@ -267,9 +292,16 @@ export class ReflParser{
 		for (var i = 0; i < panelNums.length; i++){
 			const panel = panelNums[i];
 			const refl = {
-				"indexed" : false
+				"indexed" : false,
 			};
 			var displaySummary = "<b>id: </b>" + i + " <b>panel: </b>" + panel;
+
+			if (experimentIDs != null){
+				refl["exptID"] = experimentIDs[i];
+			}
+			else{
+				refl["exptID"] = 0;
+			}
 
 			if (xyzObs != null){
 				refl["xyzObs"] = xyzObs[i];

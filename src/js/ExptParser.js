@@ -1,5 +1,29 @@
 import * as THREE from 'three';
 
+export class Experiment{
+	/*
+	 * Class for holding DIALS experiment info
+	 */
+	
+	constructor(imageFilenames, crystalSummary, goniometer, crystal, scan, detectorPanelData){
+		this.imageFilenames = imageFilenames;
+		this.crystalSummary = crystalSummary;
+		this.goniometer = goniometer;
+		this.crystal = crystal;
+		this.scan = scan;
+		this.detectorPanelData = detectorPanelData;
+	}
+
+	clearExperiment(){
+		this.imageFilenames = null
+		this.crystalSummary = null;
+		this.goniometer = null;
+		this.crystal = null;
+		this.scan = null;
+		this.detectorPanelData = null;
+	}
+}
+
 export class ExptParser{
 
 	/*
@@ -10,13 +34,9 @@ export class ExptParser{
 	constructor(){
 		this.exptJSON = null;
 		this.filename = null;
-		this.imageFilenames = null;
-		this.crystalSummary = null;
-		this.goniometer = null;
-		this.crystal = null;
-		this.scan = null;
-		this.detectorPanelData = [];
+		this.experiments = [];
 	}
+
 
 	hasExptJSON(){
 		return this.exptJSON != null;
@@ -33,12 +53,8 @@ export class ExptParser{
 	clearExperiment(){
 		this.exptJSON = null;
 		this.filename = null;
-		this.imageFilenames = null;
-		this.crystalSummary = null;
-		this.goniometer = null;
-		this.crystal = null;
-		this.scan = null;
-		this.detectorPanelData = [];
+		this.experiments.forEach(experiment => experiment.clearExperiment());
+		this.experiments = [];
 	}
 
 	parseExperiment = (file) => {
@@ -54,38 +70,59 @@ export class ExptParser{
 				resolve(reader.result);
 				if (ExptParser.isDIALSExpt(file, reader.result)){
 					this.exptJSON = JSON.parse(reader.result);
-					this.loadDetectorPanelData();
-					this.loadCrystalSummary();
-					this.loadGoniometer();
-					this.loadCrystal();
-					this.loadScan();
+					for (var i = 0; i < this.numExperiments(); i++){
+						this.experiments.push(
+							new Experiment(
+								this.getImageFilenames(i),
+								this.getCrystalSummary(i),
+								this.getGoniometer(i),
+								this.getCrystal(0),
+								this.getScan(i),
+								this.getDetectorPanelData(i)
+							)
+						);
+					}
 					this.filename = file.name;
-					this.imageFilenames = this.getImageFilenames();
 				}
 			};
 			reader.readAsText(file);    
 		});
 	};
 
+	numExperiments(){
+		if (this.exptJSON == null){
+			return 0;
+		}
+		return this.exptJSON["experiment"].length;
+	}
+
 	parseExperimentJSON(jsonString){
 		this.exptJSON = jsonString 
-		this.loadDetectorPanelData();
-		this.loadCrystalSummary();
-		this.loadGoniometer();
-		this.loadCrystal();
-		this.loadScan();
+		for (var i = 0; i < this.numExperiments(); i++){
+			this.experiments.push(
+				new Experiment(
+					this.getImageFilenames(i),
+					this.getCrystalSummary(i),
+					this.getGoniometer(i),
+					this.getCrystal(0),
+					this.getScan(i),
+					this.getDetectorPanelData(i)
+				)
+			);
+		}
 		this.imageFilenames = this.getImageFilenames();
 	}
 
-	getImageFilenames(){
-		return this.exptJSON["imageset"][0]["template"];
+	getImageFilenames(idx){
+		const fileIdx = this.exptJSON["experiment"][idx]["imageset"]
+		return this.exptJSON["imageset"][fileIdx]["template"];
 	}
 
-	loadDetectorPanelData(){
+	getDetectorPanelData(idx){
 
-		const rawDetectorPanelData = this.getRawDetectorPanelData();
-		var detectorData = this.getDetectorOrientationData();
-		this.detectorPanelData = [];
+		const rawDetectorPanelData = this.getRawDetectorPanelData(idx);
+		var detectorData = this.getDetectorOrientationData(idx);
+		var detectorPanelData = [];
 
 		for (var i = 0; i < rawDetectorPanelData.length; i++){
 
@@ -141,7 +178,7 @@ export class ExptParser{
 			fa.multiplyScalar(panelSize.x);
 			sa.multiplyScalar(panelSize.y);
 
-			this.detectorPanelData.push({
+			detectorPanelData.push({
 				"panelSize" : panelSize,
 				"pxSize" : pxSize,
 				"pxs" : pxs,
@@ -152,18 +189,21 @@ export class ExptParser{
 			});
 			
 		}
+		return detectorPanelData;
 	}
 
-	getRawDetectorPanelData(){
-		return this.exptJSON["detector"][0]["panels"];
+	getRawDetectorPanelData(idx){
+		const fileIdx = this.exptJSON["experiment"][idx]["detector"]
+		return this.exptJSON["detector"][fileIdx]["panels"];
 	}
 
-	getBeamData(){
-		return this.exptJSON["beam"][0];
+	getBeamData(idx){
+		const fileIdx = this.exptJSON["experiment"][idx]["beam"]
+		return this.exptJSON["beam"][fileIdx];
 	}
 
-	getBeamSummary(){
-		const beamData = this.getBeamData();
+	getBeamSummary(idx){
+		const beamData = this.getBeamData(idx);
 		var direction = beamData["direction"];
 		direction = [direction[0].toFixed(3), direction[1].toFixed(3), direction[2].toFixed(3)];
 		const wavelength = beamData["wavelength"];
@@ -174,7 +214,7 @@ export class ExptParser{
 		return text;
 	}
 
-	loadGoniometer(){
+	getGoniometer(idx){
 
 		function isMultiAxesGoniometer(goniometerData){
 			const requiredFields = ["axes", "angles", "scan_axis"];
@@ -186,7 +226,7 @@ export class ExptParser{
 			return true;
 		}
 
-		function loadBasicGoniometer(goniometerData){
+		function basicGoniometer(goniometerData){
 			const fr = goniometerData["fixed_rotation"];
 			const sr = goniometerData["setting_rotation"];
 			const ra = goniometerData["rotation_axis"];
@@ -207,7 +247,7 @@ export class ExptParser{
 			}
 		}
 
-		function loadMultiAxesGoniometer(goniometerData){
+		function multiAxesGoniometer(goniometerData){
 
 			function axisAngleToMatrix(axis, angle) {
 
@@ -282,26 +322,30 @@ export class ExptParser{
 			this.goniometer = null;
 			return;
 		}
-		const goniometerData = goniometerList[0];
+		const fileIdx = this.exptJSON["experiment"][idx]["goniometer"];
+		const goniometerData = goniometerList[fileIdx];
 		if (isMultiAxesGoniometer(goniometerData)){
-			this.goniometer = loadMultiAxesGoniometer(goniometerData);
-			return;
+			return multiAxesGoniometer(goniometerData);
 		}
-		this.goniometer = loadBasicGoniometer(goniometerData);
+		return basicGoniometer(goniometerData);
 	}
 
-	getCrystalData(){
-		return this.exptJSON["crystal"][0];
+	getCrystalData(idx){
+		return this.exptJSON["crystal"][idx];
 	}
 
-	hasCrystal(){
+	hasCrystal(idx){
 		if (this.exptJSON === null){
 			return false;
 		}
-		return this.crystal !== null;
+		if (this.experiments === undefined){
+			return false;
+		}
+
+		return this.experiments[idx].crystal !== null && this.experiments[idx].crystal !== undefined;
 	}
 
-	loadCrystal(){
+	getCrystal(idx){
 
 		function latticeParameters(a, b, c) {
 			const aLength = a.length();
@@ -383,7 +427,7 @@ export class ExptParser{
 			);
 		}
 
-		const crystalData = this.getCrystalData();
+		const crystalData = this.getCrystalData(idx);
 		if (!crystalData){
 			this.crystalSummary = null;
 			return;
@@ -415,7 +459,7 @@ export class ExptParser{
 			new THREE.Vector3(UBArr[2], UBArr[5], UBArr[8]),
 		]
 
-		this.crystal = {
+		return {
 			"U" : U,
 			"B" : B,
 			"UB": UB,
@@ -423,19 +467,27 @@ export class ExptParser{
 		}
 	}
 
-	getCrystalRLV(){
-		return this.crystal["reciprocalCell"];
+	getCrystalRLV(idx){
+		return this.experiments[idx].crystal["reciprocalCell"];
 	}
 
-	getCrystalU(){
-		return this.crystal["U"];
+	getCrystalU(idx){
+		return this.experiments[idx].crystal["U"];
 	}
 
-	loadCrystalSummary(){
-		const crystalData = this.getCrystalData();
+
+	getCrystalSummary(idx){
+		if (this.experiments !== undefined){
+			if (this.experiments[idx] !== undefined){
+				if (this.experiments[idx].crystalSummary !== undefined){
+					return this.experiments[idx].crystalSummary;
+				}
+				return null
+			}
+		}
+		const crystalData = this.getCrystalData(idx);
 		if (!crystalData){
-			this.crystalSummary = null;
-			return;
+			return null;
 		}
 		const aRaw = crystalData["real_space_a"];
 		const aVec = new THREE.Vector3(aRaw[0], aRaw[1], aRaw[2]);
@@ -455,23 +507,21 @@ export class ExptParser{
 		var text = "a: " + a + " b: " + b + " c: " + c;
 		text += " alpha: " + alpha + " beta: " + beta + " gamma: " + gamma;
 		text += " (" + crystalData["space_group_hall_symbol"] + ")";
-		this.crystalSummary = text;
+		return text;
 	}
 
-	getCrystalSummary(){
-		return this.crystalSummary;
+	getDetectorOrientationData(idx){
+		const fileIdx = this.exptJSON["experiment"][idx]["detector"];
+
+		return this.exptJSON["detector"][fileIdx]["hierarchy"];
 	}
 
-	getDetectorOrientationData(){
-		return this.exptJSON["detector"][0]["hierarchy"]
+	getDetectorPanelDataByIdx(exptIdx, idx){
+		return this.experiments[exptIdx].detectorPanelData[idx];
 	}
 
-	getDetectorPanelDataByIdx(idx){
-		return this.detectorPanelData[idx];
-	}
-
-	getBeamDirection(){
-		const beamData = this.getBeamData();
+	getBeamDirection(idx){
+		const beamData = this.getBeamData(idx);
 		return new THREE.Vector3(
 			beamData["direction"][0], 
 			beamData["direction"][1], 
@@ -479,22 +529,22 @@ export class ExptParser{
 		);
 	}
 
-	getNumDetectorPanels(){
-		return this.detectorPanelData.length;
+	getNumDetectorPanels(idx){
+		return this.experiments[idx].detectorPanelData.length;
 	}
 
-	getScanData(){
+	getScanData(idx){
 		if (!("scan" in this.exptJSON)){
 			return null;
 		}
-		return this.exptJSON["scan"][0];
+		fileIdx = this.exptJSON["experiment"][idx]["scan"];
+		return this.exptJSON["scan"][fileIdx];
 	}
 
-	loadScan(){
-		const scanData = this.getScanData();
+	getScan(idx){
+		const scanData = this.getScanData(idx);
 		if (!scanData){
-			this.scan = null;
-			return;
+			return null
 		}
 
 		const osc = new THREE.Vector2(
@@ -507,37 +557,59 @@ export class ExptParser{
 			scanData["image_range"][1] - 1
 		);
 
-		this.scan = {
+		return {
 			"oscillation" : osc,
 			"imageRange" : ir
 		};
 	}
 
-	getAngleFromFrame(frame){
+	getAngleFromFrame(idx, frame){
 		if (this.scan === null){
 			return null;
 		}
-		const osc = this.scan["oscillation"];
-		const ir = this.scan["imageRange"];
+		const osc = this.experiments[idx].scan["oscillation"];
+		const ir = this.experiments[idx].scan["imageRange"];
 		return osc.x + ((frame - ir.x) * osc.y)
 	}
 
 	addAnglesToReflections(reflections){
 		for (var i = 0; i < reflections.length; i++){
 			if ("xyzObs" in reflections[i]){
-				const angleObs = this.getAngleFromFrame(
-					reflections[i]["xyzObs"][2]
-				);
+				var angleObs;
+				if (this.scan === null || this.scan === undefined){
+					angleObs = 0.0;
+				}
+				else{
+					angleObs = this.getAngleFromFrame(
+						reflections[i]["exptID"],
+						reflections[i]["xyzObs"][2]
+					);
+				}
 				reflections[i]["angleObs"] = angleObs;
 
 			}
 			if ("xyzCal" in reflections[i]){
-				const angleCal = this.getAngleFromFrame(
-					reflections[i]["xyzCal"][2]
-				);
+				var angleCal;
+				if (this.scan === null){
+					angleCal = 0.0;
+				}
+				else{
+					angleCal = this.getAngleFromFrame(
+						reflections[i]["exptID"],
+						reflections[i]["xyzCal"][2]
+					);
+				}
 				reflections[i]["angleCal"] = angleCal;
 			}
 		}
 		return reflections;
+	}
+
+	getExptIDs(){
+		var exptIDs=[];
+		for (var i = 0; i < this.experiments.length; i++){
+			exptIDs.push(i);
+		}
+		return exptIDs;
 	}
 }
