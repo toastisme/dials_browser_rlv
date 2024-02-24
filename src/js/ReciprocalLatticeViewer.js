@@ -1214,6 +1214,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateExperimentList() {
+    var maxLabelSize = 22;
     var exptIDs = this.expt.getExptIDs();
     var exptLabels = this.expt.getExptLabels();
     const visibleExpts = [];
@@ -1232,7 +1233,11 @@ export class ReciprocalLatticeViewer {
         icon.style.float = "right"; 
         icon.id = "exptID-dropdown-icon-"+exptIDs[i];
         
-        label.textContent = exptLabels[i];
+        var exptLabel = exptLabels[i];
+        if (exptLabel.length > 22){
+          exptLabel = exptLabel.slice(0,19) + "...";
+        }
+        label.textContent = exptLabel;
         label.id = "exptID-"+exptIDs[i];
         
         label.appendChild(icon);

@@ -21,18 +21,18 @@
 		<b>right click</b> = reset view <br>
 		<b>mouse wheel</b> = zoom<br>
 		-------------------------------------------------------<br>
-		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
+		<span style="color: #ddd"><b>Unindexed Reflections:</b></span><input type="checkbox" 
 		id="observedUnindexedReflections", checked=false, 
 		onclick="window.viewer.updateObservedUnindexedReflections()", disabled=true>
-		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" 
+		<span style="color: #e74c3c"><b>Indexed Reflections:</b> </span><input type="checkbox" 
 		id="observedIndexedReflections", checked=false, 
 		onclick="window.viewer.updateObservedIndexedReflections()", disabled=true>
-		<span style="color: #ffaaaa"><b>calculated reflections:</b> </span><input type="checkbox" 
+		<span style="color: #ffaaaa"><b>Calculated Reflections:</b> </span><input type="checkbox" 
 		id="calculatedReflections", checked=false, 
 		onclick="window.viewer.updateCalculatedReflections()", disabled=true>
-		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell", 
+		<b>Reciprocal Cell:</b><input type="checkbox" id="reciprocalCell", 
 		checked=false, onclick="window.viewer.updateReciprocalCell()", disabled=false>
-		<b>reflection size:</b>  <input type="range" min="1" max="75" value="10" 
+		<b>Reflection Size:</b>  <input type="range" min="1" max="75" value="10" 
 		class="slider" id="reflectionSize" 
 		onmouseup="window.viewer.updateReflectionSize()">
 		 <div class="dropdown">
@@ -60,7 +60,7 @@
 		color: #ddd;
 		font-family: Tahoma, Verdana, sans-serif;
 		padding: 16px;
-		margin-left: -5px;
+		margin-left: -6px;
 		font-size: 16px;
 		border-radius: 10px;
 		border-color:rgba(0,1,0,0.7);
@@ -75,14 +75,17 @@
 		.dropdown {
 		position: relative;
 		display: inline-block;
+		min-width: 100%;
+		min-height: 100%;
 		}
 
 		.dropdown-content {
 		display: none;
 		position: absolute;
 		background-color: rgba(0,1,0,0.7);
-		min-width: 325px;
-		margin-left: -5px;
+		min-width: 105%;
+		max-height: 170px;
+		margin-left: -8px;
 		overflow: scroll;
 		border-radius: 10px;
 		box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
@@ -95,25 +98,6 @@
 		text-decoration: none;
 		display: block;
 		overflow: scroll;
-		}
-		/* Custom checkbox */
-		.dropdown-content input[type="checkbox"] + label:before {
-			content: "";
-			display: inline-block;
-			width: 16px;
-			height: 16px;
-			background-color: rgb(49, 49, 49); /* Color same as dropdown background */
-			border: 2px solid #ddd; /* Border color */
-			border-radius: 3px;
-			margin-right: 8px;
-		}
-		/* Show tick when checkbox is checked */
-		.dropdown-content input[type="checkbox"]:checked + label:before {
-			content: "\2713"; /* Unicode character for tick */
-			color: white; /* Tick color */
-			font-size: 12px; /* Adjust size of tick */
-			text-align: center;
-			line-height: 16px;
 		}
 
 		.dropdown a:hover {background-color: #ddd;}
