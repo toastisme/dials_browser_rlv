@@ -278,6 +278,7 @@ export class ReciprocalLatticeViewer {
 
     this.clearReflectionTable();
     this.updateReciprocalCell(false);
+    this.clearExperimentList();
     this.requestRender();
   }
 
@@ -1198,7 +1199,8 @@ export class ReciprocalLatticeViewer {
     dropdownIcon.classList.toggle("fa-chevron-right"); 
 	}
 
-  toggleExptVisibility(exptID){
+  toggleExptVisibility(exptIDLabel){
+    var exptID = parseInt(exptIDLabel.split("-").pop());
     this.visibleExpts[exptID] = !this.visibleExpts[exptID];
     this.updateObservedIndexedReflections();
     this.updateObservedUnindexedReflections();
@@ -1206,8 +1208,14 @@ export class ReciprocalLatticeViewer {
     dropdownIcon.classList.toggle("fa-check");
   }
 
+  clearExperimentList(){
+    var dropdownContent = document.getElementById("experimentDropdown");
+    dropdownContent.innerHTML = ""; 
+  }
+
   updateExperimentList() {
     var exptIDs = this.expt.getExptIDs();
+    var exptLabels = this.expt.getExptLabels();
     const visibleExpts = [];
     var dropdownContent = document.getElementById("experimentDropdown");
     dropdownContent.innerHTML = ""; 
@@ -1222,23 +1230,17 @@ export class ReciprocalLatticeViewer {
         var icon = document.createElement("i");
         icon.classList.add("fa", "fa-check"); 
         icon.style.float = "right"; 
-        icon.id = "exptID-dropdown-icon-"+exptIDs[i].toString();
+        icon.id = "exptID-dropdown-icon-"+exptIDs[i];
         
-        label.textContent = exptIDs[i];
+        label.textContent = exptLabels[i];
+        label.id = "exptID-"+exptIDs[i];
         
         label.appendChild(icon);
         
         label.addEventListener('click', (event) => {
-            this.toggleExptVisibility(event.target.textContent);
+            this.toggleExptVisibility(event.target.id);
         });
 
-        label.addEventListener('mouseover', (event) => {
-            this.displayImageFilenames(parseInt(event.target.textContent));
-        });
-        label.addEventListener('mouseout', (event) => {
-          this.stopDisplayingText();
-        });
-        
         dropdownContent.appendChild(label);
         dropdownContent.appendChild(document.createElement("br"));
         visibleExpts.push(true);

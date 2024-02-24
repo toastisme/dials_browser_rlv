@@ -616,4 +616,19 @@ export class ExptParser{
 		}
 		return exptIDs;
 	}
+
+	getExptLabels(){
+		var isWindows = window.navigator.oscpu.indexOf("indow") > -1;
+		var exptLabels = [];
+		for (var i = 0; i < this.experiments.length; i++){
+			var label = this.experiments[i].imageFilename;
+			if (isWindows){
+				exptLabels.push(label.split("\\").pop());
+			}
+			else{
+				exptLabels.push(label.split("/").pop());
+			}
+		}
+		return exptLabels;
+	}
 }
