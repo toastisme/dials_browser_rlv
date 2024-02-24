@@ -1208,6 +1208,23 @@ export class ReciprocalLatticeViewer {
     dropdownIcon.classList.toggle("fa-check");
   }
 
+  toggleAllExptVisibility(){
+    var dropdownIcon = document.getElementById("exptID-dropdown-icon-all");
+    dropdownIcon.classList.toggle("fa-check");
+    var visible = dropdownIcon.classList.contains("fa-check");
+    for (var exptID = 0; exptID < this.visibleExpts.length; exptID++){
+      this.visibleExpts[exptID] = visible;
+      var dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
+      if (dropdownIcon.classList.contains("fa-check") !== visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+    }
+    this.updateObservedIndexedReflections();
+    this.updateObservedUnindexedReflections();
+  }
+
+
+
   clearExperimentList(){
     var dropdownContent = document.getElementById("experimentDropdown");
     dropdownContent.innerHTML = ""; 
@@ -1217,6 +1234,8 @@ export class ReciprocalLatticeViewer {
     var maxLabelSize = 22;
     var exptIDs = this.expt.getExptIDs();
     var exptLabels = this.expt.getExptLabels();
+    var addAllButton = exptLabels.length > 4;
+    var firstLabel = null;
     const visibleExpts = [];
     var dropdownContent = document.getElementById("experimentDropdown");
     dropdownContent.innerHTML = ""; 
@@ -1246,9 +1265,37 @@ export class ReciprocalLatticeViewer {
             this.toggleExptVisibility(event.target.id);
         });
 
+        if (addAllButton && firstLabel === null){
+          firstLabel = label;
+        }
+
         dropdownContent.appendChild(label);
         dropdownContent.appendChild(document.createElement("br"));
         visibleExpts.push(true);
+    }
+    if (addAllButton){
+      console.assert(firstLabel !== null);
+      var label = document.createElement("label");
+      label.classList.add("experiment-label"); 
+      
+      var icon = document.createElement("i");
+      icon.classList.add("fa", "fa-check"); 
+      icon.style.float = "right"; 
+      icon.id = "exptID-dropdown-icon-all";
+      
+      var exptLabel = "All";
+      label.textContent = exptLabel;
+      label.id = "exptID-all";
+      
+      label.appendChild(icon);
+      
+      label.addEventListener('click', (event) => {
+          this.toggleAllExptVisibility();
+      });
+
+      dropdownContent.insertBefore(label, firstLabel);
+      dropdownContent.insertBefore(label, firstLabel);
+
     }
     this.visibleExpts = visibleExpts;
   }
