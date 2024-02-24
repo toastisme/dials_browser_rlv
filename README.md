@@ -10,6 +10,4 @@ A DIALS reciprocal lattice viewer in the browser without a DIALS installation. [
 - Hover over sample to see the unit cell
 - Hover over beam to see the beam direction, and wavelength (if monochromatic)
 - Compare calculated reflections of current model against observed reflections
-
-## Limitations
-- Currently displays only the first experiment in the .expt file
+- View multiple experiments (within the same .expt file)
