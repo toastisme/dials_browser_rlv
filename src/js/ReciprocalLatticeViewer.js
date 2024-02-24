@@ -107,7 +107,7 @@ export class ReciprocalLatticeViewer {
     return {
       "minRLVLineWidth": 1,
       "maxRLVLineWidth": 8,
-      "minRLVLabelSize": 18,
+      "minRLVLabelSize": 12,
       "beamLength": 800.,
       "sample": 1,
       "RLVLineWidthScaleFactor": 15,
