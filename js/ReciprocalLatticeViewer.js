@@ -1402,6 +1402,10 @@ export function setupScene() {
   window.addEventListener('dblclick', function(event) {
   });
 
+  window.addEventListener('contextmenu', function(event) {
+    window.viewer.setCameraToDefaultPositionWithExperiment();
+  });
+
   window.addEventListener('mousedown', function(event) {
     if (event.button == 2) {
       window.viewer.setCameraToDefaultPositionWithExperiment();
