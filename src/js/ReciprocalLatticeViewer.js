@@ -423,7 +423,7 @@ export class ReciprocalLatticeViewer {
         return rlp.multiplyScalar(viewer.rlpScaleFactor);
       }
       if (angle == null) {
-        console.warn("Rotation angles not in reflection table. Cannot generate rlps correctly.");
+        console.warn("Rotation angles not in reflection table. Cannot generate rlps correctly if rotation experiment.");
         return rlp.multiplyScalar(viewer.rlpScaleFactor);
       }
       var fixedRotation = goniometer["fixedRotation"];
@@ -462,7 +462,7 @@ export class ReciprocalLatticeViewer {
     var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
     var goniometer = this.expt.goniometer;
     var scan = this.expt.scan;
-    const addAnglesToReflections = (goniometer != null && scan != null);
+    const addAnglesToReflections = (goniometer !== null && scan !== null);
 
     for (var i = 0; i < panelKeys.length; i++) {
       const panelIdx = parseInt(panelKeys[i]);
@@ -622,7 +622,7 @@ export class ReciprocalLatticeViewer {
       if (panelReflections == undefined){continue;}
       const panelData = this.expt.getDetectorPanelDataByIdx(0, i);
 
-      if (goniometer != null) {
+      if (goniometer !== null) {
         if (!this.refl.containsRotationAnglesObs() || !this.refl.containsRotationAnglesCal()) {
           panelReflections = this.expt.addAnglesToReflections(panelReflections);
         }

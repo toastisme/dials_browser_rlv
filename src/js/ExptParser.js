@@ -541,7 +541,7 @@ export class ExptParser{
 		if (!("scan" in this.exptJSON)){
 			return null;
 		}
-		fileIdx = this.exptJSON["experiment"][idx]["scan"];
+		var fileIdx = this.exptJSON["experiment"][idx]["scan"];
 		return this.exptJSON["scan"][fileIdx];
 	}
 
@@ -567,25 +567,26 @@ export class ExptParser{
 		};
 	}
 
-	getAngleFromFrame(idx, frame){
-		if (this.scan === null){
+	getAngleFromFrame(scan, frame){
+		if (scan === null){
 			return null;
 		}
-		const osc = this.experiments[idx].scan["oscillation"];
-		const ir = this.experiments[idx].scan["imageRange"];
+		const osc = scan["oscillation"];
+		const ir = scan["imageRange"];
 		return osc.x + ((frame - ir.x) * osc.y)
 	}
 
 	addAnglesToReflections(reflections){
 		for (var i = 0; i < reflections.length; i++){
+			var scan = this.experiments[reflections[i]["exptID"]].scan;
 			if ("xyzObs" in reflections[i]){
 				var angleObs;
-				if (this.scan === null || this.scan === undefined){
+				if (scan === null || scan === undefined){
 					angleObs = 0.0;
 				}
 				else{
 					angleObs = this.getAngleFromFrame(
-						reflections[i]["exptID"],
+						scan,
 						reflections[i]["xyzObs"][2]
 					);
 				}
@@ -594,12 +595,12 @@ export class ExptParser{
 			}
 			if ("xyzCal" in reflections[i]){
 				var angleCal;
-				if (this.scan === null){
+				if (scan === null){
 					angleCal = 0.0;
 				}
 				else{
 					angleCal = this.getAngleFromFrame(
-						reflections[i]["exptID"],
+						scan,
 						reflections[i]["xyzCal"][2]
 					);
 				}
