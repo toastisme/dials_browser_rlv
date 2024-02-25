@@ -48,7 +48,6 @@ export class ReciprocalLatticeViewer {
     this.sampleMesh = null;
     this.reciprocalCellMeshes = [];
     this.visibleExpts = [];
-    this.testPoints = null;
 
     this.preventMouseClick = false;
 
@@ -1232,9 +1231,11 @@ export class ReciprocalLatticeViewer {
 
   updateExperimentList() {
     var maxLabelSize = 22;
+    var minNumForAllButton = 4;
+
     var exptIDs = this.expt.getExptIDs();
     var exptLabels = this.expt.getExptLabels();
-    var addAllButton = exptLabels.length > 4;
+    var addAllButton = exptLabels.length > minNumForAllButton;
     var firstLabel = null;
     const visibleExpts = [];
     var dropdownContent = document.getElementById("experimentDropdown");
@@ -1253,7 +1254,7 @@ export class ReciprocalLatticeViewer {
         icon.id = "exptID-dropdown-icon-"+exptIDs[i];
         
         var exptLabel = exptLabels[i];
-        if (exptLabel.length > 22){
+        if (exptLabel.length > maxLabelSize){
           exptLabel = exptLabel.slice(0,19) + "...";
         }
         label.textContent = exptLabel;
