@@ -686,7 +686,7 @@ export class ReciprocalLatticeViewer {
 
     if (containsXYZObs) {
       if (containsMillerIndices) {
-        for (var exptID = 0; exptID < positionsObsUnindexed.length; exptID++){
+        for (var exptID = 0; exptID < positionsObsIndexed.length; exptID++){
           pointsObsIndexed[exptID].push(
             this.createPoints(
               positionsObsIndexed[exptID],
@@ -1334,9 +1334,6 @@ export function setupScene() {
   window.renderer.setClearColor(window.viewer.colors["background"]);
   window.renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(window.renderer.domElement);
-
-  headerText = window.document.getElementById("headerText")
-  sidebar = window.document.getElementById("sidebar")
 
   window.scene = new THREE.Scene()
   window.scene.fog = new THREE.Fog(window.viewer.colors["background"], 500, 8000);
