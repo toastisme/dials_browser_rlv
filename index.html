@@ -175,7 +175,9 @@
 	import { ExptParser } from "./js/ExptParser.js";
 	import { ReflParser } from "./js/ReflParser.js";
 	window.viewer = new ReciprocalLatticeViewer(new ExptParser(), new ReflParser(), true);
-	setupScene();
+	document.addEventListener("DOMContentLoaded", function() {
+		setupScene();
+	});
 	</script>
 
 	
