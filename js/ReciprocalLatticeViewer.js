@@ -687,7 +687,7 @@ export class ReciprocalLatticeViewer {
 
     if (containsXYZObs) {
       if (containsMillerIndices) {
-        for (var exptID = 0; exptID < positionsObsUnindexed.length; exptID++) {
+        for (var exptID = 0; exptID < positionsObsIndexed.length; exptID++) {
           pointsObsIndexed[exptID].push(
             this.createPoints(
               positionsObsIndexed[exptID],
