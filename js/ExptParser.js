@@ -550,6 +550,10 @@ export class ExptParser {
     if (!scanData) {
       return null
     }
+    
+    if (!("oscillation" in scanData)) {
+      return null
+    }
 
     const osc = new THREE.Vector2(
       scanData["oscillation"][0] * Math.PI / 180.,

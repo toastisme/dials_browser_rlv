@@ -37522,6 +37522,7 @@ class ExptParser {
     getScan(idx) {
         const scanData = this.getScanData(idx);
         if (!scanData) return null;
+        if (!("oscillation" in scanData)) return null;
         const osc = new _three.Vector2(scanData["oscillation"][0] * Math.PI / 180., scanData["oscillation"][1] * Math.PI / 180.);
         const ir = new _three.Vector2(scanData["image_range"][0] - 1, scanData["image_range"][1] - 1);
         return {
