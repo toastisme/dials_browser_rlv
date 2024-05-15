@@ -323,6 +323,7 @@ export class ReciprocalLatticeViewer {
     if (this.isStandalone) {
       this.showCloseExptButton();
     }
+    this.updateExperimentList();
     this.requestRender();
   }
 
@@ -445,9 +446,6 @@ export class ReciprocalLatticeViewer {
     this.refl.panelReflData = reflData;
     this.refl.reflTable = "reflData";
 
-    const positionsObsIndexed = new Array();
-    const positionsObsUnindexed = new Array();
-    const positionsCal = new Array();
     const panelKeys = Object.keys(reflData);
     const refl = reflData[panelKeys[0]][0];
 
@@ -456,10 +454,21 @@ export class ReciprocalLatticeViewer {
     const containsMillerIndices = "millerIdx" in refl;
     const containsWavelengths = "wavelength" in refl;
     const containsWavelengthsCal = "wavelengthCal" in refl;
-    var wavelength = this.expt.getBeamData()["wavelength"];
-    var wavelengthCal = this.expt.getBeamData()["wavelength"];
-    var unitS0 = this.expt.getBeamDirection().multiplyScalar(-1).normalize();
-    var goniometer = this.expt.goniometer;
+
+    const pointsObsUnindexed = [];
+    const positionsObsUnindexed = [];
+    const positionsObsIndexed = [];
+    const pointsObsIndexed = [];
+    const positionsCal = [];
+
+
+    for (var i = 0; i < this.expt.numExperiments(); i++){
+      pointsObsUnindexed.push([]);
+      positionsObsUnindexed.push([]);
+      positionsObsIndexed.push([]);
+      pointsObsIndexed.push([]);
+    }
+    
     var scan = this.expt.scan;
     const addAnglesToReflections = (goniometer !== null && scan !== null);
 
@@ -467,6 +476,7 @@ export class ReciprocalLatticeViewer {
       const panelIdx = parseInt(panelKeys[i]);
 
       var panelReflections = reflData[panelKeys[i]];
+      if (panelReflections === undefined){continue;}
       const panelData = this.expt.getDetectorPanelDataByIdx(0, panelIdx);
 
       if (addAnglesToReflections) {
@@ -481,6 +491,11 @@ export class ReciprocalLatticeViewer {
       }
 
       for (var j = 0; j < panelReflections.length; j++) {
+        const exptID = panelReflections[j]["exptID"];
+        var wavelength = this.expt.getBeamData(exptID)["wavelength"];
+        var wavelengthCal = this.expt.getBeamData(exptID)["wavelength"];
+        var unitS0 = this.expt.getBeamDirection(exptID).multiplyScalar(-1).normalize();
+        var goniometer = this.expt.experiments[exptID].goniometer;
 
         if (containsXYZObs) {
 
@@ -497,14 +512,14 @@ export class ReciprocalLatticeViewer {
           const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
           if (containsMillerIndices && panelReflections[j]["indexed"]) {
-            positionsObsIndexed.push(rlp.x);
-            positionsObsIndexed.push(rlp.y);
-            positionsObsIndexed.push(rlp.z);
+            positionsObsIndexed[exptID].push(rlp.x);
+            positionsObsIndexed[exptID].push(rlp.y);
+            positionsObsIndexed[exptUD].push(rlp.z);
           }
           else {
-            positionsObsUnindexed.push(rlp.x);
-            positionsObsUnindexed.push(rlp.y);
-            positionsObsUnindexed.push(rlp.z);
+            positionsObsUnindexed[exptID].push(rlp.x);
+            positionsObsUnindexed[exptID].push(rlp.y);
+            positionsObsUnindexed[exptID].push(rlp.z);
           }
         }
         if (containsXYZCal) {
@@ -528,23 +543,35 @@ export class ReciprocalLatticeViewer {
     if (containsXYZObs) {
       if (containsMillerIndices) {
 
-        const pointsObsIndexed = this.createPoints(
-          positionsObsIndexed,
-          this.colors["reflectionObsIndexed"],
-          this.reflectionSize.value
-        );
-        window.scene.add(pointsObsIndexed);
-        this.reflPointsObsIndexed = [pointsObsIndexed];
-        this.reflPositionsIndexed = positionsObsIndexed;
+        for (var exptID = 0; exptID < positionsObsIndexed.length; exptID++){
+          pointsObsIndexed[exptID].push(
+            this.createPoints(
+              positionsObsIndexed[exptID],
+              this.colors["reflectionObsIndexed"],
+              this.reflectionSize.value
+            )
+          );
+        }
 
+        for (var p = 0; p < pointsObsIndexed.length; p++){
+          window.scene.add(pointsObsIndexed[p][0]);
+        }
+        this.reflPointsObsIndexed = pointsObsIndexed;
+        this.reflPositionsIndexed = positionsObsIndexed;
       }
-      const pointsObsUnindexed = this.createPoints(
-        positionsObsUnindexed,
-        this.colors["reflectionObsUnindexed"],
-        this.reflectionSize.value
-      );
-      window.scene.add(pointsObsUnindexed);
-      this.reflPointsObsUnindexed = [pointsObsUnindexed];
+      for (var exptID = 0; exptID < positionsObsUnindexed.length; exptID++){
+        const points = this.createPoints(
+            positionsObsUnindexed[exptID],
+            this.colors["reflectionObsUnindexed"][exptID % this.colors["reflectionObsUnindexed"].length],
+            this.reflectionSize.value,
+          );
+          points.name = exptID.toString();
+        pointsObsUnindexed[exptID].push(points);
+        this.testPoints = points;
+        window.scene.add(points);
+      }
+
+      this.reflPointsObsUnindexed = pointsObsUnindexed;
       this.reflPositionsUnindexed = positionsObsUnindexed;
     }
 

@@ -101,6 +101,7 @@ export class ExptParser{
 
 	parseExperimentJSON(jsonString){
 		this.exptJSON = jsonString 
+		this.imageFilenames = [];
 		for (var i = 0; i < this.numExperiments(); i++){
 			this.experiments.push(
 				new Experiment(
@@ -113,8 +114,8 @@ export class ExptParser{
 					this.getImageFilenames(i)
 				)
 			);
+			this.imageFilenames.push(this.getImageFilenames(i));
 		}
-		this.imageFilenames = this.getImageFilenames();
 	}
 
 	getImageFilenames(idx){
