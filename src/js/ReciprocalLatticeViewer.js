@@ -514,7 +514,7 @@ export class ReciprocalLatticeViewer {
           if (containsMillerIndices && panelReflections[j]["indexed"]) {
             positionsObsIndexed[exptID].push(rlp.x);
             positionsObsIndexed[exptID].push(rlp.y);
-            positionsObsIndexed[exptUD].push(rlp.z);
+            positionsObsIndexed[exptID].push(rlp.z);
           }
           else {
             positionsObsUnindexed[exptID].push(rlp.x);
