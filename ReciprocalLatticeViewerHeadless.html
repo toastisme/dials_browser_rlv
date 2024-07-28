@@ -31,6 +31,11 @@
 				window.viewer.updateCalculatedReflections()
 			}
 
+			function updateIntegratedReflections(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateIntegratedReflections()
+			}
+
 			function updateReflectionSize(){
 				window.viewer.disableMouseClick();
 				window.viewer.updateReflectionSize();
@@ -50,14 +55,22 @@
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
 		id="observedUnindexedReflections", checked=false, 
 		onclick="updateObservedUnindexedReflections()", disabled=true><br>
+
 		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" 
 		id="observedIndexedReflections", checked=false, 
 		onclick="updateObservedIndexedReflections()", disabled=true><br>
+
 		<span style="color: #ffaaaa"><b>calculated reflections:</b> </span><input type="checkbox" 
 		id="calculatedReflections", checked=false, 
 		onclick="updateCalculatedReflections()", disabled=true><br>
+
+		<span style="color: #ffc25c"><b>integrated reflections:</b> </span><input type="checkbox" 
+		id="integratedReflections", checked=false, 
+		onclick="updateIntegratedReflections()", disabled=true><br>
+
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell", 
 		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
+
 		<b>reflection size:</b>  <input type="range" min="1" max="75" value="10" 
 		class="slider" id="reflectionSize" 
 		onmouseup="updateReflectionSize()">
@@ -234,6 +247,7 @@
 			],
 			"reflectionObsIndexed": 0xe74c3c,
 			"reflectionCal": 0xffaaaa,
+			"reflectionIntegrated" : 0xffc25c,
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
 			"reciprocalCell": 0xFFFFFF,

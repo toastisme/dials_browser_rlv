@@ -34,6 +34,7 @@ export class ReciprocalLatticeViewer {
     this.observedIndexedReflsCheckbox = document.getElementById("observedIndexedReflections");
     this.observedUnindexedReflsCheckbox = document.getElementById("observedUnindexedReflections");
     this.calculatedReflsCheckbox = document.getElementById("calculatedReflections");
+    this.integratedReflsCheckbox = document.getElementById("integratedReflections");
     this.reciprocalCellCheckbox = document.getElementById("reciprocalCell");
     this.reflectionSize = document.getElementById("reflectionSize");
 
@@ -44,6 +45,8 @@ export class ReciprocalLatticeViewer {
     this.reflPositionsIndexed = [];
     this.reflPointsCal = [];
     this.reflPositionsCal = []
+    this.reflPointsIntegrated = [];
+    this.reflPositionsIntegrated = [];
     this.beamMeshes = [];
     this.sampleMesh = null;
     this.reciprocalCellMeshes = [];
@@ -95,6 +98,7 @@ export class ReciprocalLatticeViewer {
       ],
       "reflectionObsIndexed": 0xe74c3c,
       "reflectionCal": 0xffaaaa,
+			"reflectionIntegrated" : 0xffc25c,
       "highlight": 0xFFFFFF,
       "beam": 0xFFFFFF,
       "reciprocalCell": 0xFFFFFF,
@@ -163,6 +167,16 @@ export class ReciprocalLatticeViewer {
     }
     if (this.reflPointsCal.length > 0) {
       this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
+      this.requestRender();
+    }
+  }
+
+  updateIntegratedReflections(val = null) {
+    if (val !== null) {
+      this.integratedReflsCheckbox.checked = val;
+    }
+    if (this.reflPointsIntegrated.length > 0) {
+      this.reflPointsIntegrated[0].visible = this.integratedReflsCheckbox.checked;
       this.requestRender();
     }
   }
@@ -237,6 +251,19 @@ export class ReciprocalLatticeViewer {
       window.scene.add(pointsCal);
       this.reflPointsCal = [pointsCal];
       this.updateCalculatedReflections();
+      
+      if (this.reflPointsIntegrated){
+        const pointsIntegrated = this.createPoints(
+          this.reflPositionsCal,
+          this.colors["reflectionIntegrated"],
+          this.reflectionSize.value
+        );
+        this.clearReflPointsIntegrated();
+        window.scene.add(pointsIntegrated);
+        this.reflPointsIntegrated = [pointsIntegrated];
+        this.updateIntegratedReflections();
+          
+      }
     }
     this.requestRender();
   }
@@ -367,10 +394,20 @@ export class ReciprocalLatticeViewer {
     this.reflPointsCal = [];
   }
 
+  clearReflPointsIntegrated() {
+    for (var i = 0; i < this.reflPointsIntegrated.length; i++) {
+      window.scene.remove(this.reflPointsIntegrated[i]);
+      this.reflPointsIntegrated[i].geometry.dispose();
+      this.reflPointsIntegrated[i].material.dispose();
+    }
+    this.reflPointsIntegrated = [];
+  }
+
   clearReflectionTable() {
     this.clearReflPointsObsIndexed();
     this.clearReflPointsObsUnindexed();
     this.clearReflPointsCal();
+    this.clearReflPointsIntegrated();
     this.refl.clearReflectionTable();
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
@@ -460,6 +497,7 @@ export class ReciprocalLatticeViewer {
     const positionsObsIndexed = [];
     const pointsObsIndexed = [];
     const positionsCal = [];
+    const positionsIntegrated = [];
 
 
     for (var i = 0; i < this.expt.numExperiments(); i++){
@@ -536,6 +574,11 @@ export class ReciprocalLatticeViewer {
           positionsCal.push(rlp.x);
           positionsCal.push(rlp.y);
           positionsCal.push(rlp.z);
+          if ("summedIntensity" in panelReflections[j]) {
+            positionsIntegrated.push(rlp.x);
+            positionsIntegrated.push(rlp.y);
+            positionsIntegrated.push(rlp.z);
+          }
         }
       }
     }
@@ -584,6 +627,18 @@ export class ReciprocalLatticeViewer {
       window.scene.add(pointsCal);
       this.reflPointsCal = [pointsCal];
       this.reflPositionsCal = positionsCal;
+      
+      if (positionsIntegrated.length !== 0){
+        const pointsIntegrated = this.createPoints(
+          positionsIntegrated,
+          this.colors["reflectionIntegrated"],
+          this.reflectionSize.value
+        );
+        window.scene.add(pointsIntegrated);
+        this.reflPointsIntegrated = [pointsIntegrated];
+        this.reflPositionsIntegrated = positionsIntegrated;
+          
+      }
     }
 
     this.updateReflectionCheckboxStatus();
@@ -766,20 +821,21 @@ export class ReciprocalLatticeViewer {
     this.observedIndexedReflsCheckbox.checked = false;
     this.observedUnindexedReflsCheckbox.checked = false;
     this.calculatedReflsCheckbox.checked = false;
+    this.integratedReflsCheckbox.checked = false;
     if (!this.hasReflectionTable()) {
       return;
     }
 
-    if (this.reflPointsObsIndexed.length > 0) {
-      this.updateObservedIndexedReflections(true);
-      this.observedIndexedReflsCheckbox.checked = true;
-    }
     if (this.reflPointsObsUnindexed.length > 0) {
       this.updateObservedUnindexedReflections(true);
       this.observedUnindexedReflsCheckbox.checked = true;
     }
+    if (this.reflPointsObsIndexed.length > 0) {
+      this.updateObservedIndexedReflections(true);
+      this.observedIndexedReflsCheckbox.checked = true;
+    }
 
-    if (this.reflPointsCal.length > 0) {
+    else if (this.reflPointsCal.length > 0) {
       this.updateCalculatedReflections(false);
       this.calculatedReflsCheckbox.checked = false;
     }
@@ -790,6 +846,7 @@ export class ReciprocalLatticeViewer {
       this.observedIndexedReflsCheckbox.disabled = true;
       this.observedUnindexedReflsCheckbox.disabled = true;
       this.calculatedReflsCheckbox.disabled = true;
+      this.integratedReflsCheckbox.disabled = true;
       return;
     }
     this.observedUnindexedReflsCheckbox.disabled = !this.refl.hasXYZObsData();
@@ -797,6 +854,7 @@ export class ReciprocalLatticeViewer {
     this.calculatedReflsCheckbox.disabled = !this.refl.hasXYZCalData();
     this.reciprocalCellCheckbox.disabled = !this.refl.hasMillerIndicesData();
     this.calculatedReflsCheckbox.disabled = !this.expt.hasCrystal(0);
+    this.integratedReflsCheckbox.disabled = !this.refl.hasIntegratedData();
   }
 
   addBeam() {
