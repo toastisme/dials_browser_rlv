@@ -643,6 +643,7 @@ export class ReciprocalLatticeViewer {
 
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
+    this.updateReflectionVisibility();
     this.requestRender();
 
   }
@@ -827,18 +828,24 @@ export class ReciprocalLatticeViewer {
     }
 
     if (this.reflPointsObsUnindexed.length > 0) {
-      this.updateObservedUnindexedReflections(true);
       this.observedUnindexedReflsCheckbox.checked = true;
     }
     if (this.reflPointsObsIndexed.length > 0) {
-      this.updateObservedIndexedReflections(true);
       this.observedIndexedReflsCheckbox.checked = true;
     }
-
-    else if (this.reflPointsCal.length > 0) {
-      this.updateCalculatedReflections(false);
-      this.calculatedReflsCheckbox.checked = false;
+    if (this.reflPointsCal.length > 0) {
+      this.calculatedReflsCheckbox.checked = true;
     }
+    if (this.reflPointsIntegrated.length > 0) {
+      this.integratedReflsCheckbox.checked = true;
+    }
+  }
+  
+  updateReflectionVisibility(){
+    this.updateObservedIndexedReflections();
+    this.updateObservedUnindexedReflections();
+    this.updateCalculatedReflections();
+    this.updateIntegratedReflections();
   }
 
   updateReflectionCheckboxStatus() {
