@@ -61,8 +61,8 @@ export class ReflParser {
 		if (!this.hasXYZCalData()) {
 			return false;
 		}
-		for (var i in this.reflData) {
-			if (("summedIntensity" in this.reflData[i][0])) {
+		for (var i in this.panelReflData) {
+			if (("summedIntensity" in this.panelReflData[i][0])) {
 				return true;
 			}
 		}
