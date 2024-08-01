@@ -833,12 +833,6 @@ export class ReciprocalLatticeViewer {
     if (this.reflPointsObsIndexed.length > 0) {
       this.observedIndexedReflsCheckbox.checked = true;
     }
-    if (this.reflPointsCal.length > 0) {
-      this.calculatedReflsCheckbox.checked = true;
-    }
-    if (this.reflPointsIntegrated.length > 0) {
-      this.integratedReflsCheckbox.checked = true;
-    }
   }
   
   updateReflectionVisibility(){

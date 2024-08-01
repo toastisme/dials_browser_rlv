@@ -218,7 +218,49 @@
 		return "channel" in msg && msg["channel"] == "rlv";
 	}
 
-	const serverWSAddr = "ws://127.0.0.1:8888/";
+	function connectWebSocket(serverWSAddr) {
+		function attemptConnection() {
+			window.viewer.serverWS = new WebSocket(serverWSAddr);
+
+			window.viewer.serverWS.onopen = () => {
+				console.log('RLV opened Connection to server');
+
+				const checkReadyState = () => {
+					if (window.viewer.serverWS.readyState === WebSocket.OPEN) {
+						window.viewer.serverWS.send(JSON.stringify({
+							"channel": "server",
+							"command": "record_connection", 
+							"id": "rlv"
+						}));
+						console.log("RLV connected successfully")
+					} else {
+						console.error('WebSocket is not open. Retrying...');
+						setTimeout(checkReadyState, 1000); 
+					}
+				};
+
+				checkReadyState();
+			};
+
+			window.viewer.serverWS.onerror = (error) => {
+				console.error('WebSocket error: ', error);
+				setTimeout(() => {
+					console.log('Retrying connection...');
+					attemptConnection();
+				}, 5000); 
+			};
+
+			window.viewer.serverWS.onclose = () => {
+				console.log('WebSocket connection closed. Retrying...');
+				setTimeout(() => {
+					attemptConnection();
+				}, 5000); 
+			};
+		}
+
+		attemptConnection();
+	}
+
 
 	const colors = {
 			"background": 0x020817,
@@ -260,23 +302,8 @@
 		false,
 		colors
 	);
-	window.viewer.serverWS = new WebSocket(serverWSAddr);
-
-	window.viewer.serverWS.onopen = () => {
-		console.log('RLV opened Connection to server');
-
-		window.viewer.serverWS.send(JSON.stringify({
-			"channel": "server",
-			"command": "record_connection", 
-			"id": "rlv"
-			}
-		));
-
-	};
-
-	window.viewer.serverWS.onclose = () => {
-		console.log('RLV closed Connection to server');
-	};
+	const serverWSAddr = "ws://127.0.0.1:8888/";
+	connectWebSocket(serverWSAddr);
 
 	window.viewer.serverWS.onmessage = (event) => {
 
