@@ -14,7 +14,7 @@
 </head>
 <body>
 	<header id="headerText"> </header>
-	<sidebar id="sidebar"> 
+	<sidebar id="sidebar" style="width: 230px; padding: 10px;"> 
 		<script>
 			function updateObservedUnindexedReflections(){
 				window.viewer.disableMouseClick(); 
@@ -51,7 +51,7 @@
 		<b>left click</b> = navigate <br>
 		<b>right click</b> = reset view <br>
 		<b>mouse wheel</b> = zoom<br>
-		-------------------------------------------------------<br>
+		---------------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
 		id="observedUnindexedReflections", checked=false, 
 		onclick="updateObservedUnindexedReflections()", disabled=true><br>
@@ -75,7 +75,7 @@
 		class="slider" id="reflectionSize" 
 		onmouseup="updateReflectionSize()">
 		 <div class="dropdown">
-			<button onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Experiments </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
+			<button onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Orientations </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
 			<div id="experimentDropdown" class="dropdown-content">
 			</div>
 		</div> 
@@ -303,7 +303,26 @@
 		colors
 	);
 	const serverWSAddr = "ws://127.0.0.1:8888/";
-	connectWebSocket(serverWSAddr);
+
+	window.viewer.serverWS = new WebSocket(serverWSAddr);
+
+	window.viewer.serverWS.onopen = () => {
+		console.log('Reciprocal lattice viewer opened Connection to server');
+
+      window.viewer.serverWS.send(JSON.stringify({
+        "channel": "server",
+        "command": "record_connection", 
+        "id": "rlv"
+        }
+      ));
+
+
+	};
+
+	window.viewer.serverWS.onclose = () => {
+		console.log('Reciprocal lattice viewer closed Connection to server');
+	};
+
 
 	window.viewer.serverWS.onmessage = (event) => {
 
