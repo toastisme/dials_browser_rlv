@@ -51,7 +51,7 @@
 		<b>left click</b> = navigate <br>
 		<b>right click</b> = reset view <br>
 		<b>mouse wheel</b> = zoom<br>
-		---------------------------------------------------------<br>
+		-------------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
 		id="observedUnindexedReflections", checked=false, 
 		onclick="updateObservedUnindexedReflections()", disabled=true><br>
@@ -71,9 +71,9 @@
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell", 
 		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
 
-		<b>reflection size:</b>  <input type="range" min="1" max="75" value="10" 
+		<b>reflection size:</b>  <input type="range" min="1" max="25" value="10" 
 		class="slider" id="reflectionSize" 
-		onmouseup="updateReflectionSize()">
+		onmouseup="updateReflectionSize()"><br><br>
 		 <div class="dropdown">
 			<button onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Orientations </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
 			<div id="experimentDropdown" class="dropdown-content">
