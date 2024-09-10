@@ -296,75 +296,77 @@
 			"RLVLabels" : "white"
 	};
 
-	window.viewer = new ReciprocalLatticeViewer(
-		new ExptParser(), 
-		new ReflParser(), 
-		false,
-		colors
-	);
-	const serverWSAddr = "ws://127.0.0.1:8888/";
+	window.onload = function(){
+		window.viewer = new ReciprocalLatticeViewer(
+			new ExptParser(), 
+			new ReflParser(), 
+			false,
+			colors
+		);
+		const serverWSAddr = "ws://127.0.0.1:8888/";
 
-	window.viewer.serverWS = new WebSocket(serverWSAddr);
+		window.viewer.serverWS = new WebSocket(serverWSAddr);
 
-	window.viewer.serverWS.onopen = () => {
-		console.log('Reciprocal lattice viewer opened Connection to server');
+		window.viewer.serverWS.onopen = () => {
+			console.log('Reciprocal lattice viewer opened Connection to server');
 
-      window.viewer.serverWS.send(JSON.stringify({
-        "channel": "server",
-        "command": "record_connection", 
-        "id": "rlv"
-        }
-      ));
-
-
-	};
-
-	window.viewer.serverWS.onclose = () => {
-		console.log('Reciprocal lattice viewer closed Connection to server');
-	};
+		window.viewer.serverWS.send(JSON.stringify({
+			"channel": "server",
+			"command": "record_connection", 
+			"id": "rlv"
+			}
+		));
 
 
-	window.viewer.serverWS.onmessage = (event) => {
+		};
 
-		console.log("msg received", event.data);
-		const msg = JSON.parse(event.data);
+		window.viewer.serverWS.onclose = () => {
+			console.log('Reciprocal lattice viewer closed Connection to server');
+		};
 
-		if (!isRLVMsg(msg)){
-			return;
-		}
 
-		const command = msg["command"];
+		window.viewer.serverWS.onmessage = (event) => {
 
-		switch(command){
-			case "update_experiment":
-				if ("reindexed_cell" in msg){
-					window.viewer.addExperimentFromJSONString(
-						msg,
-						false,
-						true
-					);
-				}
-				else{
-					window.viewer.addExperimentFromJSONString(msg);
-				}
-			break;
-			case "clear_experiment":
-				window.viewer.clearExperiment();
+			console.log("msg received", event.data);
+			const msg = JSON.parse(event.data);
+
+			if (!isRLVMsg(msg)){
+				return;
+			}
+
+			const command = msg["command"];
+
+			switch(command){
+				case "update_experiment":
+					if ("reindexed_cell" in msg){
+						window.viewer.addExperimentFromJSONString(
+							msg,
+							false,
+							true
+						);
+					}
+					else{
+						window.viewer.addExperimentFromJSONString(msg);
+					}
 				break;
-			case "update_reflection_table":
-				delete msg["command"];
-				delete msg["channel"];
-				window.viewer.addReflectionsFromData(msg);
-				break;
-			default:
-				console.warn("Unrecognised command ", command);
-		}
+				case "clear_experiment":
+					window.viewer.clearExperiment();
+					break;
+				case "update_reflection_table":
+					delete msg["command"];
+					delete msg["channel"];
+					window.viewer.addReflectionsFromData(msg);
+					break;
+				default:
+					console.warn("Unrecognised command ", command);
+			}
 
 
 
-	};
+		};
 
-	setupScene();
+		setupScene();
+	}
 	</script>
 
 	
