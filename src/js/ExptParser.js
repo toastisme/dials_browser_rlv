@@ -622,18 +622,21 @@ export class ExptParser{
 		return exptIDs;
 	}
 
-	getExptLabels(){
-		var isWindows = window.navigator.oscpu.indexOf("indow") > -1;
+	getExptLabels() {
+		// Check if oscpu is available; if not, use a fallback like navigator.platform
+		var isWindows = window.navigator.oscpu ? window.navigator.oscpu.indexOf("Windows") > -1 
+											: window.navigator.platform.indexOf("Win") > -1;
+
 		var exptLabels = [];
-		for (var i = 0; i < this.experiments.length; i++){
+		for (var i = 0; i < this.experiments.length; i++) {
 			var label = this.experiments[i].imageFilename;
-			if (isWindows){
+			if (isWindows) {
 				exptLabels.push(label.split("\\").pop());
-			}
-			else{
+			} else {
 				exptLabels.push(label.split("/").pop());
 			}
 		}
 		return exptLabels;
 	}
+
 }
