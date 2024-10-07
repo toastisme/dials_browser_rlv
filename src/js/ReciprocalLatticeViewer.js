@@ -931,63 +931,67 @@ export class ReciprocalLatticeViewer {
       return;
     }
 
-    // Assume all experiments share the same crystal
-    const crystalRLV = this.expt.getCrystalRLV(0); 
+    const crystalRLVs = this.expt.getAllCrystalRLVs(); 
 
-    const avgRLVLength = getAvgRLVLength(crystalRLV);
-    const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
-    const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
-    const lineWidthScaleFactor = ReciprocalLatticeViewer.sizes()["RLVLineWidthScaleFactor"];
-    const lineWidth = Math.min(
-      Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
-    );
+    for (let i=0; i<crystalRLVs.length; i++){
+      let crystalRLV = crystalRLVs[i];
+      const avgRLVLength = getAvgRLVLength(crystalRLV);
+      const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
+      const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
+      const lineWidthScaleFactor = ReciprocalLatticeViewer.sizes()["RLVLineWidthScaleFactor"];
+      const lineWidth = Math.min(
+        Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
+      );
 
-    const material = new MeshLineMaterial({
-      lineWidth: lineWidth,
-      color: this.colors["reciprocalCell"],
-      depthWrite: false,
-      sizeAttenuation: true
-    });
+      const material = new MeshLineMaterial({
+        lineWidth: lineWidth,
+        color: this.colors["reciprocalCell"],
+        depthWrite: false,
+        sizeAttenuation: true
+      });
 
-    const a = crystalRLV[0].clone().multiplyScalar(this.rlpScaleFactor);
-    const b = crystalRLV[1].clone().multiplyScalar(this.rlpScaleFactor);
-    const c = crystalRLV[2].clone().multiplyScalar(this.rlpScaleFactor);
+      const a = crystalRLV[0].clone().multiplyScalar(this.rlpScaleFactor);
+      const b = crystalRLV[1].clone().multiplyScalar(this.rlpScaleFactor);
+      const c = crystalRLV[2].clone().multiplyScalar(this.rlpScaleFactor);
 
-    const origin = new THREE.Vector3(0, 0, 0);
+      const origin = new THREE.Vector3(0, 0, 0);
 
-    const labelScaleFactor = Math.max(
-      avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
-    );
-    const labelColor = this.colors["RLVLabels"];
-    this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
-    this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
-    this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      const labelScaleFactor = Math.max(
+        avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
+      );
+      const labelColor = this.colors["RLVLabels"];
+      this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
 
-    const cellVertices = [
-      origin,
-      a,
-      a.clone().add(b),
-      b,
-      origin,
-      c,
-      c.clone().add(a),
-      a,
-      a.clone().add(b),
-      a.clone().add(b).add(c),
-      a.clone().add(c),
-      c,
-      b.clone().add(c),
-      a.clone().add(b).add(c),
-      b.clone().add(c),
-      b,
-      origin
-    ];
+      const cellVertices = [
+        origin,
+        a,
+        a.clone().add(b),
+        b,
+        origin,
+        c,
+        c.clone().add(a),
+        a,
+        a.clone().add(b),
+        a.clone().add(b).add(c),
+        a.clone().add(c),
+        c,
+        b.clone().add(c),
+        a.clone().add(b).add(c),
+        b.clone().add(c),
+        b,
+        origin
+      ];
 
-    const line = new MeshLine();
-    line.setPoints(cellVertices);
-    const Mesh = new THREE.Mesh(line, material);
-    viewer.reciprocalCellMeshes.push(Mesh);
-    window.scene.add(Mesh);
+      const line = new MeshLine();
+      line.setPoints(cellVertices);
+      const Mesh = new THREE.Mesh(line, material);
+      viewer.reciprocalCellMeshes.push(Mesh);
+      window.scene.add(Mesh);
+
+    }
+
   }
 
   addRLVLabel(text, pos, color, scaleFactor) {

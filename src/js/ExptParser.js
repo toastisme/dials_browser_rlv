@@ -78,7 +78,7 @@ export class ExptParser{
 								this.getImageFilenames(i),
 								this.getCrystalSummary(i),
 								this.getGoniometer(i),
-								this.getCrystal(0),
+								this.getCrystal(i),
 								this.getScan(i),
 								this.getDetectorPanelData(i),
 								this.getImageFilenames(i)
@@ -108,7 +108,7 @@ export class ExptParser{
 					this.getImageFilenames(i),
 					this.getCrystalSummary(i),
 					this.getGoniometer(i),
-					this.getCrystal(0),
+					this.getCrystal(i),
 					this.getScan(i),
 					this.getDetectorPanelData(i),
 					this.getImageFilenames(i)
@@ -336,7 +336,18 @@ export class ExptParser{
 	}
 
 	getCrystalData(idx){
-		return this.exptJSON["crystal"][idx];
+		if (this.exptJSON["crystal"].length === 0){
+			return null;
+		}
+		console.log("test ", idx, this.exptJSON["experiment"][idx])
+		if(idx === undefined){return null;}
+		var fileIdx = this.exptJSON["experiment"][idx]["crystal"];
+		return this.exptJSON["crystal"][fileIdx];
+	}
+
+	getAllCrystalData(){
+		return this.exptJSON["crystal"];
+
 	}
 
 	hasCrystal(idx){
@@ -468,12 +479,26 @@ export class ExptParser{
 			"U" : U,
 			"B" : B,
 			"UB": UB,
-			"reciprocalCell": reciprocalCell
-		}
+			"reciprocalCell": reciprocalCell,
+			"exptID": idx
+		};
 	}
 
 	getCrystalRLV(idx){
 		return this.experiments[idx].crystal["reciprocalCell"];
+	}
+
+	getAllCrystalRLVs(){
+		let crystalIdxs = []
+		let crystalRLVs = [];
+		for (let i = 0; i < this.experiments.length; i++){
+			let rLV = this.experiments[i].crystal["reciprocalCell"];
+			if (rLV["exptID"] in crystalIdxs){
+				continue;
+			}
+			crystalRLVs.push(rLV);
+		}
+		return crystalRLVs;
 	}
 
 	getCrystalU(idx){
