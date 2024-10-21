@@ -165,8 +165,8 @@ export class ReciprocalLatticeViewer {
     if (val !== null) {
       this.calculatedReflsCheckbox.checked = val;
     }
-    if (this.reflPointsCal.length > 0) {
-      this.reflPointsCal[0].visible = this.calculatedReflsCheckbox.checked;
+    for (var i = 0; i < this.reflPointsCal.length; i++){
+      this.reflPointsCal[i][0].visible = this.calculatedReflsCheckbox.checked && this.visibleExpts[i]; 
       this.requestRender();
     }
   }
@@ -175,8 +175,8 @@ export class ReciprocalLatticeViewer {
     if (val !== null) {
       this.integratedReflsCheckbox.checked = val;
     }
-    if (this.reflPointsIntegrated.length > 0) {
-      this.reflPointsIntegrated[0].visible = this.integratedReflsCheckbox.checked;
+    for (var i = 0; i < this.reflPointsIntegrated.length; i++){
+      this.reflPointsIntegrated[i][0].visible = this.integratedReflsCheckbox.checked && this.visibleExpts[i];
       this.requestRender();
     }
   }
@@ -242,25 +242,38 @@ export class ReciprocalLatticeViewer {
     }
 
     if (this.refl.hasXYZCalData() && this.reflPositionsCal) {
-      const pointsCal = this.createPoints(
-        this.reflPositionsCal,
-        this.colors["reflectionCal"],
-        this.reflectionSize.value
-      );
+      const reflPointsCal = [];
+      for (var i = 0; i < this.reflPositionsCal.length; i++){
+        const pointsCal = this.createPoints(
+          this.reflPositionsCal[i],
+          this.colors["reflectionCal"],
+          this.reflectionSize.value
+        );
+        reflPointsCal.push([pointsCal]);
+
+      }
       this.clearReflPointsCal();
-      window.scene.add(pointsCal);
-      this.reflPointsCal = [pointsCal];
+      for (var p = 0; p < reflPointsCal.length; p++){
+        window.scene.add(reflPointsCal[p][0]);
+      }
+      this.reflPointsCal = reflPointsCal;
       this.updateCalculatedReflections();
       
       if (this.reflPointsIntegrated){
-        const pointsIntegrated = this.createPoints(
-          this.reflPositionsCal,
-          this.colors["reflectionIntegrated"],
-          this.reflectionSize.value
-        );
+        const reflPointsIntegrated = [];
+        for (var i = 0; i < this.reflPositionsIntegrated.length; i++){
+          const pointsIntegrated = this.createPoints(
+            this.reflPositionsIntegrated[i],
+            this.colors["reflectionIntegrated"],
+            this.reflectionSize.value
+          );
+          reflPointsIntegrated.push([pointsIntegrated]);
+        }
         this.clearReflPointsIntegrated();
-        window.scene.add(pointsIntegrated);
-        this.reflPointsIntegrated = [pointsIntegrated];
+        for (var p = 0; p < reflPointsIntegrated.length; p++){
+          window.scene.add(reflPointsIntegrated[p][0]);
+        }
+        this.reflPointsIntegrated = reflPointsIntegrated;
         this.updateIntegratedReflections();
           
       }
@@ -387,18 +400,18 @@ export class ReciprocalLatticeViewer {
 
   clearReflPointsCal() {
     for (var i = 0; i < this.reflPointsCal.length; i++) {
-      window.scene.remove(this.reflPointsCal[i]);
-      this.reflPointsCal[i].geometry.dispose();
-      this.reflPointsCal[i].material.dispose();
+      window.scene.remove(this.reflPointsCal[i][0]);
+      this.reflPointsCal[i][0].geometry.dispose();
+      this.reflPointsCal[i][0].material.dispose();
     }
     this.reflPointsCal = [];
   }
 
   clearReflPointsIntegrated() {
     for (var i = 0; i < this.reflPointsIntegrated.length; i++) {
-      window.scene.remove(this.reflPointsIntegrated[i]);
-      this.reflPointsIntegrated[i].geometry.dispose();
-      this.reflPointsIntegrated[i].material.dispose();
+      window.scene.remove(this.reflPointsIntegrated[i][0]);
+      this.reflPointsIntegrated[i][0].geometry.dispose();
+      this.reflPointsIntegrated[i][0].material.dispose();
     }
     this.reflPointsIntegrated = [];
   }
@@ -497,7 +510,9 @@ export class ReciprocalLatticeViewer {
     const positionsObsIndexed = [];
     const pointsObsIndexed = [];
     const positionsCal = [];
+    const pointsCal = [];
     const positionsIntegrated = [];
+    const pointsIntegrated = [];
 
 
     for (var i = 0; i < this.expt.numExperiments(); i++){
@@ -505,6 +520,11 @@ export class ReciprocalLatticeViewer {
       positionsObsUnindexed.push([]);
       positionsObsIndexed.push([]);
       pointsObsIndexed.push([]);
+      positionsCal.push([]);
+      pointsCal.push([]);
+      positionsIntegrated.push([]);
+      pointsIntegrated.push([]);
+      
     }
     
     var scan = this.expt.scan;
@@ -570,14 +590,14 @@ export class ReciprocalLatticeViewer {
           }
           const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
           const angle = panelReflections[j]["angleCal"];
-          const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U);
-          positionsCal.push(rlp.x);
-          positionsCal.push(rlp.y);
-          positionsCal.push(rlp.z);
+          const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
+          positionsCal[exptID].push(rlp.x);
+          positionsCal[exptID].push(rlp.y);
+          positionsCal[exptID].push(rlp.z);
           if ("summedIntensity" in panelReflections[j]) {
-            positionsIntegrated.push(rlp.x);
-            positionsIntegrated.push(rlp.y);
-            positionsIntegrated.push(rlp.z);
+            positionsIntegrated[exptID].push(rlp.x);
+            positionsIntegrated[exptID].push(rlp.y);
+            positionsIntegrated[exptID].push(rlp.z);
           }
         }
       }
@@ -619,23 +639,33 @@ export class ReciprocalLatticeViewer {
     }
 
     if (containsXYZCal) {
-      const pointsCal = this.createPoints(
-        positionsCal,
-        this.colors["reflectionCal"],
-        this.reflectionSize.value
-      );
-      window.scene.add(pointsCal);
-      this.reflPointsCal = [pointsCal];
+      for (var exptID = 0; exptID < positionsCal.length; exptID++){
+        const points= this.createPoints(
+          positionsCal[exptID],
+          this.colors["reflectionCal"],
+          this.reflectionSize.value
+        );
+        pointsCal[exptID].push(points);
+      }
+      for (var p = 0; p < pointsCal.length; p++){
+        window.scene.add(pointsCal[p][0]);
+      }
+      this.reflPointsCal = pointsCal;
       this.reflPositionsCal = positionsCal;
       
       if (positionsIntegrated.length !== 0){
-        const pointsIntegrated = this.createPoints(
-          positionsIntegrated,
-          this.colors["reflectionIntegrated"],
-          this.reflectionSize.value
-        );
-        window.scene.add(pointsIntegrated);
-        this.reflPointsIntegrated = [pointsIntegrated];
+        for (var exptID = 0; exptID < positionsIntegrated.length; exptID++){
+          const points= this.createPoints(
+            positionsIntegrated[exptID],
+            this.colors["reflectionIntegrated"],
+            this.reflectionSize.value
+          );
+          pointsIntegrated[exptID].push(points);
+        }
+        for (var p = 0; p < pointsIntegrated.length; p++){
+          window.scene.add(pointsIntegrated[p][0]);
+        }
+        this.reflPointsIntegrated = pointsIntegrated;
         this.reflPositionsIntegrated = positionsIntegrated;
           
       }
@@ -758,7 +788,9 @@ export class ReciprocalLatticeViewer {
             continue;
           }
           const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
-          const angle = panelReflections[j]["angleCal"];
+          if (angle > 1){
+            const angle = panelReflections[j]["angleCal"];
+          }
           const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U);
           positionsCal.push(rlp.x);
           positionsCal.push(rlp.y);
@@ -1293,6 +1325,8 @@ export class ReciprocalLatticeViewer {
     this.visibleExpts[exptID] = !this.visibleExpts[exptID];
     this.updateObservedIndexedReflections();
     this.updateObservedUnindexedReflections();
+    this.updateCalculatedReflections();
+    this.updateIntegratedReflections();
     var dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
     dropdownIcon.classList.toggle("fa-check");
   }
@@ -1310,6 +1344,8 @@ export class ReciprocalLatticeViewer {
     }
     this.updateObservedIndexedReflections();
     this.updateObservedUnindexedReflections();
+    this.updateCalculatedReflections();
+    this.updateIntegratedReflections();
   }
 
 

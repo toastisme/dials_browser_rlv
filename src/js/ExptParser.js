@@ -339,7 +339,6 @@ export class ExptParser{
 		if (this.exptJSON["crystal"].length === 0){
 			return null;
 		}
-		console.log("test ", idx, this.exptJSON["experiment"][idx])
 		if(idx === undefined){return null;}
 		var fileIdx = this.exptJSON["experiment"][idx]["crystal"];
 		return this.exptJSON["crystal"][fileIdx];
