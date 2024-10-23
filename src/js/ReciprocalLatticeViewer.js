@@ -51,6 +51,15 @@ export class ReciprocalLatticeViewer {
     this.sampleMesh = null;
     this.reciprocalCellMeshes = [];
     this.visibleExpts = [];
+    this.visibleCrystalIDs = {};
+    this.crystalView = false;
+
+    this.crystalPositionsIndexed = {};
+    this.crystalPointsIndexed = {};
+    this.crystalPositionsCal = {};
+    this.crystalPointsCal = {};
+    this.crystalPositionsIntegrated = {};
+    this.crystalPointsIntegrated = {};
 
     this.preventMouseClick = false;
 
@@ -96,7 +105,30 @@ export class ReciprocalLatticeViewer {
         0x69d84f,
         0x56ae57
       ],
+      "reflectionCrystalIndexed": [
+        0x96f97b,
+        0x75bbfd,
+        0xbf77f6,
+        0x13eac9,
+        0xffb07c,
+        0xffd1df,
+        0xd0fefe,
+        0xffff84,
+        0xffffff,
+        0xff9408,
+        0x01f9c6,
+        0xaefd6c,
+        0xfe0002,
+        0x990f4b,
+        0x78d1b6,
+        0xfff917,
+        0xff0789,
+        0xd4ffff,
+        0x69d84f,
+        0x56ae57
+      ],
       "reflectionObsIndexed": 0xe74c3c,
+			"reflectionCrystalUnindexed": 0x6a7688,
       "reflectionCal": 0xffaaaa,
 			"reflectionIntegrated" : 0xffc25c,
       "highlight": 0xFFFFFF,
@@ -146,7 +178,7 @@ export class ReciprocalLatticeViewer {
       this.observedIndexedReflsCheckbox.checked = val;
     }
     for (var i = 0; i < this.reflPointsObsIndexed.length; i++){
-      this.reflPointsObsIndexed[i][0].visible = this.observedIndexedReflsCheckbox.checked && this.visibleExpts[i];
+      this.reflPointsObsIndexed[i][0].visible = this.observedIndexedReflsCheckbox.checked && this.visibleExpts[i] && !this.crystalView;
     }
     this.requestRender();
   }
@@ -156,7 +188,7 @@ export class ReciprocalLatticeViewer {
       this.observedUnindexedReflsCheckbox.checked = val;
     }
     for (var i = 0; i < this.reflPointsObsUnindexed.length; i++){
-      this.reflPointsObsUnindexed[i][0].visible = this.observedUnindexedReflsCheckbox.checked && this.visibleExpts[i];
+      this.reflPointsObsUnindexed[i][0].visible = this.observedUnindexedReflsCheckbox.checked && this.visibleExpts[i] && !this.crystalView;
     }
     this.requestRender();
   }
@@ -166,7 +198,7 @@ export class ReciprocalLatticeViewer {
       this.calculatedReflsCheckbox.checked = val;
     }
     for (var i = 0; i < this.reflPointsCal.length; i++){
-      this.reflPointsCal[i][0].visible = this.calculatedReflsCheckbox.checked && this.visibleExpts[i]; 
+      this.reflPointsCal[i][0].visible = this.calculatedReflsCheckbox.checked && this.visibleExpts[i] && !this.crystalView; 
       this.requestRender();
     }
   }
@@ -176,21 +208,94 @@ export class ReciprocalLatticeViewer {
       this.integratedReflsCheckbox.checked = val;
     }
     for (var i = 0; i < this.reflPointsIntegrated.length; i++){
-      this.reflPointsIntegrated[i][0].visible = this.integratedReflsCheckbox.checked && this.visibleExpts[i];
+      this.reflPointsIntegrated[i][0].visible = this.integratedReflsCheckbox.checked && this.visibleExpts[i] && !this.crystalView;
       this.requestRender();
     }
   }
 
-  updateReciprocalCell(val = null, focusOnCell = true) {
+  updateCrystalIndexedReflections(val = null) {
+    if (val !== null) {
+      this.observedIndexedReflsCheckbox.checked = val;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsIndexed);
+    for (const i of crystalIDs){
+      if (!this.crystalView){
+        this.crystalPointsIndexed[i].visible = false;
+        continue;
+      }
+      if (i === "-1"){
+        this.crystalPointsIndexed[i].visible = this.observedUnindexedReflsCheckbox.checked && this.visibleCrystalIDs[i] && this.crystalView;
+      }
+      else{
+        this.crystalPointsIndexed[i].visible = this.observedIndexedReflsCheckbox.checked && this.visibleCrystalIDs[i] && this.crystalView;
+      }
+    }
+    this.requestRender();
+  }
+
+  updateCrystalCalculatedReflections(val = null) {
+    if (val !== null) {
+      this.calculatedReflsCheckbox.checked = val;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsCal);
+    for (const i of crystalIDs){
+      if (!this.crystalView){
+        this.crystalPointsCal[i].visible = false;
+        continue;
+      }
+      this.crystalPointsCal[i].visible = this.calculatedReflsCheckbox.checked && this.visibleCrystalIDs[i] && this.crystalView;
+    }
+    this.requestRender();
+  }
+
+  updateCrystalIntegratedReflections(val = null) {
+    if (val !== null) {
+      this.integratedReflsCheckbox.checked = val;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsIntegrated);
+    for (const i of crystalIDs){
+      if (!this.crystalView){
+        this.crystalPointsIntegrated[i].visible = false;
+        continue;
+      }
+      this.crystalPointsIntegrated[i].visible = this.integratedReflsCheckbox.checked && this.visibleCrystalIDs[i] && this.crystalView;
+    }
+    this.requestRender();
+  }
+
+  switchToCrystalView(){
+    this.crystalView = true;
+    const dropdownButton = document.getElementById('experimentDropdownButton');
+    dropdownButton.innerHTML = `<b>${"Crystals"}</b> <i class="fa fa-chevron-right" id="dropdownIcon"></i>`;
+    this.updateCrystalDropdown();
+    this.updateReflectionVisibility();
+    this.updateCrystalRLV();
+  }
+
+  switchToOrientationView(){
+    this.crystalView = false;
+    const dropdownButton = document.getElementById('experimentDropdownButton');
+    dropdownButton.innerHTML = `<b>${"Orientations"}</b> <i class="fa fa-chevron-right" id="dropdownIcon"></i>`;
+    this.updateExperimentList();
+    this.updateReflectionVisibility();
+    this.updateCrystalRLV();
+    Object.keys(this.visibleCrystalIDs).forEach(key => {this.visibleCrystalIDs[key] = true;});
+    this.updateReciprocalCell();
+  }
+
+  updateReciprocalCell(val = null, focusOnCell = false) {
     this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal(0);
     if (val !== null) {
       this.reciprocalCellCheckbox.checked = val;
     }
     for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
-      this.reciprocalCellMeshes[i].visible = this.reciprocalCellCheckbox.checked;
+      const visibility = this.reciprocalCellCheckbox.checked && this.visibleCrystalIDs[i];
+      for (var j = 0; j < this.reciprocalCellMeshes[i].length; j++){
+        this.reciprocalCellMeshes[i][j].visible = visibility;
+      }
     }
     if (this.reciprocalCellCheckbox.checked && focusOnCell) {
-      this.zoomInOnObject(this.reciprocalCellMeshes[0]);
+      this.zoomInOnObject(this.reciprocalCellMeshes[0][0]);
     }
     this.requestRender();
   }
@@ -199,6 +304,8 @@ export class ReciprocalLatticeViewer {
     if (!this.hasReflectionTable()) {
       return;
     }
+
+    // Unindexed
     if (this.refl.hasXYZObsData()) {
       if (this.reflPositionsUnindexed) {
         const reflPointsObsUnindexed = [];
@@ -220,6 +327,8 @@ export class ReciprocalLatticeViewer {
         this.reflPointsObsUnindexed = reflPointsObsUnindexed;
         this.updateObservedUnindexedReflections();
       }
+
+      // Indexed
       if (this.reflPositionsIndexed) {
         const reflPointsObsIndexed = [];
 
@@ -239,8 +348,43 @@ export class ReciprocalLatticeViewer {
         this.reflPointsObsIndexed = reflPointsObsIndexed;
         this.updateObservedIndexedReflections();
       }
+
+      if (this.crystalPositionsIndexed){
+        const crystalIDs = Object.keys(this.crystalPositionsIndexed)
+        const crystalPointsIndexed = {}
+        for (let ci = 0; ci < crystalIDs.length; ci++){
+          const crystalID = crystalIDs[ci];
+          if (crystalID === "-1"){
+            const points = this.createPoints(
+                this.crystalPositionsIndexed[crystalID],
+                this.colors["reflectionCrystalUnindexed"],
+                this.reflectionSize.value,
+              );
+            points.name = crystalID.toString();
+            crystalPointsIndexed[crystalID] = points;
+          }
+          else{
+            const points = this.createPoints(
+                this.crystalPositionsIndexed[crystalID],
+                this.colors["reflectionCrystalIndexed"][crystalID % this.colors["reflectionCrystalIndexed"].length],
+                this.reflectionSize.value,
+              );
+            points.name = crystalID.toString();
+            crystalPointsIndexed[crystalID] = points;
+            window.scene.add(points);
+          }
+        }
+        this.clearCrystalReflPointsIndexed();
+        for (let ci = 0; ci < crystalIDs.length; ci++){
+          const crystalID = crystalIDs[ci];
+          window.scene.add(crystalPointsIndexed[crystalID]);
+        }
+        this.crystalPointsIndexed = crystalPointsIndexed;
+        this.updateCrystalIndexedReflections();
+      }
     }
 
+    // Calculated
     if (this.refl.hasXYZCalData() && this.reflPositionsCal) {
       const reflPointsCal = [];
       for (var i = 0; i < this.reflPositionsCal.length; i++){
@@ -258,7 +402,30 @@ export class ReciprocalLatticeViewer {
       }
       this.reflPointsCal = reflPointsCal;
       this.updateCalculatedReflections();
+
+      if (this.crystalPositionsCal){
+        const crystalPointsCal = {}
+        const crystalIDs = Object.keys(this.crystalPositionsCal)
+        for (let ci = 0; ci < crystalIDs.length; ci++){
+          const crystalID = crystalIDs[ci];
+          const points = this.createPoints(
+              this.crystalPositionsCal[crystalID],
+              this.colors["reflectionCal"],
+              this.reflectionSize.value,
+            );
+          points.name = crystalID.toString();
+          crystalPointsCal[crystalID] = points;
+        }
+        this.clearCrystalReflPointsCal();
+        for (let ci = 0; ci < crystalIDs.length; ci++){
+          const crystalID = crystalIDs[ci];
+          window.scene.add(crystalPointsCal[crystalID]);
+        }
+        this.crystalPointsCal = crystalPointsCal;
+        this.updateCrystalCalculatedReflections();
+      }
       
+      // Integrated
       if (this.reflPointsIntegrated){
         const reflPointsIntegrated = [];
         for (var i = 0; i < this.reflPositionsIntegrated.length; i++){
@@ -275,6 +442,28 @@ export class ReciprocalLatticeViewer {
         }
         this.reflPointsIntegrated = reflPointsIntegrated;
         this.updateIntegratedReflections();
+
+        if (this.crystalPointsIntegrated){
+          const crystalPointsIntegrated = {};
+          const crystalIDs = Object.keys(this.crystalPositionsIntegrated)
+          for (let ci = 0; ci < crystalIDs.length; ci++){
+            const crystalID = crystalIDs[ci];
+            const points = this.createPoints(
+                this.crystalPositionsIntegrated[crystalID],
+                this.colors["reflectionIntegrated"],
+                this.reflectionSize.value,
+              );
+            points.name = crystalID.toString();
+            crystalPointsIntegrated[crystalID] = points;
+          }
+          this.clearCrystalReflPointsIntegrated();
+          for (let ci = 0; ci < crystalIDs.length; ci++){
+            const crystalID = crystalIDs[ci];
+            window.scene.add(crystalPointsIntegrated[crystalID]);
+          }
+          this.crystalPointsIntegrated = crystalPointsIntegrated;
+        }
+
           
       }
     }
@@ -299,12 +488,8 @@ export class ReciprocalLatticeViewer {
       this.beamMeshes[i].geometry.dispose();
       this.beamMeshes[i].material.dispose();
     }
-    for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
-      window.scene.remove(this.reciprocalCellMeshes[i]);
-      this.reciprocalCellMeshes[i].geometry.dispose();
-      this.reciprocalCellMeshes[i].material.dispose();
-    }
     this.beamMeshes = [];
+    this.clearCrystalRLV();
     if (this.sampleMesh) {
       window.scene.remove(this.sampleMesh);
       this.sampleMesh.geometry.dispose();
@@ -416,11 +601,53 @@ export class ReciprocalLatticeViewer {
     this.reflPointsIntegrated = [];
   }
 
+  clearCrystalReflPointsIndexed(){
+    if (!this.crystalPointsIndexed){
+      return;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsIndexed);
+    for (const i of crystalIDs){
+      window.scene.remove(this.crystalPointsIndexed[i]);
+      this.crystalPointsIndexed[i].geometry.dispose();
+      this.crystalPointsIndexed[i].material.dispose();
+    }
+    this.crystalPointsIndexed = {};
+  }
+
+  clearCrystalReflPointsCal(){
+    if (!this.crystalPointsCal){
+      return;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsCal);
+    for (const i of crystalIDs){
+      window.scene.remove(this.crystalPointsCal[i]);
+      this.crystalPointsCal[i].geometry.dispose();
+      this.crystalPointsCal[i].material.dispose();
+    }
+    this.crystalPointsCal = {};
+  }
+
+  clearCrystalReflPointsIntegrated(){
+    if (!this.crystalPointsIntegrated){
+      return;
+    }
+    const crystalIDs = Object.keys(this.crystalPointsIntegrated);
+    for (const i of crystalIDs){
+      window.scene.remove(this.crystalPointsIntegrated[i]);
+      this.crystalPointsIntegrated[i].geometry.dispose();
+      this.crystalPointsIntegrated[i].material.dispose();
+    }
+    this.crystalPointsIntegrated = {};
+  }
+
   clearReflectionTable() {
     this.clearReflPointsObsIndexed();
     this.clearReflPointsObsUnindexed();
     this.clearReflPointsCal();
     this.clearReflPointsIntegrated();
+    this.clearCrystalReflPointsIndexed();
+    this.clearCrystalReflPointsCal();
+    this.clearCrystalReflPointsIntegrated();
     this.refl.clearReflectionTable();
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
@@ -504,16 +731,22 @@ export class ReciprocalLatticeViewer {
     const containsMillerIndices = "millerIdx" in refl;
     const containsWavelengths = "wavelength" in refl;
     const containsWavelengthsCal = "wavelengthCal" in refl;
+    const containsCrystalIDs = "crystalID" in refl;
 
     const pointsObsUnindexed = [];
     const positionsObsUnindexed = [];
     const positionsObsIndexed = [];
     const pointsObsIndexed = [];
+    const crystalPositionsIndexed = {};
+    const crystalPointsIndexed = {};
     const positionsCal = [];
     const pointsCal = [];
+    const crystalPositionsCal = {};
+    const crystalPointsCal = {};
     const positionsIntegrated = [];
     const pointsIntegrated = [];
-
+    const crystalPositionsIntegrated = {};
+    const crystalPointsIntegrated = {};
 
     for (var i = 0; i < this.expt.numExperiments(); i++){
       pointsObsUnindexed.push([]);
@@ -524,7 +757,6 @@ export class ReciprocalLatticeViewer {
       pointsCal.push([]);
       positionsIntegrated.push([]);
       pointsIntegrated.push([]);
-      
     }
     
     var scan = this.expt.scan;
@@ -579,7 +811,18 @@ export class ReciprocalLatticeViewer {
             positionsObsUnindexed[exptID].push(rlp.y);
             positionsObsUnindexed[exptID].push(rlp.z);
           }
+
+          if (containsCrystalIDs){
+            const crystalID = panelReflections[j]["crystalID"];
+            if (!(crystalID in crystalPositionsIndexed)){
+              crystalPositionsIndexed[crystalID] = [];
+            }
+            crystalPositionsIndexed[crystalID].push(rlp.x);
+            crystalPositionsIndexed[crystalID].push(rlp.y);
+            crystalPositionsIndexed[crystalID].push(rlp.z);
+          }
         }
+
         if (containsXYZCal) {
           const xyzCal = panelReflections[j]["xyzCal"];
           if (containsWavelengthsCal) {
@@ -594,16 +837,41 @@ export class ReciprocalLatticeViewer {
           positionsCal[exptID].push(rlp.x);
           positionsCal[exptID].push(rlp.y);
           positionsCal[exptID].push(rlp.z);
+
+          if (containsCrystalIDs){
+            const crystalID = panelReflections[j]["crystalID"];
+            if (!(crystalID in crystalPositionsCal)){
+              crystalPositionsCal[crystalID] = [];
+            }
+            crystalPositionsCal[crystalID].push(rlp.x);
+            crystalPositionsCal[crystalID].push(rlp.y);
+            crystalPositionsCal[crystalID].push(rlp.z);
+          }
+
           if ("summedIntensity" in panelReflections[j]) {
             positionsIntegrated[exptID].push(rlp.x);
             positionsIntegrated[exptID].push(rlp.y);
             positionsIntegrated[exptID].push(rlp.z);
+            if (containsCrystalIDs){
+              const crystalID = panelReflections[j]["crystalID"];
+              if (!(crystalID in crystalPositionsIntegrated)){
+                crystalPositionsIntegrated[crystalID] = [];
+              }
+              crystalPositionsIntegrated[crystalID].push(rlp.x);
+              crystalPositionsIntegrated[crystalID].push(rlp.y);
+              crystalPositionsIntegrated[crystalID].push(rlp.z);
+            }
           }
+
         }
       }
     }
 
+    // Now create actual sprites
+    // Observed spots
     if (containsXYZObs) {
+
+      // Indexed spots
       if (containsMillerIndices) {
 
         for (var exptID = 0; exptID < positionsObsIndexed.length; exptID++){
@@ -622,6 +890,8 @@ export class ReciprocalLatticeViewer {
         this.reflPointsObsIndexed = pointsObsIndexed;
         this.reflPositionsIndexed = positionsObsIndexed;
       }
+
+      // Unindexed spots
       for (var exptID = 0; exptID < positionsObsUnindexed.length; exptID++){
         const points = this.createPoints(
             positionsObsUnindexed[exptID],
@@ -630,14 +900,40 @@ export class ReciprocalLatticeViewer {
           );
           points.name = exptID.toString();
         pointsObsUnindexed[exptID].push(points);
-        this.testPoints = points;
         window.scene.add(points);
       }
-
       this.reflPointsObsUnindexed = pointsObsUnindexed;
       this.reflPositionsUnindexed = positionsObsUnindexed;
+
+      const crystalIDs = Object.keys(crystalPositionsIndexed)
+      for (let ci = 0; ci < crystalIDs.length; ci++){
+        const crystalID = crystalIDs[ci];
+        if (crystalID === "-1"){
+          const points = this.createPoints(
+              crystalPositionsIndexed[crystalID],
+              this.colors["reflectionCrystalUnindexed"],
+              this.reflectionSize.value,
+            );
+          points.name = crystalID.toString();
+          crystalPointsIndexed[crystalID] = points;
+          window.scene.add(points);
+        }
+        else{
+          const points = this.createPoints(
+              crystalPositionsIndexed[crystalID],
+              this.colors["reflectionCrystalIndexed"][crystalID % this.colors["reflectionCrystalIndexed"].length],
+              this.reflectionSize.value,
+            );
+          points.name = crystalID.toString();
+          crystalPointsIndexed[crystalID] = points;
+          window.scene.add(points);
+        }
+      }
+      this.crystalPositionsIndexed = crystalPositionsIndexed;
+      this.crystalPointsIndexed = crystalPointsIndexed;
     }
 
+    // Calculated spots
     if (containsXYZCal) {
       for (var exptID = 0; exptID < positionsCal.length; exptID++){
         const points= this.createPoints(
@@ -653,6 +949,21 @@ export class ReciprocalLatticeViewer {
       this.reflPointsCal = pointsCal;
       this.reflPositionsCal = positionsCal;
       
+      const crystalIDs = Object.keys(crystalPositionsCal)
+      for (let ci = 0; ci < crystalIDs.length; ci++){
+        const crystalID = crystalIDs[ci];
+        const points = this.createPoints(
+            crystalPositionsCal[crystalID],
+            this.colors["reflectionCal"],
+            this.reflectionSize.value,
+          );
+        points.name = crystalID.toString();
+        crystalPointsCal[crystalID] = points;
+        window.scene.add(points);
+      }
+      this.crystalPositionsCal = crystalPositionsCal;
+      this.crystalPointsCal = crystalPointsCal;
+
       if (positionsIntegrated.length !== 0){
         for (var exptID = 0; exptID < positionsIntegrated.length; exptID++){
           const points= this.createPoints(
@@ -667,6 +978,21 @@ export class ReciprocalLatticeViewer {
         }
         this.reflPointsIntegrated = pointsIntegrated;
         this.reflPositionsIntegrated = positionsIntegrated;
+
+        const crystalIDs = Object.keys(crystalPositionsIntegrated)
+        for (let ci = 0; ci < crystalIDs.length; ci++){
+          const crystalID = crystalIDs[ci];
+          const points = this.createPoints(
+              crystalPositionsIntegrated[crystalID],
+              this.colors["reflectionIntegrated"],
+              this.reflectionSize.value,
+            );
+          points.name = crystalID.toString();
+          crystalPointsIntegrated[crystalID] = points;
+          window.scene.add(points);
+        }
+        this.crystalPositionsIntegrated = crystalPositionsIntegrated;
+        this.crystalPointsIntegrated = crystalPointsIntegrated;
           
       }
     }
@@ -826,7 +1152,6 @@ export class ReciprocalLatticeViewer {
           );
           points.name = exptID.toString();
         pointsObsUnindexed[exptID].push(points);
-        this.testPoints = points;
         window.scene.add(points);
       }
 
@@ -872,6 +1197,10 @@ export class ReciprocalLatticeViewer {
     this.updateObservedUnindexedReflections();
     this.updateCalculatedReflections();
     this.updateIntegratedReflections();
+    this.updateCrystalIndexedReflections();
+    this.updateCrystalCalculatedReflections();
+    this.updateCrystalIntegratedReflections();
+    this.requestRender();
   }
 
   updateReflectionCheckboxStatus() {
@@ -950,6 +1279,26 @@ export class ReciprocalLatticeViewer {
     window.scene.add(sphere);
   }
 
+  clearCrystalRLV(){
+    if (this.reciprocalCellMeshes.length === 0){
+      return;
+    }
+    for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
+      for (var j = 0; j < this.reciprocalCellMeshes[i].length; j++){
+        window.scene.remove(this.reciprocalCellMeshes[i][j]);
+        this.reciprocalCellMeshes[i][j].geometry.dispose();
+        this.reciprocalCellMeshes[i][j].material.dispose();
+      }
+    }
+    this.reciprocalCellMeshes = [];
+  }
+
+  updateCrystalRLV(){
+    this.clearCrystalRLV();
+    this.addCrystalRLV();
+    this.updateReciprocalCell();
+  }
+
   addCrystalRLV() {
 
     function getAvgRLVLength(crystalRLV) {
@@ -964,6 +1313,7 @@ export class ReciprocalLatticeViewer {
     }
 
     const crystalRLVs = this.expt.getAllCrystalRLVs(); 
+    const reciprocalCellMeshes = [];
 
     for (let i=0; i<crystalRLVs.length; i++){
       let crystalRLV = crystalRLVs[i];
@@ -975,12 +1325,24 @@ export class ReciprocalLatticeViewer {
         Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
       );
 
-      const material = new MeshLineMaterial({
-        lineWidth: lineWidth,
-        color: this.colors["reciprocalCell"],
-        depthWrite: false,
-        sizeAttenuation: true
-      });
+      var material;
+      if (this.crystalView){
+        material = new MeshLineMaterial({
+          lineWidth: lineWidth,
+          color: this.colors["reflectionCrystalIndexed"][i % this.colors["reflectionCrystalIndexed"].length],
+          depthWrite: false,
+          sizeAttenuation: true
+        });
+
+      }
+      else{
+        material = new MeshLineMaterial({
+          lineWidth: lineWidth,
+          color: this.colors["reciprocalCell"],
+          depthWrite: false,
+          sizeAttenuation: true
+        });
+      }
 
       const a = crystalRLV[0].clone().multiplyScalar(this.rlpScaleFactor);
       const b = crystalRLV[1].clone().multiplyScalar(this.rlpScaleFactor);
@@ -992,9 +1354,9 @@ export class ReciprocalLatticeViewer {
         avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
       );
       const labelColor = this.colors["RLVLabels"];
-      this.addRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
-      this.addRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
-      this.addRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      const aSprite = this.getRLVLabel("a*", origin.clone().add(a).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      const bSprite = this.getRLVLabel("b*", origin.clone().add(b).multiplyScalar(0.5), labelColor, labelScaleFactor);
+      const cSprite = this.getRLVLabel("c*", origin.clone().add(c).multiplyScalar(0.5), labelColor, labelScaleFactor);
 
       const cellVertices = [
         origin,
@@ -1019,14 +1381,19 @@ export class ReciprocalLatticeViewer {
       const line = new MeshLine();
       line.setPoints(cellVertices);
       const Mesh = new THREE.Mesh(line, material);
-      viewer.reciprocalCellMeshes.push(Mesh);
+      reciprocalCellMeshes.push([Mesh, aSprite, bSprite, cSprite]);
       window.scene.add(Mesh);
+      window.scene.add(aSprite);
+      window.scene.add(bSprite);
+      window.scene.add(cSprite);
 
     }
+    this.reciprocalCellMeshes = reciprocalCellMeshes;
+    this.requestRender();
 
   }
 
-  addRLVLabel(text, pos, color, scaleFactor) {
+  getRLVLabel(text, pos, color, scaleFactor) {
     var canvas = document.createElement('canvas');
 
     canvas.width = 256;
@@ -1058,10 +1425,7 @@ export class ReciprocalLatticeViewer {
     sprite.scale.set(100 * scaleFactor, 50 * scaleFactor, 1);
     sprite.position.copy(pos);
 
-    this.reciprocalCellMeshes.push(sprite);
-    window.scene.add(sprite);
-    this.requestRender();
-
+    return sprite;
   }
 
   setCameraSmooth(position) {
@@ -1320,6 +1684,34 @@ export class ReciprocalLatticeViewer {
     dropdownIcon.classList.toggle("fa-chevron-right"); 
 	}
 
+  toggleCrystalVisibility(crystalIDLabel){
+    var crystalID = parseInt(crystalIDLabel.split("-").pop());
+    this.visibleCrystalIDs[crystalID] = !this.visibleCrystalIDs[crystalID];
+    this.updateCrystalCalculatedReflections();
+    this.updateCrystalIndexedReflections();
+    this.updateCrystalIntegratedReflections();
+    this.updateCrystalRLV();
+    var dropdownIcon = document.getElementById("crystalID-dropdown-icon-"+crystalID.toString());
+    dropdownIcon.classList.toggle("fa-check");
+  }
+
+  toggleAllCrystalVisibility(){
+    var dropdownIcon = document.getElementById("crystalID-dropdown-icon-all");
+    dropdownIcon.classList.toggle("fa-check");
+    var visible = dropdownIcon.classList.contains("fa-check");
+    var crystalIDs = Object.keys(this.visibleCrystalIDs);
+    for (var crystalID of crystalIDs){
+      this.visibleCrystalIDs[crystalID] = visible;
+      var dropdownIcon = document.getElementById("crystalID-dropdown-icon-"+crystalID.toString());
+      if (dropdownIcon.classList.contains("fa-check") !== visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+    }
+    this.updateCrystalIndexedReflections();
+    this.updateCrystalCalculatedReflections();
+    this.updateCrystalIntegratedReflections();
+  }
+
   toggleExptVisibility(exptIDLabel){
     var exptID = parseInt(exptIDLabel.split("-").pop());
     this.visibleExpts[exptID] = !this.visibleExpts[exptID];
@@ -1353,6 +1745,98 @@ export class ReciprocalLatticeViewer {
   clearExperimentList(){
     var dropdownContent = document.getElementById("experimentDropdown");
     dropdownContent.innerHTML = ""; 
+  }
+
+  getCrystalIDs(){
+    if (this.crystalPointsIndexed){
+      return Object.keys(this.crystalPointsIndexed);
+    }
+    return ["-1"]
+  }
+
+  getCrystalLabels(){
+    var crystalLabels = this.getCrystalIDs();
+    crystalLabels = crystalLabels.map(id => id === "-1" ? "unindexed" : id);
+    return crystalLabels;
+  }
+
+  updateCrystalDropdown(){
+    var maxLabelSize = 22;
+    var minNumForAllButton = 4;
+    var crystalIDs = this.getCrystalIDs();
+    var crystalLabels = this.getCrystalLabels();
+    var addAllButton = crystalLabels.length > minNumForAllButton;
+    var firstLabel = null;
+    const visibleCrystalIDs = {};
+    var dropdownContent = document.getElementById("experimentDropdown");
+    dropdownContent.innerHTML = ""; 
+
+    for (var i = 0; i < crystalIDs.length; i++) {
+        var label = document.createElement("label");
+        label.classList.add("experiment-label"); 
+        const crystalID = crystalIDs[i];
+        var color = null;
+        if (crystalID === "-1"){
+          continue
+        }
+        color = this.colors["reflectionCrystalIndexed"][parseInt(crystalID) % this.colors["reflectionCrystalIndexed"].length];
+        var hexColor = '#' + color.toString(16).padStart(6, '0');
+        label.style.color = hexColor;
+        
+        var icon = document.createElement("i");
+        icon.classList.add("fa", "fa-check"); 
+        icon.style.float = "right"; 
+        icon.id = "crystalID-dropdown-icon-"+crystalID;
+        
+        var crystalLabel = crystalLabels[i];
+        if (crystalLabel.length > maxLabelSize){
+          crystalLabel = crystalLabel.slice(0,19) + "...";
+        }
+        label.textContent = crystalLabel;
+        label.id = "crystalID-"+crystalIDs[i];
+        
+        label.appendChild(icon);
+        
+        label.addEventListener('click', (event) => {
+            this.toggleCrystalVisibility(event.target.id);
+        });
+
+        if (addAllButton && firstLabel === null){
+          firstLabel = label;
+        }
+
+        dropdownContent.appendChild(label);
+        dropdownContent.appendChild(document.createElement("br"));
+        visibleCrystalIDs[crystalID] = true;
+    }
+    if (addAllButton){
+      console.assert(firstLabel !== null);
+      var label = document.createElement("label");
+      label.classList.add("experiment-label"); 
+      
+      var icon = document.createElement("i");
+      icon.classList.add("fa", "fa-check"); 
+      icon.style.float = "right"; 
+      icon.id = "crystalID-dropdown-icon-all";
+      
+      var crystalLabel = "All";
+      label.textContent = crystalLabel;
+      label.id = "crystalID-all";
+      
+      label.appendChild(icon);
+      
+      label.addEventListener('click', (event) => {
+          this.toggleAllCrystalVisibility();
+      });
+
+      dropdownContent.insertBefore(label, firstLabel);
+      dropdownContent.insertBefore(label, firstLabel);
+
+    }
+    this.visibleCrystalIDs = visibleCrystalIDs;
+
+
+
   }
 
   updateExperimentList() {

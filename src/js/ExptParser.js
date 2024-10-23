@@ -37,6 +37,7 @@ export class ExptParser{
 		this.exptJSON = null;
 		this.filename = null;
 		this.experiments = [];
+		this.crystals = [];
 	}
 
 
@@ -57,6 +58,7 @@ export class ExptParser{
 		this.filename = null;
 		this.experiments.forEach(experiment => experiment.clearExperiment());
 		this.experiments = [];
+		this.crystals = [];
 	}
 
 	parseExperiment = (file) => {
@@ -96,7 +98,7 @@ export class ExptParser{
 		if (this.exptJSON == null){
 			return 0;
 		}
-		return this.exptJSON["experiment"].length;
+		return this.exptJSON["imageset"].length;
 	}
 
 	parseExperimentJSON(jsonString){
@@ -115,6 +117,7 @@ export class ExptParser{
 				)
 			);
 			this.imageFilenames.push(this.getImageFilenames(i));
+			this.crystals = this.getAllCrystals();
 		}
 	}
 
@@ -360,89 +363,137 @@ export class ExptParser{
 		return this.experiments[idx].crystal !== null && this.experiments[idx].crystal !== undefined;
 	}
 
-	getCrystal(idx){
+	latticeParameters(a, b, c) {
+		const aLength = a.length();
+		const bLength = b.length();
+		const cLength = c.length();
+		const alpha = Math.acos(b.dot(c) / (bLength * cLength));
+		const beta = Math.acos(a.dot(c) / (aLength * cLength));
+		const gamma = Math.acos(a.dot(b) / (aLength * bLength));
+		return [aLength, bLength, cLength, alpha, beta, gamma];
+	}
 
-		function latticeParameters(a, b, c) {
-			const aLength = a.length();
-			const bLength = b.length();
-			const cLength = c.length();
-			const alpha = Math.acos(b.dot(c) / (bLength * cLength));
-			const beta = Math.acos(a.dot(c) / (aLength * cLength));
-			const gamma = Math.acos(a.dot(b) / (aLength * bLength));
-			return [aLength, bLength, cLength, alpha, beta, gamma];
-		}
+	unitCellVolume(a, b, c, alpha, beta, gamma) {
 
-		function unitCellVolume(a, b, c, alpha, beta, gamma) {
+		const cosAlphaSq = Math.cos(alpha) ** 2;
+		const cosBetaSq = Math.cos(beta) ** 2;
+		const cosGammaSq = Math.cos(gamma) ** 2;
+		const cosAlpha = Math.cos(alpha);
+		const cosBeta = Math.cos(beta);
+		const cosGamma = Math.cos(gamma);
 
-			const cosAlphaSq = Math.cos(alpha) ** 2;
-			const cosBetaSq = Math.cos(beta) ** 2;
-			const cosGammaSq = Math.cos(gamma) ** 2;
-			const cosAlpha = Math.cos(alpha);
-			const cosBeta = Math.cos(beta);
-			const cosGamma = Math.cos(gamma);
-
-			const volume =
-				a * b * c *
-				Math.sqrt(
-				1 -
-					cosAlphaSq -
-					cosBetaSq -
-					cosGammaSq +
-					2 * cosAlpha * cosBeta * cosGamma
-				);
-
-			return volume;
-		}
-
-		function reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V){
-			const rlcs = new Array(6);
-			rlcs[0] = b * c * Math.sin(alpha) / V;
-			rlcs[1] = c * a * Math.sin(beta) / V;
-			rlcs[2] = a * b * Math.sin(gamma) / V;
-
-			rlcs[3] = Math.cos(beta) * Math.cos(gamma) - Math.cos(alpha);
-			rlcs[3] /= Math.sin(beta) * Math.sin(gamma);
-
-			rlcs[4] = Math.cos(gamma) * Math.cos(alpha) - Math.cos(beta);
-			rlcs[4] /= Math.sin(gamma) * Math.sin(alpha);
-
-			rlcs[5] = Math.cos(alpha) * Math.cos(beta) - Math.cos(gamma);
-			rlcs[5] /= Math.sin(alpha) * Math.sin(beta);
-
-			return rlcs;
-		}
-
-		function getBMatrix(aVec, bVec, cVec){
-			const [a, b, c, alpha, beta, gamma] = latticeParameters(aVec, bVec, cVec);
-			const V = unitCellVolume(a, b, c, alpha, beta, gamma);
-			const rlcs = reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V);
-			const rAlpha = Math.sqrt(1 - rlcs[3] * rlcs[3]);
-
-			const fcs = new Array(9);
-
-			fcs[0] = 1./a;
-			fcs[1] = -Math.cos(gamma) / (Math.sin(gamma) * a);
-
-			fcs[2] = -(
-				Math.cos(gamma) * Math.sin(beta) * rlcs[3] + Math.cos(beta) * Math.sin(gamma)
-				);
-			fcs[2] /= Math.sin(beta) * rAlpha * Math.sin(gamma) * a;
-
-			fcs[3] = 0.;
-			fcs[4] = 1. / (Math.sin(gamma) * b);
-			fcs[5] = rlcs[3] / (rAlpha * Math.sin(gamma) * b);
-			fcs[6] = 0.;
-			fcs[7] = 0.;
-			fcs[8] = 1. / (Math.sin(beta) * rAlpha * c);
-
-			return new THREE.Matrix3(
-				fcs[0], fcs[1], fcs[2],
-				fcs[3], fcs[4], fcs[5],
-				fcs[6], fcs[7], fcs[8],
+		const volume =
+			a * b * c *
+			Math.sqrt(
+			1 -
+				cosAlphaSq -
+				cosBetaSq -
+				cosGammaSq +
+				2 * cosAlpha * cosBeta * cosGamma
 			);
+
+		return volume;
+	}
+
+	reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V){
+		const rlcs = new Array(6);
+		rlcs[0] = b * c * Math.sin(alpha) / V;
+		rlcs[1] = c * a * Math.sin(beta) / V;
+		rlcs[2] = a * b * Math.sin(gamma) / V;
+
+		rlcs[3] = Math.cos(beta) * Math.cos(gamma) - Math.cos(alpha);
+		rlcs[3] /= Math.sin(beta) * Math.sin(gamma);
+
+		rlcs[4] = Math.cos(gamma) * Math.cos(alpha) - Math.cos(beta);
+		rlcs[4] /= Math.sin(gamma) * Math.sin(alpha);
+
+		rlcs[5] = Math.cos(alpha) * Math.cos(beta) - Math.cos(gamma);
+		rlcs[5] /= Math.sin(alpha) * Math.sin(beta);
+
+		return rlcs;
+	}
+
+	getBMatrix(aVec, bVec, cVec){
+		const [a, b, c, alpha, beta, gamma] = this.latticeParameters(aVec, bVec, cVec);
+		const V = this.unitCellVolume(a, b, c, alpha, beta, gamma);
+		const rlcs = this.reciprocalLatticeConstants(a, b, c, alpha, beta, gamma, V);
+		const rAlpha = Math.sqrt(1 - rlcs[3] * rlcs[3]);
+
+		const fcs = new Array(9);
+
+		fcs[0] = 1./a;
+		fcs[1] = -Math.cos(gamma) / (Math.sin(gamma) * a);
+
+		fcs[2] = -(
+			Math.cos(gamma) * Math.sin(beta) * rlcs[3] + Math.cos(beta) * Math.sin(gamma)
+			);
+		fcs[2] /= Math.sin(beta) * rAlpha * Math.sin(gamma) * a;
+
+		fcs[3] = 0.;
+		fcs[4] = 1. / (Math.sin(gamma) * b);
+		fcs[5] = rlcs[3] / (rAlpha * Math.sin(gamma) * b);
+		fcs[6] = 0.;
+		fcs[7] = 0.;
+		fcs[8] = 1. / (Math.sin(beta) * rAlpha * c);
+
+		return new THREE.Matrix3(
+			fcs[0], fcs[1], fcs[2],
+			fcs[3], fcs[4], fcs[5],
+			fcs[6], fcs[7], fcs[8],
+		);
+	}
+
+	getAllCrystals(){
+		const allCrystalData = this.getAllCrystalData();
+		if (!allCrystalData){
+			this.crystalSummary = null;
+			return;
+		}
+		const crystals = [];
+		for (let i = 0; i < allCrystalData.length; i++){
+
+			const crystalData = allCrystalData[i];
+			var a = crystalData["real_space_a"];
+			a = new THREE.Vector3(a[0], a[1], a[2]);
+			var b = crystalData["real_space_b"];
+			b = new THREE.Vector3(b[0], b[1], b[2]);
+			var c = crystalData["real_space_c"];
+			c = new THREE.Vector3(c[0], c[1], c[2]);
+
+			const B = this.getBMatrix(a.clone(), b.clone(), c.clone());
+
+			const UB = new THREE.Matrix3(
+				a.x, a.y, a.z,
+				b.x, b.y, b.z,
+				c.x, c.y, c.z,
+			).invert();
+
+
+			const UBArr = UB.elements;
+			UB.transpose();
+			const U = new THREE.Matrix3();
+			U.multiplyMatrices(B.clone().invert(), UB.clone());
+
+			const reciprocalCell =  [
+				new THREE.Vector3(UBArr[0], UBArr[3], UBArr[6]),
+				new THREE.Vector3(UBArr[1], UBArr[4], UBArr[7]),
+				new THREE.Vector3(UBArr[2], UBArr[5], UBArr[8]),
+			]
+
+			crystals.push({
+				"U" : U,
+				"B" : B,
+				"UB": UB,
+				"reciprocalCell": reciprocalCell});
+
 		}
 
-		const crystalData = this.getCrystalData(idx);
+		return crystals;
+	}
+
+
+	getCrystal(exptID){
+		const crystalData = this.getCrystalData(exptID);
 		if (!crystalData){
 			this.crystalSummary = null;
 			return;
@@ -454,7 +505,7 @@ export class ExptParser{
 		var c = crystalData["real_space_c"];
 		c = new THREE.Vector3(c[0], c[1], c[2]);
 
-		const B = getBMatrix(a.clone(), b.clone(), c.clone());
+		const B = this.getBMatrix(a.clone(), b.clone(), c.clone());
 
 		const UB = new THREE.Matrix3(
 			a.x, a.y, a.z,
@@ -479,7 +530,7 @@ export class ExptParser{
 			"B" : B,
 			"UB": UB,
 			"reciprocalCell": reciprocalCell,
-			"exptID": idx
+			"exptID": exptID
 		};
 	}
 
@@ -488,14 +539,10 @@ export class ExptParser{
 	}
 
 	getAllCrystalRLVs(){
-		let crystalIdxs = []
-		let crystalRLVs = [];
-		for (let i = 0; i < this.experiments.length; i++){
-			let rLV = this.experiments[i].crystal["reciprocalCell"];
-			if (rLV["exptID"] in crystalIdxs){
-				continue;
-			}
-			crystalRLVs.push(rLV);
+		if (!this.crystals){return null;}
+		const crystalRLVs = [];
+		for (let i = 0; i < this.crystals.length; i++){
+			crystalRLVs.push(this.crystals[i]["reciprocalCell"]);
 		}
 		return crystalRLVs;
 	}
