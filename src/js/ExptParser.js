@@ -547,6 +547,22 @@ export class ExptParser{
 		return crystalRLVs;
 	}
 
+	getAllCrystalRCVs(){
+		if (!this.crystals){return null;}
+		const crystalRCVs = [];
+		for (let i = 0; i < this.crystals.length; i++){
+			const B = this.crystals[i]["B"];
+			crystalRCVs.push([
+				new THREE.Vector3(B[0], B[3], B[6]),
+				new THREE.Vector3(B[1], B[4], B[7]),
+				new THREE.Vector3(B[2], B[5], B[8]),
+			]);
+		}
+		return crystalRCVs;
+	}
+
+
+
 	getCrystalU(idx){
 		return this.experiments[idx].crystal["U"];
 	}
