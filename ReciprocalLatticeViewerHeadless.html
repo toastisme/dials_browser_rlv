@@ -19,41 +19,31 @@
 			function updateUnindexedReflections(){
 				window.viewer.disableMouseClick(); 
 				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflections();
+					window.viewer.updateCrystalIndexedReflectionsVisibility();
 				}
 				else{
-					window.viewer.updateUnindexedReflections()
+					window.viewer.updateUnindexedReflectionsVisibility()
 				}
 			}
 
 			function updateIndexedReflections(){
 				window.viewer.disableMouseClick(); 
 				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflections();
+					window.viewer.updateCrystalIndexedReflectionsVisibility();
 				}
 				else{
-					window.viewer.updateIndexedReflections()
+					window.viewer.updateIndexedReflectionsVisibility()
 				}
 			}
 
 			function updateCalculatedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalCalculatedReflections();
-				}
-				else{
-					window.viewer.updateCalculatedReflections()
-				}
+				window.viewer.updateCalculatedReflectionsVisibility()
 			}
 
 			function updateIntegratedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIntegratedReflections();
-				}
-				else{
-					window.viewer.updateIntegratedReflections()
-				}
+				window.viewer.updateIntegratedReflectionsVisibility()
 			}
 
 			function updateReflectionSize(){
@@ -63,7 +53,7 @@
 
 			function updateReciprocalCell(){
 				window.viewer.disableMouseClick();
-				window.viewer.updateReciprocalCell();
+				window.viewer.updateReciprocalCellVisibility();
 			}
 
 			function updateCrystalFrame(){

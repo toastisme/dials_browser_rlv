@@ -53,7 +53,7 @@ class MeshCollection{
   }
 
   show(key=null){
-    if (key){
+    if (key && key in this.collection){
       this.collection[key].show();
     }
     else{
@@ -68,13 +68,18 @@ class MeshCollection{
     let keys = Object.keys(visibleIDs);
     for (let key of keys){
       if (key in this.collection){
-        collection[key].show();
+        if (visibleIDs[key]){
+          this.collection[key].show();
+        }
+        else{
+          this.collection[key].hide();
+        }
       }
     }
   }
   
   destroy(key=null){
-    if (key){
+    if (key && key in this.collection){
       this.collection[key].destroy();
     }
     else{
@@ -86,14 +91,14 @@ class MeshCollection{
     this.collection = {};
   }
 
-  resize(key=null){
-    if (key){
-      this.collection[key].resize();
+  resize(newSize, key=null){
+    if (key && key in this.collection){
+      this.collection[key].resize(newSize);
     }
     else{
       let keys = Object.keys(this.collection);
       for (let key of keys){
-        this.collection[key].resize();
+        this.collection[key].resize(newSize);
       }
     }
   }
@@ -184,6 +189,7 @@ class ReciprocalCell{
       const c = vectors[2].clone().multiplyScalar(scaleFactor);
 
       const origin = new THREE.Vector3(0, 0, 0);
+      const avgLength = (a.length + b.length + c.length)/3.
 
       labelScaleFactor = Math.max(
         avgLength * labelScaleFactor, 1
@@ -221,7 +227,7 @@ class ReciprocalCell{
 
       const line = new MeshLine();
       line.setPoints(cellVertices);
-      material = new MeshLineMaterial({
+      const material = new MeshLineMaterial({
         lineWidth: lineWidth,
         color: color,
         depthWrite: false,
@@ -823,7 +829,7 @@ export class ReciprocalLatticeViewer {
       for (var j = 0; j < panelReflections.length; j++) {
 
         const panelReflection = panelReflections[j];
-        const exptID = panelReflections[j]["exptID"];
+        const exptID = panelReflection["exptID"];
         var wavelength = this.expt.getBeamData(exptID)["wavelength"];
         var wavelengthCal = this.expt.getBeamData(exptID)["wavelength"];
         var unitS0 = this.expt.getBeamDirection(exptID).multiplyScalar(-1).normalize();
@@ -842,10 +848,10 @@ export class ReciprocalLatticeViewer {
           }
 
           const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
-          const angle = panelReflections[j]["angleObs"];
+          const angle = panelReflections["angleObs"];
           const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
-          if ("millerIdx" in panelReflection && panelReflections["indexed"]) {
+          if ("millerIdx" in panelReflection && panelReflection["indexed"]) {
             // Indexed reflection
             if (!positionsIndexed[exptID]){
               positionsIndexed[exptID] = [];
@@ -886,7 +892,7 @@ export class ReciprocalLatticeViewer {
             continue;
           }
           const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
-          const angle = panelReflections[j]["angleCal"];
+          const angle = panelReflections["angleCal"];
           const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
           if (!positionsCalculated[exptID]){
             positionsCalculated[exptID] = [];
@@ -898,7 +904,7 @@ export class ReciprocalLatticeViewer {
           if ("crystalID" in panelReflection){
             // Reflection has been assigned to a crystal
             const crystalID = panelReflection["crystalID"];
-            if (!(crystalID in crystalPositionsCal)){
+            if (!(crystalID in crystalPositionsCalculated)){
               crystalPositionsCalculated[crystalID] = [];
             }
             crystalPositionsCalculated[crystalID].push(rlp.x);
@@ -941,7 +947,7 @@ export class ReciprocalLatticeViewer {
     const unindexedReflectionSets = {};
     for (const [exptID, positions] of Object.entries(positionsUnindexed)) {
       const color = this.colors["reflectionUnindexed"][parseInt(exptID) % this.colors["reflectionUnindexed"].length];
-      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExpts[exptID];
+      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       unindexedReflectionSets[exptID] = reflectionSet;
     }
@@ -950,7 +956,7 @@ export class ReciprocalLatticeViewer {
     const indexedReflectionSets = {};
     for (const [exptID, positions] of Object.entries(positionsIndexed)) {
       const color = this.colors["reflectionIndexed"];
-      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExpts[exptID];
+      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       indexedReflectionSets[exptID] = reflectionSet;
     }
@@ -959,7 +965,7 @@ export class ReciprocalLatticeViewer {
     const calculatedReflectionSets = {};
     for (const [exptID, positions] of Object.entries(positionsCalculated)) {
       const color = this.colors["reflectionCalculated"];
-      const visible = this.calculatedReflectionsCheckbox.checked && this.visibleExpts[exptID];
+      const visible = this.calculatedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       calculatedReflectionSets[exptID] = reflectionSet;
     }
@@ -968,7 +974,7 @@ export class ReciprocalLatticeViewer {
     const integratedReflectionSets = {};
     for (const [exptID, positions] of Object.entries(positionsIntegrated)) {
       const color = this.colors["reflectionIntegrated"];
-      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExpts[exptID];
+      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       integratedReflectionSets[exptID] = reflectionSet;
     }
@@ -981,7 +987,7 @@ export class ReciprocalLatticeViewer {
         color = this.colors["reflectionCrystalUnindexed"];
       }
       else{
-        color = this.colors["reflectionCrystalIndexed"][parseInt(exptID) % this.colors["reflectionCrystalIndexed"].length];
+        color = this.colors["reflectionCrystalIndexed"][parseInt(crystalID) % this.colors["reflectionCrystalIndexed"].length];
 
       }
       const visible = this.unindexedReflectionsCheckbox.checked && this.visibleCrystalIDs[crystalID];
@@ -1481,7 +1487,7 @@ export class ReciprocalLatticeViewer {
 
   toggleExptVisibility(exptIDLabel){
     var exptID = parseInt(exptIDLabel.split("-").pop());
-    this.visibleExpts[exptID] = !this.visibleExpts[exptID];
+    this.visibleExptIDs[exptID] = !this.visibleExptIDs[exptID];
     this.updateReflectionsVisibility();
     var dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
     dropdownIcon.classList.toggle("fa-check");
@@ -1491,8 +1497,8 @@ export class ReciprocalLatticeViewer {
     var dropdownIcon = document.getElementById("exptID-dropdown-icon-all");
     dropdownIcon.classList.toggle("fa-check");
     var visible = dropdownIcon.classList.contains("fa-check");
-    for (var exptID = 0; exptID < this.visibleExpts.length; exptID++){
-      this.visibleExpts[exptID] = visible;
+    for (var exptID = 0; exptID < this.visibleExptIDs.length; exptID++){
+      this.visibleExptIDs[exptID] = visible;
       var dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
       if (dropdownIcon.classList.contains("fa-check") !== visible){
         dropdownIcon.classList.toggle("fa-check");
@@ -1664,7 +1670,7 @@ export class ReciprocalLatticeViewer {
       dropdownContent.insertBefore(label, firstLabel);
 
     }
-    this.visibleExpts = visibleExpts;
+    this.visibleExptIDs = visibleExpts;
   }
 
   animate() {
