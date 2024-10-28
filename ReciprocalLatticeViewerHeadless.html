@@ -18,22 +18,12 @@
 		<script>
 			function updateUnindexedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflectionsVisibility();
-				}
-				else{
-					window.viewer.updateUnindexedReflectionsVisibility()
-				}
+				window.viewer.updateUnindexedReflectionsVisibility()
 			}
 
 			function updateIndexedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflectionsVisibility();
-				}
-				else{
-					window.viewer.updateIndexedReflectionsVisibility()
-				}
+				window.viewer.updateIndexedReflectionsVisibility()
 			}
 
 			function updateCalculatedReflections(){
@@ -53,7 +43,7 @@
 
 			function updateReciprocalCell(){
 				window.viewer.disableMouseClick();
-				window.viewer.updateReciprocalCellVisibility();
+				window.viewer.updateReciprocalCellsVisibility();
 			}
 
 			function updateCrystalFrame(){
@@ -336,7 +326,6 @@
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
 			"reciprocalCell": 0xFFFFFF,
-			"RLVLabels" : "white"
 	};
 
 	window.onload = function(){

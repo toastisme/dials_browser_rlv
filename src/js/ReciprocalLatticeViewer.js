@@ -36,6 +36,10 @@ class MeshCollection{
     };
   }
 
+  keys(){
+    return Object.keys(this.collection);
+  }
+
   empty(){
     return (Object.keys(this.collection).length === 0);
   }
@@ -173,37 +177,33 @@ class ReflectionSet{
 }
 
 class ReciprocalCell{
-  constructor(vectors, color, lineWidth, scaleFactor, 
-    labelScaleFactor, labelFontSize){
+  constructor(vectors, color, lineWidth, fontSize){
     this.vectors = vectors;
     this.color = color;
     this.lineWidth = lineWidth;
+    this.fontSize = fontSize;
     this.meshes = this.createMeshes(
-      vectors, color, lineWidth, scaleFactor, labelScaleFactor, labelFontSize);
+      vectors, color, lineWidth, fontSize);
   }
 
-  createMeshes(vectors, color, lineWidth, scaleFactor, labelScaleFactor, labelFontSize){
+  createMeshes(vectors, color, lineWidth, fontSize){
 
-      const a = vectors[0].clone().multiplyScalar(scaleFactor);
-      const b = vectors[1].clone().multiplyScalar(scaleFactor);
-      const c = vectors[2].clone().multiplyScalar(scaleFactor);
+      const a = vectors[0].clone();
+      const b = vectors[1].clone();
+      const c = vectors[2].clone();
 
       const origin = new THREE.Vector3(0, 0, 0);
-      const avgLength = (a.length + b.length + c.length)/3.
 
-      labelScaleFactor = Math.max(
-        avgLength * labelScaleFactor, 1
-      );
-
+      const cssColor = `#${color.toString(16).padStart(6, '0')}`
       const aSprite = this.getRLVLabel(
-        "a*", origin.clone().add(a).multiplyScalar(0.5), color, 
-        labelScaleFactor, labelFontSize);
+        "a*", origin.clone().add(a).multiplyScalar(0.5), cssColor, 
+        fontSize);
       const bSprite = this.getRLVLabel(
-        "b*", origin.clone().add(b).multiplyScalar(0.5), color, 
-        labelScaleFactor, labelFontSize);
+        "b*", origin.clone().add(b).multiplyScalar(0.5), cssColor, 
+        fontSize);
       const cSprite = this.getRLVLabel(
-        "c*", origin.clone().add(c).multiplyScalar(0.5), color, 
-        labelScaleFactor, labelFontSize);
+        "c*", origin.clone().add(c).multiplyScalar(0.5), cssColor, 
+        fontSize);
 
       const cellVertices = [
         origin,
@@ -225,6 +225,7 @@ class ReciprocalCell{
         origin
       ];
 
+
       const line = new MeshLine();
       line.setPoints(cellVertices);
       const material = new MeshLineMaterial({
@@ -241,12 +242,11 @@ class ReciprocalCell{
       return [Mesh, aSprite, bSprite, cSprite];
   }
 
-  getRLVLabel(text, pos, color, scaleFactor, fontSize) {
+  getRLVLabel(text, pos, color, fontSize) {
     var canvas = document.createElement('canvas');
 
     canvas.width = 256;
     canvas.height = 128;
-    fontSize *= scaleFactor;
 
     var context = canvas.getContext("2d");
 
@@ -269,13 +269,13 @@ class ReciprocalCell{
     });
 
     var sprite = new THREE.Sprite(material);
-    sprite.scale.set(100 * scaleFactor, 50 * scaleFactor, 1);
+    sprite.scale.set(100, 50, 1);
     sprite.position.copy(pos);
 
     return sprite;
   }
 
-  destory(){
+  destroy(){
     for (let i = 0; i < this.meshes.length; i++){
       window.scene.remove(this.meshes[i]);
       this.meshes[i].geometry.dispose();
@@ -364,7 +364,7 @@ export class ReciprocalLatticeViewer {
     this.preventMouseClick = false;
 
 
-    this.rlpScaleFactor = 1000;
+    this.rLPScaleFactor = 1000;
     this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
 
     this.displayingTextFromHTMLEvent = false;
@@ -429,7 +429,6 @@ export class ReciprocalLatticeViewer {
       "highlight": 0xFFFFFF,
       "beam": 0xFFFFFF,
       "reciprocalCell": 0xFFFFFF,
-      "RLVLabels": "white"
     };
   }
 
@@ -441,7 +440,7 @@ export class ReciprocalLatticeViewer {
       "beamLength": 800.,
       "sample": 1,
       "RLVLineWidthScaleFactor": 15,
-      "RLVLabelScaleFactor": 7
+      "RLVLabelScaleFactor": 30
     };
   }
 
@@ -765,11 +764,11 @@ export class ReciprocalLatticeViewer {
       const rlp = s1.clone().normalize().sub(unitS0.clone().normalize()).multiplyScalar(1 / wavelength);
 
       if (!addAnglesToReflections) {
-        return rlp.multiplyScalar(viewer.rlpScaleFactor);
+        return rlp.multiplyScalar(viewer.rLPScaleFactor);
       }
       if (angle == null) {
         console.warn("Rotation angles not in reflection table. Cannot generate rlps correctly if rotation experiment.");
-        return rlp.multiplyScalar(viewer.rlpScaleFactor);
+        return rlp.multiplyScalar(viewer.rLPScaleFactor);
       }
       var fixedRotation = goniometer["fixedRotation"];
       const settingRotation = goniometer["settingRotation"];
@@ -781,7 +780,7 @@ export class ReciprocalLatticeViewer {
       rlp.applyMatrix3(settingRotation.clone().invert());
       rlp.applyAxisAngle(rotationAxis, -angle);
       rlp.applyMatrix3(fixedRotation.clone().invert().transpose());
-      return rlp.multiplyScalar(viewer.rlpScaleFactor);
+      return rlp.multiplyScalar(viewer.rLPScaleFactor);
     }
 
     this.clearReflectionTable();
@@ -848,7 +847,7 @@ export class ReciprocalLatticeViewer {
           }
 
           const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
-          const angle = panelReflections["angleObs"];
+          const angle = panelReflection["angleObs"];
           const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
           if ("millerIdx" in panelReflection && panelReflection["indexed"]) {
@@ -892,7 +891,7 @@ export class ReciprocalLatticeViewer {
             continue;
           }
           const s1 = this.getS1(xyzCal, dMatrix, wavelengthCal, pxSize);
-          const angle = panelReflections["angleCal"];
+          const angle = panelReflection["angleCal"];
           const rlp = getRLP(s1, wavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
           if (!positionsCalculated[exptID]){
             positionsCalculated[exptID] = [];
@@ -999,9 +998,9 @@ export class ReciprocalLatticeViewer {
     const crystalCalculatedReflectionSets = {};
     for (const [crystalID, positions] of Object.entries(crystalPositionsCalculated)) {
       const color = this.colors["reflectionCalculated"];
-      const visible = this.indexedReflectionsCheckbox.checked && this.visibleCrystalIDs[crystalID];
+      const visible = this.calculatedReflectionsCheckbox.checked && this.visibleCrystalIDs[crystalID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      calculatedReflectionSets[crystalID] = reflectionSet;
+      crystalCalculatedReflectionSets[crystalID] = reflectionSet;
     }
     this.crystalCalculatedReflections = new MeshCollection(crystalCalculatedReflectionSets);
 
@@ -1058,6 +1057,15 @@ export class ReciprocalLatticeViewer {
     this.calculatedReflectionsCheckbox.disabled = this.calculatedReflections.empty();
     this.integratedReflectionsCheckbox.disabled = this.integratedReflections.empty();
     this.crystalFrameCheckbox.disabled = this.indexedReflections.empty();
+  }
+
+  updateReciprocalCellCheckboxStatus(){
+    if (!this.hasReflectionTable()) {
+      this.reciprocalCellCheckbox.disabled = true;
+    }
+    else{
+      this.reciprocalCellCheckbox.disabled = this.orientationReciprocalCells.empty();
+    }
   }
 
   addBeam() {
@@ -1125,6 +1133,8 @@ export class ReciprocalLatticeViewer {
     this.crystalReciprocalCells.destroy();
     this.reciprocalCellCheckbox.checked = false;
     this.reciprocalCellCheckbox.disabled = true;
+    this.crystalFrameCheckbox.checked = false;
+    this.crystalFrameCheckbox.disabled = true;
   }
 
   addReciprocalCells() {
@@ -1148,46 +1158,43 @@ export class ReciprocalLatticeViewer {
     var crystalReciprocalCells = {};
 
     for (let i=0; i<crystalRLVs.length; i++){
+
       let crystalRLV = crystalRLVs[i];
-      const avgRLVLength = (crystalRLV[0].length + crystalRLV[1].length + crystalRLV[2].length)/3.;
+      const avgRLVLength = (crystalRLV[0].length() + crystalRLV[1].length() + crystalRLV[2].length())/3.;
+
       const minLineWidth = ReciprocalLatticeViewer.sizes()["minRLVLineWidth"];
       const maxLineWidth = ReciprocalLatticeViewer.sizes()["maxRLVLineWidth"];
       const lineWidthScaleFactor = ReciprocalLatticeViewer.sizes()["RLVLineWidthScaleFactor"];
       const lineWidth = Math.min(
         Math.max(avgRLVLength * lineWidthScaleFactor, minLineWidth), maxLineWidth
       );
-
       const labelScaleFactor = Math.max(
         avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
       );
+      fontSize *= labelScaleFactor;
+      crystalRLV[0].multiplyScalar(this.rLPScaleFactor);
+      crystalRLV[1].multiplyScalar(this.rLPScaleFactor);
+      crystalRLV[2].multiplyScalar(this.rLPScaleFactor);
 
-      if (this.crystalView){
-        const color = this.colors["reflectionCrystalIndexed"][i % this.colors["reflectionCrystalIndexed"].length];
-        crystalReciprocalCells[i] = new ReciprocalCell(
-          crystalRLV,
-          color,
-          lineWidth,
-          this.RLVLineWidthScaleFactor,
-          labelScaleFactor,
-          fontSize
-        );
-      }
-      else{
-        const color = this.colors["reciprocalCell"];
-        orientationReciprocalCells[i] = new ReciprocalCell(
-          crystalRLV,
-          color,
-          lineWidth,
-          this.RLVLineWidthScaleFactor,
-          labelScaleFactor,
-          fontSize
-        );
-      }
+      crystalReciprocalCells[i] = new ReciprocalCell(
+        crystalRLV,
+        this.colors["reflectionCrystalIndexed"][i % this.colors["reflectionCrystalIndexed"].length],
+        lineWidth,
+        fontSize
+      );
+
+      orientationReciprocalCells[i] = new ReciprocalCell(
+        crystalRLV,
+        this.colors["reciprocalCell"],
+        lineWidth,
+        fontSize
+      );
     }
 
     this.orientationReciprocalCells = new MeshCollection(orientationReciprocalCells);
     this.crystalReciprocalCells = new MeshCollection(crystalReciprocalCells);
 
+    this.updateReciprocalCellCheckboxStatus();
     this.updateReciprocalCellsVisibility();
     this.requestRender();
 
@@ -1285,9 +1292,9 @@ export class ReciprocalLatticeViewer {
 
       function getDSpacing(arr, idx, viewer) {
         const rlp = new THREE.Vector3(
-          arr[3 * idx] / viewer.rlpScaleFactor,
-          arr[(3 * idx) + 1] / viewer.rlpScaleFactor,
-          arr[(3 * idx) + 2] / viewer.rlpScaleFactor
+          arr[3 * idx] / viewer.rLPScaleFactor,
+          arr[(3 * idx) + 1] / viewer.rLPScaleFactor,
+          arr[(3 * idx) + 2] / viewer.rLPScaleFactor
         );
         return (1 / rlp.length()).toFixed(3);
       }
@@ -1298,7 +1305,7 @@ export class ReciprocalLatticeViewer {
           meshCollection = viewer.crystalIndexedReflections;
         }
         else{
-          meshCollection = viewer.IndexedReflections;
+          meshCollection = viewer.indexedReflections;
         }
 
         for (const [id, reflectionSet] of meshCollection) {
@@ -1462,10 +1469,8 @@ export class ReciprocalLatticeViewer {
   toggleCrystalVisibility(crystalIDLabel){
     var crystalID = parseInt(crystalIDLabel.split("-").pop());
     this.visibleCrystalIDs[crystalID] = !this.visibleCrystalIDs[crystalID];
-    this.updateCrystalCalculatedReflections();
-    this.updateCrystalIndexedReflections();
-    this.updateCrystalIntegratedReflections();
-    this.updateCrystalRLV();
+    this.updateReflectionsVisibility();
+    this.updateReciprocalCellsVisibility();
     var dropdownIcon = document.getElementById("crystalID-dropdown-icon-"+crystalID.toString());
     dropdownIcon.classList.toggle("fa-check");
   }
@@ -1513,8 +1518,8 @@ export class ReciprocalLatticeViewer {
   }
 
   getCrystalIDs(){
-    if (this.crystalPointsIndexed){
-      return Object.keys(this.crystalPointsIndexed);
+    if (!this.crystalIndexedReflections.empty()){
+      return this.crystalIndexedReflections.keys();
     }
     return ["-1"]
   }
