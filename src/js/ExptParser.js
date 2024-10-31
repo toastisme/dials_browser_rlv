@@ -542,7 +542,11 @@ export class ExptParser{
 		if (!this.crystals){return null;}
 		const crystalRLVs = [];
 		for (let i = 0; i < this.crystals.length; i++){
-			crystalRLVs.push(this.crystals[i]["reciprocalCell"]);
+			crystalRLVs.push([
+				this.crystals[i]["reciprocalCell"][0].clone(),
+				this.crystals[i]["reciprocalCell"][1].clone(),
+				this.crystals[i]["reciprocalCell"][2].clone()
+			]);
 		}
 		return crystalRLVs;
 	}
@@ -551,7 +555,7 @@ export class ExptParser{
 		if (!this.crystals){return null;}
 		const crystalRCVs = [];
 		for (let i = 0; i < this.crystals.length; i++){
-			const B = this.crystals[i]["B"];
+			const B = this.crystals[i]["B"].clone().elements;
 			crystalRCVs.push([
 				new THREE.Vector3(B[0], B[3], B[6]),
 				new THREE.Vector3(B[1], B[4], B[7]),
@@ -564,7 +568,7 @@ export class ExptParser{
 
 
 	getCrystalU(idx){
-		return this.experiments[idx].crystal["U"];
+		return this.crystals[idx]["U"].clone();
 	}
 
 

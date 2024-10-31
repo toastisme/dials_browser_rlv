@@ -239,6 +239,7 @@ class ReciprocalCell{
       window.scene.add(aSprite);
       window.scene.add(bSprite);
       window.scene.add(cSprite);
+      window.viewer.requestRender();
       return [Mesh, aSprite, bSprite, cSprite];
   }
 
@@ -357,7 +358,6 @@ export class ReciprocalLatticeViewer {
     // Bookkeeping for meshes
     this.beamMeshes = [];
     this.sampleMesh = null;
-    this.reciprocalCellMeshes = [];
     this.crystalView = false;
     this.crystalFrame = false;
 
@@ -468,6 +468,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateCrystalFrame(){
+    const reciprocalCellVisible = this.reciprocalCellCheckbox.checked;
     if (!this.expt.hasCrystal(0)){
       return;
     }
@@ -476,6 +477,10 @@ export class ReciprocalLatticeViewer {
     }
     this.crystalFrame = this.crystalFrameCheckbox.checked;
     this.addReflectionsFromData(this.refl.panelReflData);
+    this.addReciprocalCells();
+    this.reciprocalCellCheckbox.checked = reciprocalCellVisible;
+    this.crystalFrameCheckbox.checked = this.crystalFrame;
+    this.updateReciprocalCellsVisibility();
   }
 
   updateReflectionsVisibility(){
@@ -504,6 +509,9 @@ export class ReciprocalLatticeViewer {
     else{
       this.crystalIndexedReflections.hide();
       this.indexedReflections.hide();
+      if (this.unindexedReflectionsCheckbox.checked && this.crystalView){
+        this.crystalIndexedReflections.show("-1");
+      }
     }
     this.requestRender();
   }
@@ -574,7 +582,7 @@ export class ReciprocalLatticeViewer {
       this.orientationReciprocalCells.hide();
     }
     else{
-      this.orientationReciprocalCells.showVisibleIDs(this.visibleExptIDs);
+      this.orientationReciprocalCells.show();
       this.crystalReciprocalCells.hide();
     }
   }
@@ -598,23 +606,6 @@ export class ReciprocalLatticeViewer {
     this.updateReciprocalCellsVisibility();
   }
 
-  updateReciprocalCell(val = null, focusOnCell = false) {
-    this.reciprocalCellCheckbox.disabled = !this.expt.hasCrystal(0);
-    if (val !== null) {
-      this.reciprocalCellCheckbox.checked = val;
-    }
-    for (var i = 0; i < this.reciprocalCellMeshes.length; i++) {
-      const visibility = this.reciprocalCellCheckbox.checked && this.visibleCrystalIDs[i];
-      for (var j = 0; j < this.reciprocalCellMeshes[i].length; j++){
-        this.reciprocalCellMeshes[i][j].visible = visibility;
-      }
-    }
-    if (this.reciprocalCellCheckbox.checked && focusOnCell) {
-      this.zoomInOnObject(this.reciprocalCellMeshes[0][0]);
-    }
-    this.requestRender();
-  }
-
   updateReflectionSize() {
     if (!this.hasReflectionTable()) {
       return;
@@ -629,9 +620,7 @@ export class ReciprocalLatticeViewer {
     this.crystalIntegratedReflections.resize(newSize);
 
     this.requestRender();
-
   }
-
 
   getS1(point, dMatrix, wavelength, scaleFactor = [1, 1]) {
     const point3 = new THREE.Vector3(point[0] * scaleFactor[0], point[1] * scaleFactor[1], 1.0);
@@ -675,8 +664,7 @@ export class ReciprocalLatticeViewer {
     console.assert(this.hasExperiment());
     this.addBeam();
     this.addSample();
-    this.addCrystalRLV();
-    this.updateReciprocalCell();
+    this.addReciprocalCells();
     this.setCameraToDefaultPositionWithExperiment();
     this.showSidebar();
     if (this.isStandalone) {
@@ -774,7 +762,7 @@ export class ReciprocalLatticeViewer {
       const settingRotation = goniometer["settingRotation"];
       const rotationAxis = goniometer["rotationAxis"];
 
-      if (window.viewer.crystalFrame){
+      if (window.viewer.crystalFrame && U !== null){
         fixedRotation = fixedRotation.clone().multiply(U);
       }
       rlp.applyMatrix3(settingRotation.clone().invert());
@@ -793,7 +781,6 @@ export class ReciprocalLatticeViewer {
     this.refl.reflTable = "reflData";
 
     const panelKeys = Object.keys(reflData);
-    const refl = reflData[panelKeys[0]][0];
 
     const positionsUnindexed = {};
     const positionsIndexed = {};
@@ -820,11 +807,6 @@ export class ReciprocalLatticeViewer {
       const pxSize = [panelData["pxSize"].x, panelData["pxSize"].y];
       const dMatrix = panelData["dMatrix"];
 
-      var U = null;
-      if (this.expt.hasCrystal(0)) {
-        U = this.expt.getCrystalU(0);
-      }
-
       for (var j = 0; j < panelReflections.length; j++) {
 
         const panelReflection = panelReflections[j];
@@ -848,6 +830,10 @@ export class ReciprocalLatticeViewer {
 
           const s1 = this.getS1(xyzObs, dMatrix, wavelength, pxSize);
           const angle = panelReflection["angleObs"];
+          var U = null;
+          if ("crystalID" in panelReflection && panelReflection["crystalID"] !== "-1"){
+            U = this.expt.getCrystalU(parseInt(panelReflection["crystalID"]))
+          }
           const rlp = getRLP(s1, wavelength, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
           if ("millerIdx" in panelReflection && panelReflection["indexed"]) {
@@ -1039,6 +1025,7 @@ export class ReciprocalLatticeViewer {
     if (!this.indexedReflections.empty()) {
       this.indexedReflectionsCheckbox.checked = true;
     }
+    this.crystalFrameCheckbox.checked = this.crystalFrame;
 
     this.updateReflectionsVisibility();
   }
@@ -1062,10 +1049,13 @@ export class ReciprocalLatticeViewer {
   updateReciprocalCellCheckboxStatus(){
     if (!this.hasReflectionTable()) {
       this.reciprocalCellCheckbox.disabled = true;
+      this.crystalFrameCheckbox.disabled = true;
     }
     else{
-      this.reciprocalCellCheckbox.disabled = this.orientationReciprocalCells.empty();
+      this.reciprocalCellCheckbox.disabled = (this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
+      this.crystalFrameCheckbox.disabled = (this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
     }
+
   }
 
   addBeam() {
@@ -1153,7 +1143,6 @@ export class ReciprocalLatticeViewer {
       crystalRLVs = this.expt.getAllCrystalRLVs(); 
     }
 
-    var fontSize = ReciprocalLatticeViewer.sizes()["minRLVLabelSize"];
     var orientationReciprocalCells = {};
     var crystalReciprocalCells = {};
 
@@ -1171,6 +1160,7 @@ export class ReciprocalLatticeViewer {
       const labelScaleFactor = Math.max(
         avgRLVLength * ReciprocalLatticeViewer.sizes()["RLVLabelScaleFactor"], 1
       );
+      var fontSize = ReciprocalLatticeViewer.sizes()["minRLVLabelSize"];
       fontSize *= labelScaleFactor;
       crystalRLV[0].multiplyScalar(this.rLPScaleFactor);
       crystalRLV[1].multiplyScalar(this.rLPScaleFactor);
@@ -1787,7 +1777,6 @@ export function setupScene() {
       window.viewer.toggleSidebar();
     }
   });
-  window.viewer.updateReciprocalCell(false);
   window.viewer.setCameraToDefaultPosition();
   window.viewer.requestRender();
 }
