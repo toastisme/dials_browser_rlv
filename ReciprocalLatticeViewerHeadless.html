@@ -16,44 +16,24 @@
 	<header id="headerText"> </header>
 	<sidebar id="sidebar" style="width: 230px; padding: 10px;"> 
 		<script>
-			function updateObservedUnindexedReflections(){
+			function updateUnindexedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflections();
-				}
-				else{
-					window.viewer.updateObservedUnindexedReflections()
-				}
+				window.viewer.updateUnindexedReflectionsVisibility()
 			}
 
-			function updateObservedIndexedReflections(){
+			function updateIndexedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIndexedReflections();
-				}
-				else{
-					window.viewer.updateObservedIndexedReflections()
-				}
+				window.viewer.updateIndexedReflectionsVisibility()
 			}
 
 			function updateCalculatedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalCalculatedReflections();
-				}
-				else{
-					window.viewer.updateCalculatedReflections()
-				}
+				window.viewer.updateCalculatedReflectionsVisibility()
 			}
 
 			function updateIntegratedReflections(){
 				window.viewer.disableMouseClick(); 
-				if (window.viewer.crystalView){
-					window.viewer.updateCrystalIntegratedReflections();
-				}
-				else{
-					window.viewer.updateIntegratedReflections()
-				}
+				window.viewer.updateIntegratedReflectionsVisibility()
 			}
 
 			function updateReflectionSize(){
@@ -63,8 +43,14 @@
 
 			function updateReciprocalCell(){
 				window.viewer.disableMouseClick();
-				window.viewer.updateReciprocalCell();
+				window.viewer.updateReciprocalCellsVisibility();
 			}
+
+			function updateCrystalFrame(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateCrystalFrame();
+			}
+
 
 		</script>
 		<b>s</b>          = toggle sidebar <br>
@@ -73,30 +59,34 @@
 		<b>mouse wheel</b> = zoom<br>
 		-------------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
-		id="observedUnindexedReflections", checked=false, 
-		onclick="updateObservedUnindexedReflections()", disabled=true><br>
+		id="unindexedReflectionsCheckbox", checked=false, 
+		onclick="updateUnindexedReflections()", disabled=true><br>
 
 		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" 
-		id="observedIndexedReflections", checked=false, 
-		onclick="updateObservedIndexedReflections()", disabled=true><br>
+		id="indexedReflectionsCheckbox", checked=false, 
+		onclick="updateIndexedReflections()", disabled=true><br>
 
 		<span style="color: #ffaaaa"><b>calculated reflections:</b> </span><input type="checkbox" 
-		id="calculatedReflections", checked=false, 
+		id="calculatedReflectionsCheckbox", checked=false, 
 		onclick="updateCalculatedReflections()", disabled=true><br>
 
 		<span style="color: #ffc25c"><b>integrated reflections:</b> </span><input type="checkbox" 
-		id="integratedReflections", checked=false, 
+		id="integratedReflectionsCheckbox", checked=false, 
 		onclick="updateIntegratedReflections()", disabled=true><br>
 
-		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCell", 
+		<b>crystal frame:</b><input type="checkbox" 
+		id="crystalFrameCheckbox"
+		onclick="updateCrystalFrame()"><br>
+
+		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCellCheckbox", 
 		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
 
 		<b>reflection size:</b>  <input type="range" min="1" max="25" value="10" 
-		class="slider" id="reflectionSize" 
+		class="slider" id="reflectionSizeSlider" 
 		onmouseup="updateReflectionSize()"><br><br>
 		 <div class="dropdown">
-			<button id="experimentDropdownButton" onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Orientations </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
-			<div id="experimentDropdown" class="dropdown-content">
+			<button id="selectionDropdownButton" onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Orientations </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
+			<div id="selectionDropdown" class="dropdown-content">
 			</div>
 		</div> 
 	</sidebar>
@@ -285,7 +275,7 @@
 	const colors = {
 			"background": 0x020817,
 			"sample": 0xfdf6e3,
-			"reflectionObsUnindexed": [
+			"reflectionUnindexed": [
 				0x96f97b,
 				0x75bbfd,
 				0xbf77f6,
@@ -329,14 +319,13 @@
 				0x69d84f,
 				0x56ae57
 			],
-			"reflectionObsIndexed": 0xe74c3c,
+			"reflectionIndexed": 0xe74c3c,
 			"reflectionCrystalUnindexed": 0x6a7688,
-			"reflectionCal": 0xffaaaa,
+			"reflectionCalculated": 0xffaaaa,
 			"reflectionIntegrated" : 0xffc25c,
 			"highlight": 0xFFFFFF,
 			"beam": 0xFFFFFF,
 			"reciprocalCell": 0xFFFFFF,
-			"RLVLabels" : "white"
 	};
 
 	window.onload = function(){
@@ -384,8 +373,7 @@
 					if ("reindexed_cell" in msg){
 						window.viewer.addExperimentFromJSONString(
 							msg,
-							false,
-							true
+							false
 						);
 					}
 					else{
