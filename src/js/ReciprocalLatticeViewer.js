@@ -472,15 +472,16 @@ export class ReciprocalLatticeViewer {
     if (!this.expt.hasCrystal(0)){
       return;
     }
-    if (!this.refl.hasReflTable()){
-      return;
-    }
     this.crystalFrame = this.crystalFrameCheckbox.checked;
-    this.addReflectionsFromData(this.refl.panelReflData);
     this.addReciprocalCells();
     this.reciprocalCellCheckbox.checked = reciprocalCellVisible;
     this.crystalFrameCheckbox.checked = this.crystalFrame;
     this.updateReciprocalCellsVisibility();
+
+    if (!this.refl.hasReflTable()){
+      return;
+    }
+    this.addReflectionsFromData(this.refl.panelReflData);
   }
 
   updateReflectionsVisibility(){
@@ -717,6 +718,7 @@ export class ReciprocalLatticeViewer {
     this.crystalIndexedReflections.destroy();
     this.crystalCalculatedReflections.destroy();
     this.crystalIntegratedReflections.destroy();
+    this.refl.clearReflectionTable();
 
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
@@ -1047,7 +1049,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateReciprocalCellCheckboxStatus(){
-    if (!this.hasReflectionTable()) {
+    if (!this.hasExperiment()) {
       this.reciprocalCellCheckbox.disabled = true;
       this.crystalFrameCheckbox.disabled = true;
     }
