@@ -15,9 +15,6 @@ show_rlv_orientation_view
 show_rlv_crystal_view
 """
 
-"""
-Websockets methods
-"""
 
 class BasicServer:
 	def __init__(self, address, port):
@@ -25,6 +22,10 @@ class BasicServer:
 		self.address = address
 		self.port = port
 		self.expt_json = None
+
+	"""
+	Websockets methods
+	"""
 
 	async def handle_connection(self, websocket):
 		self.rlv_connection = websocket 

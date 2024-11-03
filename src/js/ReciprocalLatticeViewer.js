@@ -693,7 +693,12 @@ export class ReciprocalLatticeViewer {
     if (this.isStandalone) {
       this.showCloseExptButton();
     }
-    this.setSelectionDropdownToOrientations();
+    if (this.crystalView){
+      this.setSelectionDropdownToCrystals();
+    }
+    else{
+      this.setSelectionDropdownToOrientations();
+    }
     this.requestRender();
   }
 
