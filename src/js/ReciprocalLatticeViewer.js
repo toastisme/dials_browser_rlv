@@ -363,6 +363,7 @@ export class ReciprocalLatticeViewer {
 
     this.preventMouseClick = false;
 
+    this.savedUserState = null;
 
     this.rLPScaleFactor = 1000;
     this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
@@ -457,6 +458,32 @@ export class ReciprocalLatticeViewer {
       "default": "To view an experiment, drag .expt and .refl files into the browser",
       "defaultWithExpt": null
     }
+  }
+
+  saveUserState(){
+    this.savedUserState = {
+      "unindexedReflectionsCheckbox" : this.unindexedReflectionsCheckbox.checked,
+      "indexedReflectionsCheckbox" : this.indexedReflectionsCheckbox.checked,
+      "calculatedReflectionsCheckbox" : this.calculatedReflectionsCheckbox.checked,
+      "crystalFrameCheckbox" : this.crystalFrameCheckbox.checked,
+      "reciprocalCellCheckbox" : this.reciprocalCellCheckbox.checked
+    }
+  }
+
+  applySavedUserState(){
+    if (this.savedUserState === null){return;}
+    const s = this.savedUserState;
+    this.unindexedReflectionsCheckbox.checked = s["unindexedReflectionCheckbox"];
+    this.indexedReflectionsCheckbox.checked = s["indexedReflectionCheckbox"];
+    this.calculatedReflectionsCheckbox.checked = s["calculatedReflectionCheckbox"];
+    this.crystalFrameCheckbox.checked = s["crystalFrameCheckbox"];
+    this.reciprocalCellCheckbox.checked = s["reciprocalCellCheckbox"];
+    this.updateReciprocalCellsVisibility();
+    this.updateReflectionsVisibility();
+  }
+
+  clearSavedUserState(){
+    this.savedUserState = null;
   }
 
   toggleSidebar() {
@@ -680,6 +707,9 @@ export class ReciprocalLatticeViewer {
     jsonString,
     defaultSetup = true) => {
 
+    if (!defaultSetup){
+      this.saveUserState();
+    }
     this.clearExperiment();
     await this.expt.parseExperimentJSON(jsonString);
     console.assert(this.hasExperiment());
@@ -699,6 +729,11 @@ export class ReciprocalLatticeViewer {
     else{
       this.setSelectionDropdownToOrientations();
     }
+    if (!defaultSetup){
+      this.applySavedUserState();
+      this.clearSavedUserState();
+    }
+    
     this.requestRender();
   }
 
@@ -1146,6 +1181,8 @@ export class ReciprocalLatticeViewer {
       return;
     }
 
+    const reciprocalCellVisible = this.reciprocalCellCheckbox.checked;
+    const crystalFrameChecked = this.crystalFrameCheckbox.checked;
     this.clearReciprocalCells();
 
     var crystalRLVs;
@@ -1198,6 +1235,8 @@ export class ReciprocalLatticeViewer {
     this.crystalReciprocalCells = new MeshCollection(crystalReciprocalCells);
 
     this.updateReciprocalCellCheckboxStatus();
+    this.reciprocalCellCheckbox.checked = reciprocalCellVisible;
+    this.crystalFrameCheckbox.checked = crystalFrameChecked;
     this.updateReciprocalCellsVisibility();
     this.requestRender();
 
