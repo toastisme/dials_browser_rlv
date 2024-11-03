@@ -1008,6 +1008,12 @@ export class ReciprocalLatticeViewer {
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
     this.updateReflectionsVisibility();
+    if (this.crystalView){
+      this.switchToCrystalView();
+    }
+    else{
+      this.switchToOrientationView();
+    }
     this.requestRender();
   }
 
