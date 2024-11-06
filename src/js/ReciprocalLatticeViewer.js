@@ -466,19 +466,25 @@ export class ReciprocalLatticeViewer {
       "indexedReflectionsCheckbox" : this.indexedReflectionsCheckbox.checked,
       "calculatedReflectionsCheckbox" : this.calculatedReflectionsCheckbox.checked,
       "crystalFrameCheckbox" : this.crystalFrameCheckbox.checked,
-      "reciprocalCellCheckbox" : this.reciprocalCellCheckbox.checked
-    }
+      "reciprocalCellCheckbox" : this.reciprocalCellCheckbox.checked,
+      "visibleExptIDs" : this.visibleExptIDs,
+      "visibleCrystalIDs" : this.visibleCrystalIDs
+    };
   }
 
   applySavedUserState(){
     if (this.savedUserState === null){return;}
     const s = this.savedUserState;
-    this.unindexedReflectionsCheckbox.checked = s["unindexedReflectionCheckbox"];
-    this.indexedReflectionsCheckbox.checked = s["indexedReflectionCheckbox"];
-    this.calculatedReflectionsCheckbox.checked = s["calculatedReflectionCheckbox"];
+    this.unindexedReflectionsCheckbox.checked = s["unindexedReflectionsCheckbox"];
+    this.indexedReflectionsCheckbox.checked = s["indexedReflectionsCheckbox"];
+    this.calculatedReflectionsCheckbox.checked = s["calculatedReflectionsCheckbox"];
     this.crystalFrameCheckbox.checked = s["crystalFrameCheckbox"];
     this.reciprocalCellCheckbox.checked = s["reciprocalCellCheckbox"];
+    this.visibleExptIDs = s["visibleExptIDs"];
+    this.visibleCrystalIDs = s["visibleCrystalIDs"];
     this.updateReciprocalCellsVisibility();
+    this.updateExptIDVisibility();
+    this.updateCrystalIDVisibility();
     this.updateReflectionsVisibility();
   }
 
@@ -495,20 +501,19 @@ export class ReciprocalLatticeViewer {
   }
 
   updateCrystalFrame(){
-    const reciprocalCellVisible = this.reciprocalCellCheckbox.checked;
+    this.saveUserState();
     if (!this.expt.hasCrystal(0)){
       return;
     }
     this.crystalFrame = this.crystalFrameCheckbox.checked;
     this.addReciprocalCells();
-    this.reciprocalCellCheckbox.checked = reciprocalCellVisible;
-    this.crystalFrameCheckbox.checked = this.crystalFrame;
-    this.updateReciprocalCellsVisibility();
 
     if (!this.refl.hasReflTable()){
       return;
     }
     this.addReflectionsFromData(this.refl.panelReflData);
+    this.applySavedUserState();
+    this.clearSavedUserState();
   }
 
   updateReflectionsVisibility(){
@@ -705,7 +710,7 @@ export class ReciprocalLatticeViewer {
 
   addExperimentFromJSONString = async (
     jsonString,
-    defaultSetup = true) => {
+    defaultSetup = false) => {
 
     if (!defaultSetup){
       this.saveUserState();
@@ -1530,6 +1535,30 @@ export class ReciprocalLatticeViewer {
       }
     }
     this.updateReflectionsVisibility();
+  }
+
+  updateExptIDVisibility(){
+    for (const [exptID, visible] of Object.entries(this.visibleExptIDs)) {
+      let dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
+      if (!dropdownIcon.classList.contains("fa-check") && visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+      else if (dropdownIcon.classList.contains("fa-check") && !visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+    }
+  }
+
+  updateCrystalIDVisibility(){
+    for (const [crystalID, visible] of Object.entries(this.visibleCrystalIDs)) {
+      let dropdownIcon = document.getElementById("crystalID-dropdown-icon-"+crystalID.toString());
+      if (!dropdownIcon.classList.contains("fa-check") && visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+      else if (dropdownIcon.classList.contains("fa-check") && !visible){
+        dropdownIcon.classList.toggle("fa-check");
+      }
+    }
   }
 
   toggleExptVisibility(exptIDLabel){

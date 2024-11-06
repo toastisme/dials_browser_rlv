@@ -370,16 +370,17 @@
 			const command = msg["command"];
 
 			switch(command){
+				case "new_experiment":
+					window.viewer.addExperimentFromJSONString(
+						msg,
+						true
+					);
+					break;
 				case "update_experiment":
-					if ("reindexed_cell" in msg){
-						window.viewer.addExperimentFromJSONString(
-							msg,
-							false
-						);
-					}
-					else{
-						window.viewer.addExperimentFromJSONString(msg);
-					}
+					window.viewer.addExperimentFromJSONString(
+						msg,
+						false
+					);
 				break;
 				case "clear_experiment":
 					window.viewer.clearExperiment();
