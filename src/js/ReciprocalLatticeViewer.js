@@ -1538,6 +1538,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateExptIDVisibility(){
+    if (this.crystalView){return;}
     for (const [exptID, visible] of Object.entries(this.visibleExptIDs)) {
       let dropdownIcon = document.getElementById("exptID-dropdown-icon-"+exptID.toString());
       if (!dropdownIcon.classList.contains("fa-check") && visible){
@@ -1550,6 +1551,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateCrystalIDVisibility(){
+    if (!this.crystalView){return;}
     for (const [crystalID, visible] of Object.entries(this.visibleCrystalIDs)) {
       let dropdownIcon = document.getElementById("crystalID-dropdown-icon-"+crystalID.toString());
       if (!dropdownIcon.classList.contains("fa-check") && visible){
