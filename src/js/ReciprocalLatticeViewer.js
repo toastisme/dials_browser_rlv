@@ -607,6 +607,7 @@ export class ReciprocalLatticeViewer {
     if (!this.reciprocalCellCheckbox.checked){
       this.orientationReciprocalCells.hide();
       this.crystalReciprocalCells.hide();
+      this.requestRender();
       return;
     }
 
@@ -618,6 +619,7 @@ export class ReciprocalLatticeViewer {
       this.orientationReciprocalCells.show();
       this.crystalReciprocalCells.hide();
     }
+    this.requestRender();
   }
 
 
