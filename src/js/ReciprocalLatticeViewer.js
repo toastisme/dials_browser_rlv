@@ -465,6 +465,7 @@ export class ReciprocalLatticeViewer {
       "unindexedReflectionsCheckbox" : this.unindexedReflectionsCheckbox.checked,
       "indexedReflectionsCheckbox" : this.indexedReflectionsCheckbox.checked,
       "calculatedReflectionsCheckbox" : this.calculatedReflectionsCheckbox.checked,
+      "integratedReflectionsCheckbox" : this.integratedReflectionsCheckbox.checked,
       "crystalFrameCheckbox" : this.crystalFrameCheckbox.checked,
       "reciprocalCellCheckbox" : this.reciprocalCellCheckbox.checked,
       "visibleExptIDs" : this.visibleExptIDs,
@@ -478,6 +479,7 @@ export class ReciprocalLatticeViewer {
     this.unindexedReflectionsCheckbox.checked = s["unindexedReflectionsCheckbox"];
     this.indexedReflectionsCheckbox.checked = s["indexedReflectionsCheckbox"];
     this.calculatedReflectionsCheckbox.checked = s["calculatedReflectionsCheckbox"];
+    this.integratedReflectionsCheckbox.checked = s["integratedReflectionsCheckbox"];
     this.crystalFrameCheckbox.checked = s["crystalFrameCheckbox"];
     this.reciprocalCellCheckbox.checked = s["reciprocalCellCheckbox"];
     this.visibleExptIDs = s["visibleExptIDs"];
