@@ -392,6 +392,11 @@
 					delete msg["channel"];
 					window.viewer.addReflectionsFromData(msg);
 					break;
+				case "update_calculated_integrated_reflection_table":
+					delete msg["command"];
+					delete msg["channel"];
+					window.viewer.addCalculatedIntegratedReflectionsFromData(msg);
+					break;
 				case "show_rlv_orientation_view":
 					window.viewer.switchToOrientationView();
 					break;
