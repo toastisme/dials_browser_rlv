@@ -10,6 +10,7 @@ export class ReflParser {
 	constructor() {
 		this.reflTable = null; // Raw msgpack table
 		this.panelReflData = {}; // Parsed data mapped to each detector panel
+		this.calculatedIntegratedPanelReflData = {}; // Parsed data mapped to each detector panel
 		this.reflUnindexedDisplaySummary = {} // For mapping point raycasts to reflections 
 		this.reflIndexedDisplaySummary = {} // For mapping point raycasts to reflections
 		this.filename = null;

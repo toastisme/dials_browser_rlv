@@ -161,6 +161,7 @@ class ReflectionSet{
   destroy(){
     window.scene.remove(this.points);
     this.points.geometry.dispose();
+    this.points.material.dispose();
   }
 
   resize(newSize){
@@ -360,6 +361,7 @@ export class ReciprocalLatticeViewer {
     this.sampleMesh = null;
     this.crystalView = false;
     this.crystalFrame = false;
+    this.integratedReflectionsFromCalculated = false;
 
     this.preventMouseClick = false;
 
@@ -513,7 +515,10 @@ export class ReciprocalLatticeViewer {
     if (!this.refl.hasReflTable()){
       return;
     }
-    this.addReflectionsFromData(this.refl.panelReflData);
+    this.addReflectionsFromData(this.refl.panelReflData, this.integratedReflectionsFromCalculated);
+    if (this.integratedReflectionsFromCalculated){
+      this.addCalculatedIntegratedReflectionsFromData(this.refl.calculatedIntegratedPanelReflData);
+    }
     this.applySavedUserState();
     this.clearSavedUserState();
   }
@@ -796,7 +801,7 @@ export class ReciprocalLatticeViewer {
     this.requestRender();
   }
 
-  addReflectionsFromData(reflData) {
+  addReflectionsFromData(reflData, ignoreIntegratedReflections=false) {
 
     function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U, addAnglesToReflections) {
 
@@ -823,6 +828,10 @@ export class ReciprocalLatticeViewer {
     }
 
     this.clearReflectionTable();
+    if (!ignoreIntegratedReflections){
+      this.refl.calculatedIntegratedPanelReflData = {};
+      this.integratedReflectionsFromCalculated = false;
+    }
     if (!this.hasExperiment()) {
       console.warn("Tried to add reflections but no experiment has been loaded");
       return;
@@ -950,6 +959,10 @@ export class ReciprocalLatticeViewer {
 
           if ("summedIntensity" in panelReflection) {
             // Reflection has been integrated
+            // If any calculated integration data exists, remove it
+            if (Object.keys(this.refl.calculatedIntegratedPanelReflData).length !== 0 && !ignoreIntegratedReflections){
+              this.refl.calculatedIntegratedPanelReflData = {}
+            }
             if (!positionsIntegrated[exptID]){
               positionsIntegrated[exptID] = [];
             }
@@ -1087,8 +1100,14 @@ export class ReciprocalLatticeViewer {
       return rlp.multiplyScalar(viewer.rLPScaleFactor);
     }
 
+    if (Object.keys(reflData).length == 0){
+      return;
+    }
+
     this.integratedReflections.destroy();
     this.crystalIntegratedReflections.destroy();
+    this.refl.calculatedIntegratedPanelReflData = reflData;
+    this.integratedReflectionsFromCalculated = true;
 
     if (!this.hasExperiment()) {
       console.warn("Tried to add reflections but no experiment has been loaded");
