@@ -642,19 +642,20 @@ export class ExptParser{
 		if (!scanData){
 			return null
 		}
-		if (!("oscillation" in scanData)){
+		if (!("oscillation" in scanData["properties"])){
 			return null
 		}
 
 		const osc = new THREE.Vector2(
-			scanData["oscillation"][0] * Math.PI/180.,
-			scanData["oscillation"][1] * Math.PI/180.
+			scanData["properties"]["oscillation"][0] * Math.PI/180.,
+			scanData["properties"]["oscillation"][1] * Math.PI/180.
 		);
 
 		const ir = new THREE.Vector2(
 			scanData["image_range"][0] - 1,
 			scanData["image_range"][1] - 1
 		);
+
 
 		return {
 			"oscillation" : osc,
