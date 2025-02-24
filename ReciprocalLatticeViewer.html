@@ -174,7 +174,11 @@
 	import { ReciprocalLatticeViewer, setupScene } from "./src/js/ReciprocalLatticeViewer.js";
 	import { ExptParser } from "./src/js/ExptParser.js";
 	import { ReflParser } from "./src/js/ReflParser.js";
-	window.viewer = new ReciprocalLatticeViewer(new ExptParser(), new ReflParser(), true);
+	window.viewer = new ReciprocalLatticeViewer(
+		new ExptParser(), 
+		new ReflParser(), 
+		new ReflParser(), 
+		true);
 	setupScene();
 
 	</script>

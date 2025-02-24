@@ -18,11 +18,13 @@
   "homepage": "https://github.com/toastisme/dials_browser_rlv#readme",
   "dependencies": {
     "@ygoe/msgpack": "^1.0.3",
+    "dials_javascript_parser": "github:toastisme/dials_javascript_parser",
     "gsap": "^3.12.1",
     "three": "^0.153.0",
     "three.meshline": "^1.4.0"
   },
   "devDependencies": {
+    "buffer": "^5.7.1",
     "gh-pages": "^5.0.0",
     "jest": "^29.5.0"
   }

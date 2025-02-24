@@ -223,8 +223,8 @@
 		</style>
 	<script type="module">
 	import { ReciprocalLatticeViewer, setupScene } from "./src/js/ReciprocalLatticeViewer.js";
-	import { ExptParser } from "./src/js/ExptParser.js";
-	import { ReflParser } from "./src/js/ReflParser.js";
+	import { ExptParser } from "dials_javascript_parser/ExptParser.js";
+	import { ReflParser } from "dials_javascript_parser/ReflParser.js";
 
 	function isRLVMsg(msg){
 		return "channel" in msg && msg["channel"] == "rlv";
@@ -335,6 +335,7 @@
 		window.viewer = new ReciprocalLatticeViewer(
 			new ExptParser(), 
 			new ReflParser(), 
+			new ReflParser(), 
 			false,
 			colors
 		);
@@ -388,14 +389,10 @@
 					window.viewer.clearExperiment();
 					break;
 				case "update_reflection_table":
-					delete msg["command"];
-					delete msg["channel"];
-					window.viewer.addReflectionsFromData(msg);
+					window.viewer.addReflectionsFromJSONMsgpack(msg["refl_msgpack"]);
 					break;
 				case "update_calculated_integrated_reflection_table":
-					delete msg["command"];
-					delete msg["channel"];
-					window.viewer.addCalculatedIntegratedReflectionsFromData(msg);
+					window.viewer.addCalculatedIntegratedReflectionsFromJSONMsgpack(msg["refl_msgpack"]);
 					break;
 				case "show_rlv_orientation_view":
 					window.viewer.switchToOrientationView();

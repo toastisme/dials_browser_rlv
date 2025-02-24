@@ -5,6 +5,7 @@ import json
 import asyncio
 import websockets
 from collections import defaultdict
+import base64
 
 """
 Commands
@@ -77,8 +78,9 @@ class BasicServer:
 
 	async def update_reflection_table(self, reflection_table_path: str) -> None:
 		reflection_table = self.get_reflection_table(reflection_table_path)
-		reflections_per_panel = self.get_reflections_per_panel(reflection_table)
-		await self.send_to_rlv(reflections_per_panel, command="update_reflection_table")
+		reflection_table = base64.b64encode(reflection_table.as_msgpack()).decode("utf-8")
+
+		await self.send_to_rlv({"refl_msgpack" : reflection_table}, command="update_reflection_table")
 
 	async def show_rlv_orientation_view(self) -> None:
 		await self.send_to_rlv({}, command="show_rlv_orientation_view")
@@ -114,7 +116,7 @@ class BasicServer:
 			
 
 	def get_reflection_table(self, reflection_table_path: str):
-		assert exists(reflection_table_path), f".expt file not found at {reflection_table_path}"
+		assert exists(reflection_table_path), f".refl file not found at {reflection_table_path}"
 		try:
 			reflection_table = flex.reflection_table.from_msgpack_file(reflection_table_path)
 			return reflection_table
