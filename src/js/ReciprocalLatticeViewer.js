@@ -1126,7 +1126,6 @@ export class ReciprocalLatticeViewer {
     const exptIDs = this.refl.getExperimentIDs();
     const wavelengths = this.refl.getWavelengths()
     const wavelengthsCal = this.refl.getCalculatedWavelengths();
-    const crystalIDs = this.refl.getCrystalIDs();
     const flags = this.refl.getFlags();
 
     const positionsUnindexed = {};
@@ -1136,6 +1135,8 @@ export class ReciprocalLatticeViewer {
     const crystalPositionsIndexed = {};
     const crystalPositionsCalculated = {};
     const crystalPositionsIntegrated = {};
+
+    const crystalIDsMap = this.expt.getCrystalIDsMap()
 
 
     const uniquePanelIdxs = new Set(panelNumbers);
@@ -1155,6 +1156,12 @@ export class ReciprocalLatticeViewer {
       else{
         exptID = 0;
       }
+
+      let crystalID = crystalIDsMap[exptID];
+      if (crystalID === undefined || crystalID === null){
+        crystalID = "-1";
+      }
+
       const scan = this.expt.experiments[exptID].scan;
       const goniometer = this.expt.experiments[exptID].goniometer;
       const addAnglesToReflections = (goniometer !== null && scan !== null);
@@ -1187,8 +1194,8 @@ export class ReciprocalLatticeViewer {
           angle = xyzObsMm[reflIdx][2];
         }
         var U = null;
-        if (crystalIDs !== null && crystalIDs[reflIdx] !== -1){
-          U = this.expt.getCrystalU(crystalIDs[reflIdx]);
+        if (crystalID !== "-1"){
+          U = this.expt.getCrystalU(crystalID);
         }
         const rlp = getRLP(s1, reflWavelength, unitS0, this, goniometer, angle, U);
 
@@ -1211,10 +1218,8 @@ export class ReciprocalLatticeViewer {
           positionsUnindexed[exptID].push(rlp.z);
         }
 
-        console.log("crystalIDs ", (crystalIDs !== null));
-        if (crystalIDs !== null){
+        if (crystalID !== "-1"){
           // Reflection has been assigned to a crystal
-          const crystalID = crystalIDs[reflIdx];
           if (!(crystalID in crystalPositionsIndexed)){
             crystalPositionsIndexed[crystalID] = [];
           }
@@ -1246,9 +1251,8 @@ export class ReciprocalLatticeViewer {
         positionsCalculated[exptID].push(rlp.y);
         positionsCalculated[exptID].push(rlp.z);
 
-        if (crystalIDs !== null){
+        if (crystalID !== "-1"){
           // Reflection has been assigned to a crystal
-          const crystalID = crystalIDs[reflIdx];
           if (!(crystalID in crystalPositionsCalculated)){
             crystalPositionsCalculated[crystalID] = [];
           }
@@ -1270,9 +1274,8 @@ export class ReciprocalLatticeViewer {
           positionsIntegrated[exptID].push(rlp.y);
           positionsIntegrated[exptID].push(rlp.z);
 
-          if (crystalIDs !== null){
+          if (crystalID !== "-1"){
             // Reflection has been assigned to a crystal
-            const crystalID = crystalIDs[reflIdx];
             if (!(crystalID in crystalPositionsIntegrated)){
               crystalPositionsIntegrated[crystalID] = [];
             }
@@ -1417,7 +1420,7 @@ export class ReciprocalLatticeViewer {
     const millerIndices = this.calculatedIntegratedRefl.getMillerIndices();
     const exptIDs = this.calculatedIntegratedRefl.getExperimentIDs();
     const wavelengthsCal = this.calculatedIntegratedRefl.getCalculatedWavelengths();
-    const crystalIDs = this.calculatedIntegratedRefl.getCrystalIDs();
+    const crystalIDsMap = this.expt.getCrystalIDsMap()
 
     const positionsIntegrated = {};
     const crystalPositionsIntegrated = {};
@@ -1439,6 +1442,7 @@ export class ReciprocalLatticeViewer {
       else{
         exptID = 0;
       }
+      const crystalID = crystalIDsMap[exptID];
       const scan = this.expt.experiments[exptID].scan;
       const goniometer = this.expt.experiments[exptID].goniometer;
       const addAnglesToReflections = (goniometer !== null && scan !== null);
@@ -1467,8 +1471,8 @@ export class ReciprocalLatticeViewer {
           angle = xyzCalMm[reflIdx][2];
         }
         var U = null;
-        if (crystalIDs !== null && crystalIDs[reflIdx] !== -1){
-          U = this.expt.getCrystalU(crystalIDs[reflIdx]);
+        if (crystalID !== "-1"){
+          U = this.expt.getCrystalU(crystalID);
         }
         const rlp = getRLP(s1, reflWavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
@@ -1479,9 +1483,8 @@ export class ReciprocalLatticeViewer {
         positionsIntegrated[exptID].push(rlp.y);
         positionsIntegrated[exptID].push(rlp.z);
 
-        if (crystalIDs !== null){
+        if (crystalID !== "-1"){
           // Reflection has been assigned to a crystal
-          const crystalID = crystalIDs[reflIdx];
           if (!(crystalID in crystalPositionsIntegrated)){
             crystalPositionsIntegrated[crystalID] = [];
           }
@@ -2225,7 +2228,8 @@ export class ReciprocalLatticeViewer {
   setSelectionDropdownToCrystals(){
     var maxLabelSize = 22;
     var minNumForAllButton = 4;
-    var crystalIDs = this.getCrystalIDs();
+    const exptIDs = this.expt.getExptIDs();
+    const crystalIDsMap = this.expt.getCrystalIDsMap()
     var crystalLabels = this.getCrystalLabels();
     var addAllButton = crystalLabels.length > minNumForAllButton;
     var firstLabel = null;
@@ -2233,10 +2237,10 @@ export class ReciprocalLatticeViewer {
     var dropdownContent = document.getElementById("selectionDropdown");
     dropdownContent.innerHTML = ""; 
 
-    for (var i = 0; i < crystalIDs.length; i++) {
+    for (var i = 0; i < exptIDs.length; i++) {
         var label = document.createElement("label");
         label.classList.add("experiment-label"); 
-        const crystalID = crystalIDs[i];
+        const crystalID = crystalIDsMap[exptIDs[i]];
         var color = null;
         if (crystalID === "-1"){
           continue
@@ -2255,7 +2259,7 @@ export class ReciprocalLatticeViewer {
           crystalLabel = crystalLabel.slice(0,19) + "...";
         }
         label.textContent = crystalLabel;
-        label.id = "crystalID-"+crystalIDs[i];
+        label.id = "crystalID-"+crystalID;
         
         label.appendChild(icon);
         
