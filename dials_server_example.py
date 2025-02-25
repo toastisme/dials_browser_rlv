@@ -90,6 +90,12 @@ class BasicServer:
 	async def clear_experiment(self) -> None:
 		await self.send_to_rlv({}, command="clear_experiment")
 
+	async def send_to_rlv(self, msg, command):
+		msg["command"] = command
+		msg["channel"] = "rlv"
+		assert self.rlv_connection is not None, "Server is not connected to rlv"
+		await self.rlv_connection.send(json.dumps(msg))
+
 	"""
 	Methods to get data to send
 	"""
@@ -111,12 +117,6 @@ class BasicServer:
 			return reflection_table
 		except RuntimeError:
 			raise RuntimeError(f"Failed to load reflection table at {reflection_table_path}")
-
-	async def send_to_rlv(self, msg, command):
-		msg["command"] = command
-		msg["channel"] = "rlv"
-		assert self.rlv_connection is not None, "Server is not connected to rlv"
-		await self.rlv_connection.send(json.dumps(msg))
 
 
 def start_server(address="127.0.0.1", port=50010):
