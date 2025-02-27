@@ -85,7 +85,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def send_error(self, code : int, message : str | None=None) -> None:
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
-        self._send_header_cors()  # <-- Add this line
+        self._send_header_cors() 
         self.end_headers()
         response = {
             "status": "error",

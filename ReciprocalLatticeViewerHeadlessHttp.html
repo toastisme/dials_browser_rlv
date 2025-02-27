@@ -293,77 +293,78 @@ window.onload = function() {
         colors
     );
 
-	function executeCommand(command, payload = null) {
+	async function executeCommand(command, payload = null) {
 		console.log(`Executing command: ${command} with payload:`, payload);
 		switch(command) {
 			case "update_experiment":
-			window.viewer.addExperimentFromJSONString(JSON.stringify(payload.expt_json), false);
-			break;
+				window.viewer.addExperimentFromJSONString(payload.expt_json, false);
+				break;
 			case "clear_experiment":
-			window.viewer.clearExperiment();
-			break;
+				window.viewer.clearExperiment();
+				break;
 			case "update_reflection_table":
-			window.viewer.addReflectionsFromJSONMsgpack(payload.refl_msgpack);
-			break;
+				window.viewer.addReflectionsFromJSONMsgpack(payload.refl_msgpack);
+				break;
 			case "show_orientation_view":
-			window.viewer.switchToOrientationView();
-			break;
+				window.viewer.switchToOrientationView();
+				break;
 			case "show_crystal_view":
-			window.viewer.switchToCrystalView();
-			break;
+				window.viewer.switchToCrystalView();
+				break;
 			default:
-			console.warn("Unrecognized command:", command);
+				console.warn("Unrecognized command:", command);
 		}
 	}
 
-    function sendHttpRequest(endpoint, method = "GET", data = null) {
-        const serverUrl = "http://127.0.0.1:50010"; 
-        
-        const options = {
-            method: method,
-            headers: {
-                "Content-Type": "application/json",
-            },
-        };
-        
-        if (data && method !== "GET") {
-            options.body = JSON.stringify(data);
-        }
-        
-        return fetch(`${serverUrl}${endpoint}`, options)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .catch(error => {
-                console.error("Request failed:", error);
-                return null;
-            });
-    }
-
-	function pollServerForCommands() {
-	sendHttpRequest("")
-		.then(response => {
-		if (response && response.commands && Array.isArray(response.commands)) {
-			console.log("Received commands:", response.commands);
-			
-			// Process each command in the queue
-			response.commands.forEach(commandData => {
-			const command = commandData.command;
-			executeCommand(command, commandData);
+	function sendHttpRequest(endpoint, method = "GET", data = null) {
+		const serverUrl = "http://127.0.0.1:50010"; 
+		
+		const options = {
+			method: method,
+			headers: {
+				"Content-Type": "application/json",
+			},
+		};
+		
+		if (data && method !== "GET") {
+			options.body = JSON.stringify(data);
+		}
+		
+		return fetch(`${serverUrl}${endpoint}`, options)
+			.then(response => {
+				if (!response.ok) {
+					throw new Error(`HTTP error! Status: ${response.status}`);
+				}
+				return response.json();
+			})
+			.catch(error => {
+				console.error("Request failed:", error);
+				return null;
 			});
-		}
-		})
-		.catch(error => {
-		console.error("Polling error:", error);
-		});
 	}
 
-    const pollingInterval = setInterval(pollServerForCommands, 2000);
-    
-		setupScene();
+	async function pollServerForCommands() {
+		try {
+			const response = await sendHttpRequest("");
+			if (response && response.commands && Array.isArray(response.commands)) {
+				if (response.commands.length !== 0){
+					console.log("Received commands:", response.commands);
+				}
+				
+				for (const commandData of response.commands) {
+					const command = commandData.command;
+					await executeCommand(command, commandData); 
+				}
+			}
+		} catch (error) {
+			console.error("Polling error:", error);
+		}
+	}
+
+	const pollingInterval = setInterval(pollServerForCommands, 2000);
+
+	setupScene();
+
 	}
 	</script>
 
