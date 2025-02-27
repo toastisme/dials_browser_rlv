@@ -4,6 +4,7 @@ import base64
 from os.path import exists
 from queue import Queue
 from dials.array_family import flex
+import requests
 
 class RequestHandler(BaseHTTPRequestHandler):
 
@@ -134,6 +135,62 @@ class RequestHandler(BaseHTTPRequestHandler):
             return flex.reflection_table.from_msgpack_file(reflection_table_path)
         except RuntimeError:
             raise RuntimeError(f"Failed to load reflection table at {reflection_table_path}")
+
+"""
+Example commands to send to server
+"""
+
+def send_experiment_update(json_path: str, server_url: str) -> None:
+
+    response = requests.post(
+        f"{server_url}/update_experiment",
+        json={"command": "update_experiment", "expt_path": json_path},
+    )
+
+    if response.status_code != 200:
+        print(
+            f"Error sending experiment update command: {response.status_code} - {response.text}"
+        )
+
+
+def send_reflection_table_update(reflection_table_path: str, server_url: str) -> None:
+    response = requests.post(
+        f"{server_url}/update_reflection_table",
+        json={"command": "update_reflection_table", "refl_path": reflection_table_path},
+    )
+
+    if response.status_code != 200:
+        print(
+            f"Error sending reflection table update command: {response.status_code} - {response.text}"
+        )
+
+
+def send_show_view(view_type: str, server_url: str) -> None:
+
+    if view_type == "orientation":
+        endpoint = "show_orientation_view"
+    elif view_type == "crystal":
+        endpoint = "show_crystal_view"
+    else:
+        print(f"Unknown view type: {view_type}")
+        return None
+
+    response = requests.post(f"{server_url}/{endpoint}", json={"command": {endpoint}})
+
+    if response.status_code != 200:
+        print(f"Error sending view command: {response.status_code} - {response.text}")
+
+
+def send_clear_experiment(server_url: str) -> None:
+
+    response = requests.post(
+        f"{server_url}/clear_experiment", json={"command": "clear_experiment"}
+    )
+
+    if response.status_code != 200:
+        print(
+            f"Error sending clear experiment command: {response.status_code} - {response.text}"
+        )
 
 
 if __name__ == "__main__":
