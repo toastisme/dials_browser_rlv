@@ -1321,7 +1321,7 @@ export class ReciprocalLatticeViewer {
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       indexedReflectionSets[imagesetID] = reflectionSet;
     }
-    // this.indexedReflections = new MeshCollection(indexedReflectionSets);
+    this.indexedReflections = new MeshCollection(indexedReflectionSets);
 
     const calculatedReflectionSets = {};
     for (const [imagesetID, positions] of Object.entries(positionsCalculated)) {
