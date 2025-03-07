@@ -529,8 +529,8 @@ export class ReciprocalLatticeViewer {
      * Uses checkbox and visible id info to check 
      * which reflections should be visible
      */
-    this.updateIndexedReflectionsVisibility();
     this.updateUnindexedReflectionsVisibility();
+    this.updateIndexedReflectionsVisibility();
     this.updateCalculatedReflectionsVisibility();
     this.updateIntegratedReflectionsVisibility();
   }
@@ -1124,6 +1124,7 @@ export class ReciprocalLatticeViewer {
     const xyzCalMm = this.refl.getXYZCalMm();
     const millerIndices = this.refl.getMillerIndices();
     const exptIDs = this.refl.getExperimentIDs();
+    const imagesetIDs = this.refl.getImagesetIDs();
     const wavelengths = this.refl.getWavelengths()
     const wavelengthsCal = this.refl.getCalculatedWavelengths();
     const flags = this.refl.getFlags();
@@ -1137,7 +1138,6 @@ export class ReciprocalLatticeViewer {
     const crystalPositionsIntegrated = {};
 
     const crystalIDsMap = this.expt.getCrystalIDsMap()
-
 
     const uniquePanelIdxs = new Set(panelNumbers);
     let panelData = {};
@@ -1157,13 +1157,22 @@ export class ReciprocalLatticeViewer {
         exptID = 0;
       }
 
+      // imagesetID
+      let imagesetID;
+      if (imagesetIDs !== null){
+        imagesetID = imagesetIDs[reflIdx];
+      }
+      else{
+        imagesetID = 0;
+      }
+
       let crystalID = crystalIDsMap[exptID];
       if (crystalID === undefined || crystalID === null){
         crystalID = "-1";
       }
 
-      const scan = this.expt.experiments[exptID].scan;
-      const goniometer = this.expt.experiments[exptID].goniometer;
+      const scan = this.expt.experiments[imagesetID].scan;
+      const goniometer = this.expt.experiments[imagesetID].goniometer;
       const addAnglesToReflections = (goniometer !== null && scan !== null);
 
       const panelIdx = parseInt(panelNumbers[reflIdx]);
@@ -1171,9 +1180,9 @@ export class ReciprocalLatticeViewer {
       const pxSize = [panelData[panelIdx]["pxSize"].x, panelData[panelIdx]["pxSize"].y];
       const dMatrix = panelData[panelIdx]["dMatrix"];
 
-      let reflWavelength = this.expt.getBeamData(exptID)["wavelength"];
-      let reflWavelengthCal = this.expt.getBeamData(exptID)["wavelength"];
-      const unitS0 = this.expt.getBeamDirection(exptID).multiplyScalar(-1).normalize();
+      let reflWavelength = this.expt.getBeamData(imagesetID)["wavelength"];
+      let reflWavelengthCal = this.expt.getBeamData(imagesetID)["wavelength"];
+      const unitS0 = this.expt.getBeamDirection(imagesetID).multiplyScalar(-1).normalize();
 
       if (xyzObs !== null) {
 
@@ -1201,21 +1210,21 @@ export class ReciprocalLatticeViewer {
 
         if (millerIndices !== null && this.refl.isValidMillerIndex(millerIndices[reflIdx])) {
           // Indexed reflection
-          if (!positionsIndexed[exptID]){
-            positionsIndexed[exptID] = [];
+          if (!positionsIndexed[imagesetID]){
+            positionsIndexed[imagesetID] = [];
           }
-          positionsIndexed[exptID].push(rlp.x);
-          positionsIndexed[exptID].push(rlp.y);
-          positionsIndexed[exptID].push(rlp.z);
+          positionsIndexed[imagesetID].push(rlp.x);
+          positionsIndexed[imagesetID].push(rlp.y);
+          positionsIndexed[imagesetID].push(rlp.z);
         }
         else { 
           // Unindexed reflection
-          if (!positionsUnindexed[exptID]){
-            positionsUnindexed[exptID] = [];
+          if (!positionsUnindexed[imagesetID]){
+            positionsUnindexed[imagesetID] = [];
           }
-          positionsUnindexed[exptID].push(rlp.x);
-          positionsUnindexed[exptID].push(rlp.y);
-          positionsUnindexed[exptID].push(rlp.z);
+          positionsUnindexed[imagesetID].push(rlp.x);
+          positionsUnindexed[imagesetID].push(rlp.y);
+          positionsUnindexed[imagesetID].push(rlp.z);
         }
 
         if (crystalID !== "-1"){
@@ -1244,12 +1253,12 @@ export class ReciprocalLatticeViewer {
           angle = xyzCalMm[reflIdx][2];
         }
         const rlp = getRLP(s1, reflWavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
-        if (!positionsCalculated[exptID]){
-          positionsCalculated[exptID] = [];
+        if (!positionsCalculated[imagesetID]){
+          positionsCalculated[imagesetID] = [];
         }
-        positionsCalculated[exptID].push(rlp.x);
-        positionsCalculated[exptID].push(rlp.y);
-        positionsCalculated[exptID].push(rlp.z);
+        positionsCalculated[imagesetID].push(rlp.x);
+        positionsCalculated[imagesetID].push(rlp.y);
+        positionsCalculated[imagesetID].push(rlp.z);
 
         if (crystalID !== "-1"){
           // Reflection has been assigned to a crystal
@@ -1267,12 +1276,12 @@ export class ReciprocalLatticeViewer {
           if (Object.keys(this.refl.calculatedIntegratedPanelReflData).length !== 0 && !ignoreIntegratedReflections){
             this.refl.calculatedIntegratedPanelReflData = {}
           }
-          if (!positionsIntegrated[exptID]){
-            positionsIntegrated[exptID] = [];
+          if (!positionsIntegrated[imagesetID]){
+            positionsIntegrated[imagesetID] = [];
           }
-          positionsIntegrated[exptID].push(rlp.x);
-          positionsIntegrated[exptID].push(rlp.y);
-          positionsIntegrated[exptID].push(rlp.z);
+          positionsIntegrated[imagesetID].push(rlp.x);
+          positionsIntegrated[imagesetID].push(rlp.y);
+          positionsIntegrated[imagesetID].push(rlp.z);
 
           if (crystalID !== "-1"){
             // Reflection has been assigned to a crystal
@@ -1296,38 +1305,38 @@ export class ReciprocalLatticeViewer {
      */
 
     const unindexedReflectionSets = {};
-    for (const [exptID, positions] of Object.entries(positionsUnindexed)) {
-      const color = this.colors["reflectionUnindexed"][parseInt(exptID) % this.colors["reflectionUnindexed"].length];
-      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
+    for (const [imagesetID, positions] of Object.entries(positionsUnindexed)) {
+      const color = this.colors["reflectionUnindexed"][parseInt(imagesetID) % this.colors["reflectionUnindexed"].length];
+      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      unindexedReflectionSets[exptID] = reflectionSet;
+      unindexedReflectionSets[imagesetID] = reflectionSet;
     }
     this.unindexedReflections = new MeshCollection(unindexedReflectionSets);
 
     const indexedReflectionSets = {};
-    for (const [exptID, positions] of Object.entries(positionsIndexed)) {
+    for (const [imagesetID, positions] of Object.entries(positionsIndexed)) {
       const color = this.colors["reflectionIndexed"];
-      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
+      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      indexedReflectionSets[exptID] = reflectionSet;
+      indexedReflectionSets[imagesetID] = reflectionSet;
     }
     this.indexedReflections = new MeshCollection(indexedReflectionSets);
 
     const calculatedReflectionSets = {};
-    for (const [exptID, positions] of Object.entries(positionsCalculated)) {
+    for (const [imagesetID, positions] of Object.entries(positionsCalculated)) {
       const color = this.colors["reflectionCalculated"];
-      const visible = this.calculatedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
+      const visible = this.calculatedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      calculatedReflectionSets[exptID] = reflectionSet;
+      calculatedReflectionSets[imagesetID] = reflectionSet;
     }
     this.calculatedReflections = new MeshCollection(calculatedReflectionSets);
 
     const integratedReflectionSets = {};
-    for (const [exptID, positions] of Object.entries(positionsIntegrated)) {
+    for (const [imagesetID, positions] of Object.entries(positionsIntegrated)) {
       const color = this.colors["reflectionIntegrated"];
-      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
+      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      integratedReflectionSets[exptID] = reflectionSet;
+      integratedReflectionSets[imagesetID] = reflectionSet;
     }
     this.integratedReflections = new MeshCollection(integratedReflectionSets);
 
@@ -1417,8 +1426,8 @@ export class ReciprocalLatticeViewer {
     }
     const xyzCal = this.calculatedIntegratedRefl.getXYZCal();
     const xyzCalMm = this.calculatedIntegratedRefl.getXYZCalMm();
-    const millerIndices = this.calculatedIntegratedRefl.getMillerIndices();
     const exptIDs = this.calculatedIntegratedRefl.getExperimentIDs();
+    const imagesetIDs = this.calculatedIntegratedRefl.getImagesetIDs();
     const wavelengthsCal = this.calculatedIntegratedRefl.getCalculatedWavelengths();
     const crystalIDsMap = this.expt.getCrystalIDsMap()
 
@@ -1442,9 +1451,18 @@ export class ReciprocalLatticeViewer {
       else{
         exptID = 0;
       }
+      
+      // imagesetID
+      let imagesetID;
+      if (imagesetIDs !== null){
+        imagesetID = imagesetIDs[reflIdx];
+      }
+      else{
+        imagesetID = 0;
+      }
       const crystalID = crystalIDsMap[exptID];
-      const scan = this.expt.experiments[exptID].scan;
-      const goniometer = this.expt.experiments[exptID].goniometer;
+      const scan = this.expt.experiments[imagesetID].scan;
+      const goniometer = this.expt.experiments[imagesetID].goniometer;
       const addAnglesToReflections = (goniometer !== null && scan !== null);
 
       const panelIdx = parseInt(panelNumbers[reflIdx]);
@@ -1452,8 +1470,8 @@ export class ReciprocalLatticeViewer {
       const pxSize = [panelData[panelIdx]["pxSize"].x, panelData[panelIdx]["pxSize"].y];
       const dMatrix = panelData[panelIdx]["dMatrix"];
 
-      let reflWavelengthCal = this.expt.getBeamData(exptID)["wavelength"];
-      const unitS0 = this.expt.getBeamDirection(exptID).multiplyScalar(-1).normalize();
+      let reflWavelengthCal = this.expt.getBeamData(imagesetID)["wavelength"];
+      const unitS0 = this.expt.getBeamDirection(imagesetID).multiplyScalar(-1).normalize();
 
 
       if (xyzCal !== null && xyzCalMm !== null) {
@@ -1476,12 +1494,12 @@ export class ReciprocalLatticeViewer {
         }
         const rlp = getRLP(s1, reflWavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
 
-        if (!positionsIntegrated[exptID]){
-          positionsIntegrated[exptID] = [];
+        if (!positionsIntegrated[imagesetID]){
+          positionsIntegrated[imagesetID] = [];
         }
-        positionsIntegrated[exptID].push(rlp.x);
-        positionsIntegrated[exptID].push(rlp.y);
-        positionsIntegrated[exptID].push(rlp.z);
+        positionsIntegrated[imagesetID].push(rlp.x);
+        positionsIntegrated[imagesetID].push(rlp.y);
+        positionsIntegrated[imagesetID].push(rlp.z);
 
         if (crystalID !== "-1"){
           // Reflection has been assigned to a crystal
@@ -1504,11 +1522,11 @@ export class ReciprocalLatticeViewer {
 
 
     const integratedReflectionSets = {};
-    for (const [exptID, positions] of Object.entries(positionsIntegrated)) {
+    for (const [imagesetID, positions] of Object.entries(positionsIntegrated)) {
       const color = this.colors["reflectionIntegrated"];
-      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExptIDs[exptID];
+      const visible = this.integratedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID];
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
-      integratedReflectionSets[exptID] = reflectionSet;
+      integratedReflectionSets[imagesetID] = reflectionSet;
     }
     this.integratedReflections = new MeshCollection(integratedReflectionSets);
 
@@ -2228,8 +2246,6 @@ export class ReciprocalLatticeViewer {
   setSelectionDropdownToCrystals(){
     var maxLabelSize = 22;
     var minNumForAllButton = 4;
-    const exptIDs = this.expt.getExptIDs();
-    const crystalIDsMap = this.expt.getCrystalIDsMap()
     var crystalLabels = this.getCrystalLabels();
     var addAllButton = crystalLabels.length > minNumForAllButton;
     var firstLabel = null;
@@ -2237,29 +2253,25 @@ export class ReciprocalLatticeViewer {
     var dropdownContent = document.getElementById("selectionDropdown");
     dropdownContent.innerHTML = ""; 
 
-    for (var i = 0; i < exptIDs.length; i++) {
+    for (var i = 0; i < crystalLabels.length; i++) {
         var label = document.createElement("label");
         label.classList.add("experiment-label"); 
-        const crystalID = crystalIDsMap[exptIDs[i]];
         var color = null;
-        if (crystalID === "-1"){
-          continue
-        }
-        color = this.colors["reflectionCrystalIndexed"][parseInt(crystalID) % this.colors["reflectionCrystalIndexed"].length];
+        color = this.colors["reflectionCrystalIndexed"][parseInt(i) % this.colors["reflectionCrystalIndexed"].length];
         var hexColor = '#' + color.toString(16).padStart(6, '0');
         label.style.color = hexColor;
         
         var icon = document.createElement("i");
         icon.classList.add("fa", "fa-check"); 
         icon.style.float = "right"; 
-        icon.id = "crystalID-dropdown-icon-"+crystalID;
+        icon.id = "crystalID-dropdown-icon-"+i;
         
         var crystalLabel = crystalLabels[i];
         if (crystalLabel.length > maxLabelSize){
           crystalLabel = crystalLabel.slice(0,19) + "...";
         }
         label.textContent = crystalLabel;
-        label.id = "crystalID-"+crystalID;
+        label.id = "crystalID-"+i;
         
         label.appendChild(icon);
         
@@ -2273,7 +2285,7 @@ export class ReciprocalLatticeViewer {
 
         dropdownContent.appendChild(label);
         dropdownContent.appendChild(document.createElement("br"));
-        visibleCrystalIDs[crystalID] = true;
+        visibleCrystalIDs[i] = true;
     }
     if (addAllButton){
       console.assert(firstLabel !== null);
@@ -2306,7 +2318,7 @@ export class ReciprocalLatticeViewer {
     var maxLabelSize = 22;
     var minNumForAllButton = 4;
 
-    var exptIDs = this.expt.getExptIDs();
+    var exptIDs = this.expt.getImagesetIDs();
     var exptLabels = this.expt.getExptLabels();
     var addAllButton = exptLabels.length > minNumForAllButton;
     var firstLabel = null;
