@@ -1124,7 +1124,10 @@ export class ReciprocalLatticeViewer {
     const xyzCalMm = this.refl.getXYZCalMm();
     const millerIndices = this.refl.getMillerIndices();
     const exptIDs = this.refl.getExperimentIDs();
-    const imagesetIDs = this.refl.getImagesetIDs();
+    let imagesetIDs = this.refl.getImagesetIDs();
+    if (imagesetIDs === null){
+      imagesetIDs = exptIDs;
+    }
     const wavelengths = this.refl.getWavelengths()
     const wavelengthsCal = this.refl.getCalculatedWavelengths();
     const flags = this.refl.getFlags();
