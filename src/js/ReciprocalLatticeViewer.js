@@ -1230,15 +1230,13 @@ export class ReciprocalLatticeViewer {
           positionsUnindexed[imagesetID].push(rlp.z);
         }
 
-        if (crystalID !== "-1"){
-          // Reflection has been assigned to a crystal
-          if (!(crystalID in crystalPositionsIndexed)){
-            crystalPositionsIndexed[crystalID] = [];
-          }
-          crystalPositionsIndexed[crystalID].push(rlp.x);
-          crystalPositionsIndexed[crystalID].push(rlp.y);
-          crystalPositionsIndexed[crystalID].push(rlp.z);
+        // Reflection has been assigned to a crystal
+        if (!(crystalID in crystalPositionsIndexed)){
+          crystalPositionsIndexed[crystalID] = [];
         }
+        crystalPositionsIndexed[crystalID].push(rlp.x);
+        crystalPositionsIndexed[crystalID].push(rlp.y);
+        crystalPositionsIndexed[crystalID].push(rlp.z);
       }
 
       if (xyzCal !== null && xyzCalMm !== null) {
@@ -1323,7 +1321,7 @@ export class ReciprocalLatticeViewer {
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       indexedReflectionSets[imagesetID] = reflectionSet;
     }
-    this.indexedReflections = new MeshCollection(indexedReflectionSets);
+    // this.indexedReflections = new MeshCollection(indexedReflectionSets);
 
     const calculatedReflectionSets = {};
     for (const [imagesetID, positions] of Object.entries(positionsCalculated)) {
@@ -2257,38 +2255,41 @@ export class ReciprocalLatticeViewer {
     dropdownContent.innerHTML = ""; 
 
     for (var i = 0; i < crystalLabels.length; i++) {
-        var label = document.createElement("label");
-        label.classList.add("experiment-label"); 
-        var color = null;
-        color = this.colors["reflectionCrystalIndexed"][parseInt(i) % this.colors["reflectionCrystalIndexed"].length];
-        var hexColor = '#' + color.toString(16).padStart(6, '0');
-        label.style.color = hexColor;
-        
-        var icon = document.createElement("i");
-        icon.classList.add("fa", "fa-check"); 
-        icon.style.float = "right"; 
-        icon.id = "crystalID-dropdown-icon-"+i;
-        
-        var crystalLabel = crystalLabels[i];
-        if (crystalLabel.length > maxLabelSize){
-          crystalLabel = crystalLabel.slice(0,19) + "...";
-        }
-        label.textContent = crystalLabel;
-        label.id = "crystalID-"+i;
-        
-        label.appendChild(icon);
-        
-        label.addEventListener('click', (event) => {
-            this.toggleCrystalVisibility(event.target.id);
-        });
+      if (crystalLabels[i] === "unindexed"){
+        continue;
+      }
+      var label = document.createElement("label");
+      label.classList.add("experiment-label"); 
+      var color = null;
+      color = this.colors["reflectionCrystalIndexed"][parseInt(i) % this.colors["reflectionCrystalIndexed"].length];
+      var hexColor = '#' + color.toString(16).padStart(6, '0');
+      label.style.color = hexColor;
+      
+      var icon = document.createElement("i");
+      icon.classList.add("fa", "fa-check"); 
+      icon.style.float = "right"; 
+      icon.id = "crystalID-dropdown-icon-"+i;
+      
+      var crystalLabel = crystalLabels[i];
+      if (crystalLabel.length > maxLabelSize){
+        crystalLabel = crystalLabel.slice(0,19) + "...";
+      }
+      label.textContent = crystalLabel;
+      label.id = "crystalID-"+i;
+      
+      label.appendChild(icon);
+      
+      label.addEventListener('click', (event) => {
+          this.toggleCrystalVisibility(event.target.id);
+      });
 
-        if (addAllButton && firstLabel === null){
-          firstLabel = label;
-        }
+      if (addAllButton && firstLabel === null){
+        firstLabel = label;
+      }
 
-        dropdownContent.appendChild(label);
-        dropdownContent.appendChild(document.createElement("br"));
-        visibleCrystalIDs[i] = true;
+      dropdownContent.appendChild(label);
+      dropdownContent.appendChild(document.createElement("br"));
+      visibleCrystalIDs[i] = true;
     }
     if (addAllButton){
       console.assert(firstLabel !== null);
