@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { gsap } from "gsap";
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
+import { ExptParser } from "dials_javascript_parser/ExptParser.js";
+import { marchingCubes } from 'marching-cubes-fast';
 
 class MeshCollection{
 
@@ -340,6 +342,16 @@ export class ReciprocalLatticeViewer {
     this.crystalFrameCheckbox = document.getElementById("crystalFrameCheckbox");
     this.reflectionSize = document.getElementById("reflectionSizeSlider");
 
+    // rs_mapper
+    this.currentMesh = null;
+    this.meshData = null;
+    this.meshShape = null;
+    this.rLPMin = null;
+    this.rLPMax = null;
+    this.rLPStep = null;
+    this.beamMeshes = [];
+    this.sampleMesh = null;
+
     // Reflections
     this.unindexedReflections = new MeshCollection({});
     this.indexedReflections = new MeshCollection({});
@@ -444,7 +456,8 @@ export class ReciprocalLatticeViewer {
       "beamLength": 800.,
       "sample": 1,
       "RLVLineWidthScaleFactor": 15,
-      "RLVLabelScaleFactor": 30
+      "RLVLabelScaleFactor": 30,
+      "meshScaleFactor" : 1000.,
     };
   }
 
@@ -1700,6 +1713,125 @@ export class ReciprocalLatticeViewer {
 
   addReflections() {
     this.addReflectionsFromData(this.refl.reflData);
+  }
+
+  clearMesh() {
+    if (this.currentMesh !== null){
+      window.scene.remove(this.currentMesh);
+      this.currentMesh.geometry.dispose();
+      this.currentMesh.material.dispose();
+      if (this.currentMesh.isInstancedMesh) {
+          this.currentMesh.count = 0;
+          this.currentMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+          this.currentMesh.instanceMatrix.needsUpdate = true;
+      }
+      this.currentMesh = null;
+    }
+
+    this.meshData = null;
+    this.meshShape = null;
+    this.rLPMin = null;
+    this.rLPMax = null;
+    this.rLPStep = null;
+    this.requestRender();
+  }
+
+  createSignedDistanceFunction(meshData, meshShape, isovalue) {
+    return function (x, y, z) {
+        let xi = Math.floor(x);
+        let yi = Math.floor(y);
+        let zi = Math.floor(z);
+        if (xi < 0 || yi < 0 || zi < 0 || xi >= meshShape[0] || yi >= meshShape[1] || zi >= meshShape[2]) {
+            return -1; 
+        }
+        return meshData[zi][yi][xi] - isovalue; 
+    };
+
+  }
+
+  updateMaxResolution(){
+    this.clearMesh();
+    const resolution = document.getElementById("maxResolutionSlider").value;
+		const data = JSON.stringify(
+				{
+					"channel" : "server",
+					"command" : "update_rs_mapper_mesh",
+					"max_resolution" : resolution
+				}
+			);
+		this.serverWS.send(data);
+
+  }
+
+  updateMesh(){
+    if (this.meshData === null || this.meshShape === null){
+      return;
+    }
+    if (this.rLPMin === null || this.rLPMax === null || this.rLPStep === null){
+      return;
+    }
+    const meshData = this.meshData;
+    const meshShape = this.meshShape;
+    const rLPMin = this.rLPMin;
+    const rLPMax = this.rLPMax;
+    const rLPStep = this.rLPStep;
+    this.clearMesh();
+    this.addContourMeshFromData(meshData, meshShape, rLPMin, rLPMax, rLPStep);
+
+  }
+
+  addContourMeshFromData(data, meshShape, rLPMin, rLPMax, rLPStep) {
+    this.meshData = data;
+    this.meshShape = meshShape;
+    this.rLPMin = rLPMin;
+    this.rLPMax = rLPMax;
+    this.rLPStep = rLPStep;
+    console.log("TEST rLPStep ", rLPStep);
+
+    const isovalue = document.getElementById("meshThresholdSlider").value;
+    this.loading=true;
+      data = ExptParser.decompressImageData(data, meshShape);
+      const sdf = this.createSignedDistanceFunction(data, meshShape, isovalue);
+
+      const resolution = 64;
+      const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
+
+      const result = marchingCubes(resolution, sdf, scanBounds);
+      const positions = result.positions;
+      const meshResolution = document.getElementById("maxResolutionSlider").value;
+      const meshScaleFactor = this.rLPScaleFactor * meshResolution;
+
+      for (let i = 0; i < positions.length; i++) {
+        const x = positions[i][0];
+        const y = positions[i][1];
+        const z = positions[i][2];
+
+        // Reassign in z, y, x order
+        positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor; 
+        positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor; 
+        positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor; 
+      }
+
+      const vertices = new Float32Array(positions.flat());
+      const geometry = new THREE.BufferGeometry();
+      const indices = new Uint32Array(result.cells.flat());
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+      geometry.computeVertexNormals();
+      geometry.computeBoundingBox();
+
+      const material = new THREE.MeshBasicMaterial({
+      color: 0xFFFFFF,
+      wireframe: true,
+      });
+
+
+      const contourMesh = new THREE.Mesh(geometry, material);
+      window.scene.add(contourMesh);
+      this.currentMesh = contourMesh;
+      this.requestRender();
+      this.loading=false;
   }
 
   setDefaultReflectionsDisplay() {
