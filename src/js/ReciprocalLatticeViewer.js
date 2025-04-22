@@ -440,6 +440,7 @@ export class ReciprocalLatticeViewer {
       ],
       "reflectionIndexed": 0xe74c3c,
 			"reflectionCrystalUnindexed": 0x6a7688,
+			"reciprocalMesh": 0x6a7688,
       "reflectionCalculated": 0xffaaaa,
 			"reflectionIntegrated" : 0xffc25c,
       "highlight": 0xFFFFFF,
@@ -1786,7 +1787,6 @@ export class ReciprocalLatticeViewer {
     this.rLPMin = rLPMin;
     this.rLPMax = rLPMax;
     this.rLPStep = rLPStep;
-    console.log("TEST rLPStep ", rLPStep);
 
     const isovalue = document.getElementById("meshThresholdSlider").value;
     this.loading=true;
@@ -1798,8 +1798,7 @@ export class ReciprocalLatticeViewer {
 
       const result = marchingCubes(resolution, sdf, scanBounds);
       const positions = result.positions;
-      const meshResolution = document.getElementById("maxResolutionSlider").value;
-      const meshScaleFactor = this.rLPScaleFactor * meshResolution;
+      const meshScaleFactor = this.rLPScaleFactor;
 
       for (let i = 0; i < positions.length; i++) {
         const x = positions[i][0];
@@ -1822,7 +1821,7 @@ export class ReciprocalLatticeViewer {
       geometry.computeBoundingBox();
 
       const material = new THREE.MeshBasicMaterial({
-      color: 0xFFFFFF,
+      color: this.colors["reciprocalMesh"],
       wireframe: true,
       });
 
