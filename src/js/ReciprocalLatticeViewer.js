@@ -351,6 +351,7 @@ export class ReciprocalLatticeViewer {
     this.rLPStep = null;
     this.beamMeshes = [];
     this.sampleMesh = null;
+    this.reciprocalMeshVisible = false;
 
     // Reflections
     this.unindexedReflections = new MeshCollection({});
@@ -1753,6 +1754,7 @@ export class ReciprocalLatticeViewer {
   updateMaxResolution(){
     this.clearMesh();
     const resolution = document.getElementById("maxResolutionSlider").value;
+
 		const data = JSON.stringify(
 				{
 					"channel" : "server",
@@ -1762,6 +1764,23 @@ export class ReciprocalLatticeViewer {
 			);
 		this.serverWS.send(data);
 
+  }
+
+  updateMeshVisibility(val){
+    if (this.currentMesh !== null){
+      this.currentMesh.visible = val
+      this.requestRender();
+    }
+
+    const meshThresholdContainer = document.getElementById("meshThresholdContainer");
+    const maxResolutionContainer = document.getElementById("maxResolutionContainer");
+  
+    const displayVal = val ? "block" : "none"; 
+  
+    if (meshThresholdContainer) meshThresholdContainer.style.display = displayVal;
+    if (maxResolutionContainer) maxResolutionContainer.style.display = displayVal;
+  
+    this.reciprocalMeshVisible = val;
   }
 
   updateMesh(){
@@ -1778,7 +1797,6 @@ export class ReciprocalLatticeViewer {
     const rLPStep = this.rLPStep;
     this.clearMesh();
     this.addContourMeshFromData(meshData, meshShape, rLPMin, rLPMax, rLPStep);
-
   }
 
   addContourMeshFromData(data, meshShape, rLPMin, rLPMax, rLPStep) {

@@ -107,15 +107,28 @@
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCellCheckbox", 
 		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
 
+		<div id="reflectionSizeContainer" class="slider-container">
 		<b>reflection size:</b>  <input type="range" min="1" max="25" value="10" 
 		class="slider" id="reflectionSizeSlider" 
-		onmouseup="updateReflectionSize()"><br><br>
-		<b>Threshold</b>  <input type="range" min=".1" max="1" value=".5" step="0.001" 
-		class="slider" id="meshThresholdSlider" 
-		onmouseup="updateMesh()" onmousemove="updateThresholdValue()"><span id="meshThresholdValue"></span><br><br>
-		<b>Max Resolution (A)</b>  <input type="range" min=".1" max="6" value="1" step="0.001" 
-		class="slider" id="maxResolutionSlider" 
-		onmouseup="updateMaxResolution()" onmousemove="updateMaxResolutionValue()"><span id="maxResolutionValue"></span><br>
+		onmouseup="updateReflectionSize()">
+		</div>
+
+		<div id="meshThresholdContainer" class="slider-container">
+		<b>Mesh Threshold</b>  
+		<input type="range" min=".1" max="1" value=".5" step="0.001" 
+				class="slider" id="meshThresholdSlider" 
+				onmouseup="updateMesh()" onmousemove="updateThresholdValue()">
+		<span id="meshThresholdValue"></span>
+		</div>
+
+		<div id="maxResolutionContainer" class="slider-container">
+		<b>Mesh Max Resolution (A)</b>  
+		<input type="range" min=".1" max="6" value="1" step="0.001" 
+				class="slider" id="maxResolutionSlider" 
+				onmouseup="updateMaxResolution()" onmousemove="updateMaxResolutionValue()">
+		<span id="maxResolutionValue"></span>
+		</div>
+
 		 <div class="dropdown">
 			<button id="selectionDropdownButton" onclick="window.viewer.toggleExperimentList()" class="dropbtn"><b>Orientations </b><i class="fa fa-chevron-right" id="dropdownIcon"></i></button>
 			<div id="selectionDropdown" class="dropdown-content">
@@ -136,12 +149,17 @@
 			border: none;
 			width: 80%; 
 		}
+
+		.slider-container {
+		margin-bottom: -30px; 
+}
 		.dropbtn {
 		background-color: rgba(0,1,0,0.7);
 		color: #ddd;
 		font-family: Tahoma, Verdana, sans-serif;
 		padding: 16px;
 		margin-left: -6px;
+		margin-bottom: -50px;
 		font-size: 12px;
 		border-radius: 10px;
 		border-color:rgba(0,1,0,0.7);
@@ -444,6 +462,12 @@
 					msg["rlp_max"],
 					msg["rlp_step"]
 					);
+					break;
+				case "show_mesh":
+					window.viewer.updateMeshVisibility(true)
+					break;
+				case "hide_mesh":
+					window.viewer.updateMeshVisibility(false)
 					break;
 				default:
 					console.warn("Unrecognised command ", command);
