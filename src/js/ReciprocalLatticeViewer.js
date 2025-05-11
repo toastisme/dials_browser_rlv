@@ -352,6 +352,7 @@ export class ReciprocalLatticeViewer {
     this.beamMeshes = [];
     this.sampleMesh = null;
     this.reciprocalMeshVisible = false;
+    this.resolutionCircleMeshes = [];
 
     // Reflections
     this.unindexedReflections = new MeshCollection({});
@@ -388,6 +389,8 @@ export class ReciprocalLatticeViewer {
 
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
+    this.initDefaultSideBarText();
+    this.updateMeshVisibility(false);
 
   }
 
@@ -445,6 +448,7 @@ export class ReciprocalLatticeViewer {
       "reflectionCalculated": 0xffaaaa,
 			"reflectionIntegrated" : 0xffc25c,
       "highlight": 0xFFFFFF,
+      "resolutionCircle": 0x6a7688,
       "beam": 0xFFFFFF,
       "reciprocalCell": 0xFFFFFF,
     };
@@ -476,6 +480,12 @@ export class ReciprocalLatticeViewer {
       "default": "To view an experiment, drag .expt and .refl files into the browser",
       "defaultWithExpt": null
     }
+  }
+
+  initDefaultSideBarText(){
+    this.updateMaxResolutionValue(false);
+    this.updateMeshThresholdValue();
+    this.updateMeshGridSizeValue();
   }
 
   saveUserState(){
@@ -1751,18 +1761,82 @@ export class ReciprocalLatticeViewer {
 
   }
 
-  updateMaxResolution(){
+  recalculateMesh(){
     this.clearMesh();
     const resolution = document.getElementById("maxResolutionSlider").value;
+    const gridSize = document.getElementById("meshGridSizeSlider").value;
 
 		const data = JSON.stringify(
 				{
 					"channel" : "server",
 					"command" : "update_rs_mapper_mesh",
-					"max_resolution" : resolution
+					"max_resolution" : resolution,
+					"grid_size" : gridSize
 				}
 			);
 		this.serverWS.send(data);
+  }
+
+  clearResolutionCirlces(){
+    if (this.resolutionCircleMeshes.length === 0){
+      return;
+    }
+    for (let i = 0; i < this.resolutionCircleMeshes.length; i++){
+      window.scene.remove(this.resolutionCircleMeshes[i]);
+      this.resolutionCircleMeshes[i].geometry.dispose();
+      this.resolutionCircleMeshes[i].material.dispose();
+    }
+    this.resolutionCircleMeshes = [];
+  }
+
+  drawResolutionCircles(value){
+    this.clearResolutionCirlces();
+
+    const segments = 64; 
+
+    const radius = (1/value) * this.rLPScaleFactor;
+    const material = new THREE.LineDashedMaterial(
+      { 
+        color: this.colors["resolutionCircle"],
+        dashSize: 20,
+        gapSize: 8
+      }
+    );
+
+    const createCircle = (radius, plane) => {
+      const geometry = new THREE.BufferGeometry();
+      const points = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        const x = radius * Math.cos(theta);
+        const y = radius * Math.sin(theta);
+
+        if (plane === 'XY') {
+          points.push(new THREE.Vector3(x, y, 0));
+        } else if (plane === 'YZ') {
+          points.push(new THREE.Vector3(0, x, y));
+        } else if (plane === 'XZ') {
+          points.push(new THREE.Vector3(x, 0, y));
+        }
+
+      }
+
+      geometry.setFromPoints(points);
+      const line = new THREE.Line(geometry, material);
+      line.computeLineDistances();
+      return line;
+    };
+
+    const circleXY = createCircle(radius, 'XY');
+    const circleYZ = createCircle(radius, 'YZ');
+    const circleXZ = createCircle(radius, 'XZ');
+
+    window.scene.add(circleXY);
+    window.scene.add(circleYZ);
+    window.scene.add(circleXZ);
+    this.resolutionCircleMeshes = [circleXY, circleYZ, circleXZ];
+    this.requestRender();
 
   }
 
@@ -1774,13 +1848,42 @@ export class ReciprocalLatticeViewer {
 
     const meshThresholdContainer = document.getElementById("meshThresholdContainer");
     const maxResolutionContainer = document.getElementById("maxResolutionContainer");
+    const meshGridSizeContainer = document.getElementById("meshGridSizeContainer");
   
     const displayVal = val ? "block" : "none"; 
   
     if (meshThresholdContainer) meshThresholdContainer.style.display = displayVal;
     if (maxResolutionContainer) maxResolutionContainer.style.display = displayVal;
+    if (meshGridSizeContainer) meshGridSizeContainer.style.display = displayVal;
   
     this.reciprocalMeshVisible = val;
+    for (let i = 0; i < this.resolutionCircleMeshes.length; i++){
+      this.resolutionCircleMeshes[i].visible = val;
+    }
+  }
+
+  updateMaxResolutionValue(drawCircles=true){
+    var maxResolutionSlider = document.getElementById("maxResolutionSlider");
+    var maxResolutionValue = document.getElementById("maxResolutionValue");
+    maxResolutionValue.innerHTML = maxResolutionSlider.value + " Å";
+    if (drawCircles){
+      this.drawResolutionCircles(maxResolutionSlider.value);
+    }
+    this.requestRender();
+  }
+
+  updateMeshGridSizeValue(){
+    var meshGridSizeSlider = document.getElementById("meshGridSizeSlider");
+    var meshGridSizeValue = document.getElementById("meshGridSizeValue");
+    meshGridSizeValue.innerHTML = meshGridSizeSlider.value;
+    this.requestRender();
+  }
+
+  updateMeshThresholdValue(){
+    var meshThresholdSlider = document.getElementById("meshThresholdSlider");
+    var meshThresholdValue = document.getElementById("meshThresholdValue");
+    meshThresholdValue.innerHTML = meshThresholdSlider.value;
+    this.requestRender();
   }
 
   updateMesh(){

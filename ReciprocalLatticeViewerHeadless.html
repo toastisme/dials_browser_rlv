@@ -51,17 +51,19 @@
 				window.viewer.updateCrystalFrame();
 			}
 
-			function updateMaxResolution(){
+			function recalculateMesh(){
 				window.viewer.disableMouseClick(); 
-				window.viewer.updateMaxResolution();
+				window.viewer.recalculateMesh();
 			}
 
 			function updateMaxResolutionValue(){
 				window.viewer.disableMouseClick(); 
-				var maxResolutionSlider = document.getElementById("maxResolutionSlider");
-  				var maxResolutionValue = document.getElementById("maxResolutionValue");
-  				maxResolutionValue.innerHTML = maxResolutionSlider.value + " Å";
-				window.viewer.requestRender();
+				window.viewer.updateMaxResolutionValue();
+			}
+
+			function updateMeshGridSizeValue(){
+				window.viewer.disableMouseClick(); 
+				window.viewer.updateMeshGridSizeValue();
 			}
 
 			function updateMesh(){
@@ -71,10 +73,7 @@
 
 			function updateThresholdValue(){
 				window.viewer.disableMouseClick(); 
-				var meshThresholdSlider = document.getElementById("meshThresholdSlider");
-  				var meshThresholdValue = document.getElementById("meshThresholdValue");
-  				meshThresholdValue.innerHTML = meshThresholdSlider.value;
-				window.viewer.requestRender();
+				window.viewer.updateMeshThresholdValue();
 			}
 
 
@@ -117,7 +116,7 @@
 		<b>Mesh Threshold</b>  
 		<input type="range" min=".1" max="1" value=".5" step="0.001" 
 				class="slider" id="meshThresholdSlider" 
-				onmouseup="updateMesh()" onmousemove="updateThresholdValue()">
+				onmouseup="updateMesh()" oninput="updateThresholdValue()">
 		<span id="meshThresholdValue"></span>
 		</div>
 
@@ -125,8 +124,16 @@
 		<b>Mesh Max Resolution (A)</b>  
 		<input type="range" min=".1" max="6" value="1" step="0.001" 
 				class="slider" id="maxResolutionSlider" 
-				onmouseup="updateMaxResolution()" onmousemove="updateMaxResolutionValue()">
+				onmouseup="recalculateMesh()" oninput="updateMaxResolutionValue()">
 		<span id="maxResolutionValue"></span>
+		</div>
+
+		<div id="meshGridSizeContainer" class="slider-container">
+		<b>Mesh Grid Size</b>  
+		<input type="range" min="64" max="512" value="1" step="2" 
+				class="slider" id="meshGridSizeSlider" 
+				onmouseup="recalculateMesh()" oninput="updateMeshGridSizeValue()">
+		<span id="meshGridSizeValue"></span>
 		</div>
 
 		 <div class="dropdown">
@@ -377,6 +384,7 @@
 			"reflectionCalculated": 0xffaaaa,
 			"reflectionIntegrated" : 0xffc25c,
 			"highlight": 0xFFFFFF,
+			"resolutionCircle": 0x6a7688,
 			"beam": 0xFFFFFF,
 			"reciprocalCell": 0xFFFFFF,
 			"rlVLabels" : "white"
