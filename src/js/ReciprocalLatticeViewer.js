@@ -2,8 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { gsap } from "gsap";
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
-import { ExptParser } from "dials_javascript_parser/ExptParser.js";
-import { marchingCubes } from 'marching-cubes-fast';
 
 class MeshCollection{
 
@@ -1902,7 +1900,7 @@ export class ReciprocalLatticeViewer {
     this.addContourMeshFromData(meshData, meshShape, rLPMin, rLPMax, rLPStep);
   }
 
-  addContourMeshFromData(data, meshShape, rLPMin, rLPMax, rLPStep) {
+  async addContourMeshFromData(data, meshShape, rLPMin, rLPMax, rLPStep) {
     this.meshData = data;
     this.meshShape = meshShape;
     this.rLPMin = rLPMin;
@@ -1911,47 +1909,68 @@ export class ReciprocalLatticeViewer {
 
     const isovalue = document.getElementById("meshThresholdSlider").value;
     this.loading=true;
-      data = ExptParser.decompressImageData(data, meshShape);
-      const sdf = this.createSignedDistanceFunction(data, meshShape, isovalue);
-
-      const resolution = 64;
-      const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
-
-      const result = marchingCubes(resolution, sdf, scanBounds);
-      const positions = result.positions;
-      const meshScaleFactor = this.rLPScaleFactor;
-
-      for (let i = 0; i < positions.length; i++) {
-        const x = positions[i][0];
-        const y = positions[i][1];
-        const z = positions[i][2];
-
-        // Reassign in z, y, x order
-        positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor; 
-        positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor; 
-        positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor; 
-      }
-
-      const vertices = new Float32Array(positions.flat());
-      const geometry = new THREE.BufferGeometry();
-      const indices = new Uint32Array(result.cells.flat());
-
-      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-      geometry.computeVertexNormals();
-      geometry.computeBoundingBox();
-
-      const material = new THREE.MeshBasicMaterial({
-      color: this.colors["reciprocalMesh"],
-      wireframe: true,
-      });
+    
+    const resolution = 128;
+    const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
 
 
-      const contourMesh = new THREE.Mesh(geometry, material);
-      window.scene.add(contourMesh);
-      this.currentMesh = contourMesh;
-      this.requestRender();
-      this.loading=false;
+    // Launch worker
+    const result = await new Promise((resolve, reject) => {
+      const worker = new Worker(new URL('./MeshWorker.js', import.meta.url), { type: 'module' });
+
+
+      worker.onmessage = (e) => {
+        if (e.data.type === 'marchingResult') {
+          resolve(e.data.result);
+          worker.terminate();
+        }
+      };
+
+      worker.onerror = (err) => {
+        console.error("Worker error:", err);
+        reject(err);
+        worker.terminate();
+      };
+
+      worker.postMessage({ data, meshShape, isovalue, resolution, scanBounds });
+    });
+
+    const positions = result.positions;
+    const meshScaleFactor = this.rLPScaleFactor;
+
+
+
+    for (let i = 0; i < positions.length; i++) {
+      const x = positions[i][0];
+      const y = positions[i][1];
+      const z = positions[i][2];
+
+      // Reassign in z, y, x order
+      positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor; 
+      positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor; 
+      positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor; 
+    }
+
+    const vertices = new Float32Array(positions.flat());
+    const geometry = new THREE.BufferGeometry();
+    const indices = new Uint32Array(result.cells.flat());
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+
+    const material = new THREE.MeshBasicMaterial({
+    color: this.colors["reciprocalMesh"],
+    wireframe: true,
+    });
+
+
+    const contourMesh = new THREE.Mesh(geometry, material);
+    window.scene.add(contourMesh);
+    this.currentMesh = contourMesh;
+    this.loading = false;
+    this.requestRender();
   }
 
   setDefaultReflectionsDisplay() {
@@ -2312,6 +2331,10 @@ export class ReciprocalLatticeViewer {
     }
 
     if (this.displayingTextFromHTMLEvent) { return; }
+    else if (this.loading){
+      this.displayHeaderText("Loading..");
+      return;
+    }
     this.displayDefaultHeaderText();
     updateReflectionInfo(this);
     updateBeamInfo(this);
