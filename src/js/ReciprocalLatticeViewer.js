@@ -720,6 +720,7 @@ export class ReciprocalLatticeViewer {
     this.clearReflectionTable();
     this.clearReciprocalCells();
     this.clearSelectionDropdown();
+    this.clearMesh();
     this.requestRender();
   }
 
@@ -1736,6 +1737,7 @@ export class ReciprocalLatticeViewer {
           this.currentMesh.instanceMatrix.needsUpdate = true;
       }
       this.currentMesh = null;
+      this.clearResolutionCirlces();
     }
 
     this.meshData = null;
