@@ -18,7 +18,7 @@ import { marchingCubes } from 'marching-cubes-fast';
   self.onmessage = function(e) {
 	const { data, meshShape, isovalue, resolution, scanBounds } = e.data;
   
-	const decompressed = ExptParser.decompressImageData(data, meshShape);
+	const decompressed = ExptParser.decompressImageData(data);
 	const sdf = createSignedDistanceFunction(decompressed, meshShape, isovalue);
 	const result = marchingCubes(resolution, sdf, scanBounds);
   

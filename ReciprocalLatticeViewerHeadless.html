@@ -282,6 +282,7 @@
 	import { ReciprocalLatticeViewer, setupScene } from "./src/js/ReciprocalLatticeViewer.js";
 	import { ExptParser } from "dials_javascript_parser/ExptParser.js";
 	import { ReflParser } from "dials_javascript_parser/ReflParser.js";
+	import { deserialize, decode } from "@ygoe/msgpack";
 
 	function isRLVMsg(msg){
 		return "channel" in msg && msg["channel"] == "rlv";
@@ -401,6 +402,7 @@
 		const serverWSAddr = "ws://127.0.0.1:50010/";
 
 		window.viewer.serverWS = new WebSocket(serverWSAddr);
+		window.viewer.serverWS.binaryType = "arraybuffer";
 
 		window.viewer.serverWS.onopen = () => {
 			console.log('Reciprocal lattice viewer opened Connection to server');
@@ -422,7 +424,34 @@
 
 		window.viewer.serverWS.onmessage = (event) => {
 
-			console.log("msg received", event.data);
+			let data = event.data;
+			console.log("msg received", data);
+
+			if (data instanceof ArrayBuffer){ // msgpack
+				const bytes = new Uint8Array(data);
+				try{
+					const decoded = decode(bytes)
+					let command = decoded.command;
+					switch(command){
+						case "update_mesh":
+							window.viewer.addContourMeshFromData(
+								decoded.mesh_data,
+								decoded.mesh_dimensions,
+								decoded.rlp_min,
+								decoded.rlp_max,
+								decoded.rlp_step
+							);
+							break;
+
+					}
+					return;
+				}catch(e){
+					console.error("Invalid Msgpack", e);
+					return;
+
+				}
+			}
+
 			const msg = JSON.parse(event.data);
 
 			if (!isRLVMsg(msg)){
