@@ -84,27 +84,27 @@
 		<b>mouse wheel</b> = zoom<br>
 		-------------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
-		id="unindexedReflectionsCheckbox", checked=false, 
-		onclick="updateUnindexedReflections()", disabled=true><br>
+		id="unindexedReflectionsCheckbox" 
+		onclick="updateUnindexedReflections()" disabled><br>
 
 		<span style="color: #e74c3c"><b>indexed reflections:</b> </span><input type="checkbox" 
-		id="indexedReflectionsCheckbox", checked=false, 
-		onclick="updateIndexedReflections()", disabled=true><br>
+		id="indexedReflectionsCheckbox" 
+		onclick="updateIndexedReflections()" disabled><br>
 
 		<span style="color: #ffaaaa"><b>calculated reflections:</b> </span><input type="checkbox" 
-		id="calculatedReflectionsCheckbox", checked=false, 
-		onclick="updateCalculatedReflections()", disabled=true><br>
+		id="calculatedReflectionsCheckbox"
+		onclick="updateCalculatedReflections()" disabled><br>
 
 		<span style="color: #ffc25c"><b>integrated reflections:</b> </span><input type="checkbox" 
-		id="integratedReflectionsCheckbox", checked=false, 
-		onclick="updateIntegratedReflections()", disabled=true><br>
+		id="integratedReflectionsCheckbox"
+		onclick="updateIntegratedReflections()" disabled><br>
 
 		<b>crystal frame:</b><input type="checkbox" 
 		id="crystalFrameCheckbox"
 		onclick="updateCrystalFrame()"><br>
 
-		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCellCheckbox", 
-		checked=false, onclick="updateReciprocalCell()", disabled=false><br>
+		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCellCheckbox"
+		onclick="updateReciprocalCell()" disabled><br>
 
 		<div id="reflectionSizeContainer" class="slider-container">
 		<b>reflection size:</b>  <input type="range" min="1" max="25" value="10" 
@@ -143,7 +143,7 @@
 		</div> 
 	</sidebar>
 	<footer id="footerText"> </footer>
-	<button class="btn" id="closeExpt" onmouseout="window.viewer.stopDisplayingText()" onmouseover="window.viewer.displayImageFilenames() "onclick="window.viewer.clearExperiment()"><i class="fa fa-trash"></i> expt file</button>
+	<button class="btn" id="closeExpt" onmouseout="window.viewer.stopDisplayingText()" onmouseover="window.viewer.displayImageFilenames()" onclick="window.viewer.clearExperiment()"><i class="fa fa-trash"></i> expt file</button>
 	<button class="btn" id="closeRefl" onmouseout="window.viewer.stopDisplayingText()" onmouseover="window.viewer.displayNumberOfReflections()" onclick="window.viewer.clearReflectionTable()"><i class="fa fa-trash"></i> refl file</button>
 		<style>
 		.experiment-label {
@@ -432,6 +432,7 @@
 				try{
 					const decoded = decode(bytes)
 					let command = decoded.command;
+					console.log("Command: ", command);
 					switch(command){
 						case "update_mesh":
 							window.viewer.addContourMeshFromData(
@@ -459,6 +460,7 @@
 			}
 
 			const command = msg["command"];
+			console.log("Command: ", command);
 
 			switch(command){
 				case "new_experiment":
