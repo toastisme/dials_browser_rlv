@@ -381,7 +381,7 @@ export class ReciprocalLatticeViewer {
     this.savedUserState = null;
 
     this.rLPScaleFactor = 1000;
-    this.reflSprite = new THREE.TextureLoader().load("resources/disc.png");
+    this.reflSprite = new THREE.TextureLoader().load("disc.png");
 
     this.displayingTextFromHTMLEvent = false;
 

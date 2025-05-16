@@ -3,6 +3,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   base: './',
+  publicDir: 'resources',
   build: {
     rollupOptions: {
       input: {
