@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { gsap } from "gsap";
-import { MeshLine, MeshLineMaterial } from 'three.meshline';
+import { MeshLineGeometry,  MeshLineMaterial, raycast } from 'meshline';
 
 class MeshCollection{
 
@@ -227,13 +227,12 @@ class ReciprocalCell{
       ];
 
 
-      const line = new MeshLine();
-      line.setPoints(cellVertices);
+      const line = new MeshLineGeometry();
+      const points = cellVertices.map(cellVertices => new THREE.Vector3(cellVertices.x, cellVertices.y, cellVertices.z));
+      line.setPoints(points);
       const material = new MeshLineMaterial({
-        lineWidth: lineWidth,
+        lineWidth: .005,
         color: color,
-        depthWrite: false,
-        sizeAttenuation: true
       });
       const Mesh = new THREE.Mesh(line, material);
       window.scene.add(Mesh);

@@ -23,6 +23,7 @@
     "dials_javascript_parser": "github:toastisme/dials_javascript_parser",
     "gsap": "^3.12.1",
     "marching-cubes-fast": "^0.0.172",
+    "meshline": "^3.3.1",
     "three": "^0.172.0",
     "three.meshline": "^1.4.0"
   },
