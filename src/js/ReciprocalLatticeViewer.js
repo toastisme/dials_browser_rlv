@@ -1849,7 +1849,7 @@ export class ReciprocalLatticeViewer {
     const maxResolutionContainer = document.getElementById("maxResolutionContainer");
     const meshGridSizeContainer = document.getElementById("meshGridSizeContainer");
   
-    const displayVal = val ? "block" : "none"; 
+    const displayVal = val ? "" : "none"; 
   
     if (meshThresholdContainer) meshThresholdContainer.style.display = displayVal;
     if (maxResolutionContainer) maxResolutionContainer.style.display = displayVal;

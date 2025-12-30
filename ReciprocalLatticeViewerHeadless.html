@@ -14,7 +14,7 @@
 </head>
 <body>
 	<header id="headerText"> </header>
-	<sidebar id="sidebar" style="width: 230px; padding: 10px;"> 
+	<sidebar id="sidebar" style="width: 250px; padding: 10px;"> 
 		<button id="sidebarToggle" onclick="window.viewer.toggleSidebar()" aria-label="Toggle sidebar">
 			❮
 
@@ -123,7 +123,7 @@
 		</div>
 
 		<div id="meshThresholdContainer" class="slider-container">
-		<b>Mesh Threshold</b>  
+		<b>mesh threshold:</b>  
 		<input type="range" min=".1" max="1" value=".5" step="0.001" 
 				class="slider" id="meshThresholdSlider" 
 				onmouseup="updateMesh()" oninput="updateThresholdValue()">
@@ -131,7 +131,7 @@
 		</div>
 
 		<div id="maxResolutionContainer" class="slider-container">
-		<b>Mesh Max Resolution (A)</b>  
+		<b>mesh max res:</b>  
 		<input type="range" min=".1" max="6" value="1" step="0.001" 
 				class="slider" id="maxResolutionSlider" 
 				onmouseup="recalculateMesh()" oninput="updateMaxResolutionValue()">
@@ -139,7 +139,7 @@
 		</div>
 
 		<div id="meshGridSizeContainer" class="slider-container">
-		<b>Mesh Grid Size</b>  
+		<b>mesh grid size:</b>  
 		<input type="range" min="64" max="192" value="1" step="2" 
 				class="slider" id="meshGridSizeSlider" 
 				onmouseup="recalculateMesh()" oninput="updateMeshGridSizeValue()">
@@ -219,14 +219,18 @@
 		}
 
 		.slider-container {
-		    display: flex;
+		display: flex;
 		align-items: center;   
-		gap: 10px;  
 		white-space: nowrap;  
+		margin-bottom: 10px; 
+		}
+		.slider-container b {
+			flex-shrink: 0;  
 		}
 		.slider-container input[type="range"] {
-			width: 110px;         
-			flex-shrink: 0;       
+			flex-grow: 1;    
+			min-width: 50px; 
+			max-width: 50%; 
 		}
 
 		.dropbtn {
