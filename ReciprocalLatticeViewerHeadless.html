@@ -15,6 +15,10 @@
 <body>
 	<header id="headerText"> </header>
 	<sidebar id="sidebar" style="width: 230px; padding: 10px;"> 
+		<button id="sidebarToggle" onclick="window.viewer.toggleSidebar()" aria-label="Toggle sidebar">
+			❮
+
+		</button>
 		<script>
 			function updateUnindexedReflections(){
 				window.viewer.disableMouseClick(); 
@@ -76,13 +80,12 @@
 				window.viewer.updateMeshThresholdValue();
 			}
 
-
 		</script>
 		<b>s</b>          = toggle sidebar <br>
 		<b>left click</b> = navigate <br>
 		<b>right click</b> = reset view <br>
 		<b>mouse wheel</b> = zoom<br>
-		-------------------------------------------------------<br>
+		----------------------------------------------------<br>
 		<span style="color: #aa9a9a"><b>unindexed reflections:</b></span><input type="checkbox" 
 		id="unindexedReflectionsCheckbox" 
 		onclick="updateUnindexedReflections()" disabled><br>
@@ -278,7 +281,7 @@
 			white-space: pre-line;
 		}
 		#sidebar {
-			display: none;
+			display: block; 
 			font-family: Tahoma, Verdana, sans-serif;
 			font-size: 12px;
 			color: #ddd;
@@ -293,6 +296,29 @@
 			z-index: 9;
 			white-space: pre-line;
 			line-height: 1.2;
+		}
+		#sidebar.hidden {
+		transform: translate(-260px, -50%);
+		}
+		#sidebarToggle {
+			position: absolute;
+			right: -0px;
+			top: 50%;
+			transform: translateY(-50%);
+			background: none;
+			border: #fff;
+			color: #ddd;
+			font-size: 22px;
+			cursor: pointer;
+			padding: 0;
+			line-height: 1;
+		}
+		#sidebar.hidden #sidebarToggle {
+			transform: translateY(-50%) rotate(180deg);
+		}
+
+		#sidebarToggle:hover {
+			opacity: 0.8;
 		}
 		#closeExpt{
 			display: none;

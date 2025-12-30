@@ -520,7 +520,7 @@ export class ReciprocalLatticeViewer {
   }
 
   toggleSidebar() {
-    this.sidebar.style.display = this.sidebar.style.display === 'block' ? 'none' : 'block';
+    const isHidden = this.sidebar.classList.toggle("hidden");
   }
 
   showSidebar() {
