@@ -1763,7 +1763,7 @@ export class ReciprocalLatticeViewer {
   recalculateMesh(){
     this.clearMesh();
     const resolution = document.getElementById("maxResolutionSlider").value;
-    const gridSize = document.getElementById("meshGridSizeSlider").value;
+    const gridSize = document.querySelector('input[name="meshGridSize"]:checked').value;
 
 		const data = JSON.stringify(
 				{
@@ -1872,9 +1872,6 @@ export class ReciprocalLatticeViewer {
   }
 
   updateMeshGridSizeValue(){
-    var meshGridSizeSlider = document.getElementById("meshGridSizeSlider");
-    var meshGridSizeValue = document.getElementById("meshGridSizeValue");
-    meshGridSizeValue.innerHTML = meshGridSizeSlider.value;
     this.requestRender();
   }
 
@@ -1910,15 +1907,13 @@ export class ReciprocalLatticeViewer {
 
     const isovalue = document.getElementById("meshThresholdSlider").value;
     this.loading=true;
-    
-    const resolution = 128;
-    const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
 
+    const resolution = meshShape[0];
+    const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
 
     // Launch worker
     const result = await new Promise((resolve, reject) => {
       const worker = new Worker(new URL('./MeshWorker.js', import.meta.url), { type: 'module' });
-
 
       worker.onmessage = (e) => {
         if (e.data.type === 'marchingResult') {
@@ -1939,17 +1934,15 @@ export class ReciprocalLatticeViewer {
     const positions = result.positions;
     const meshScaleFactor = this.rLPScaleFactor;
 
-
-
     for (let i = 0; i < positions.length; i++) {
       const x = positions[i][0];
       const y = positions[i][1];
       const z = positions[i][2];
 
       // Reassign in z, y, x order
-      positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor; 
-      positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor; 
-      positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor; 
+      positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor;
+      positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor;
+      positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor;
     }
 
     const vertices = new Float32Array(positions.flat());
@@ -1965,7 +1958,6 @@ export class ReciprocalLatticeViewer {
     color: this.colors["reciprocalMesh"],
     wireframe: true,
     });
-
 
     const contourMesh = new THREE.Mesh(geometry, material);
     window.scene.add(contourMesh);

@@ -172,8 +172,8 @@
 		</style>
 	<script type="module">
 	import { ReciprocalLatticeViewer, setupScene } from "./src/js/ReciprocalLatticeViewer.js";
-	import { ExptParser } from "./src/js/ExptParser.js";
-	import { ReflParser } from "./src/js/ReflParser.js";
+  import { ExptParser } from "dials_javascript_parser/ExptParser.js";
+  import { ReflParser } from "dials_javascript_parser/ReflParser.js";
 	window.viewer = new ReciprocalLatticeViewer(
 		new ExptParser(), 
 		new ReflParser(), 

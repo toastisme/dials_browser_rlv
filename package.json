@@ -22,6 +22,7 @@
     "@ygoe/msgpack": "^1.0.3",
     "dials_javascript_parser": "github:toastisme/dials_javascript_parser",
     "gsap": "^3.12.1",
+    "lz4js": "^0.2.0",
     "marching-cubes-fast": "^0.0.172",
     "meshline": "^3.3.1",
     "three": "^0.172.0",

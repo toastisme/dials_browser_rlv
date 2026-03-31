@@ -1,7 +1,6 @@
 // MeshWorker.js
 import { marchingCubes } from 'marching-cubes-fast';
-import { decode } from "@ygoe/msgpack";
-import pako from 'pako';
+import LZ4 from 'lz4js';
   
   function createSignedDistanceFunction(meshData, meshShape, isovalue) {
     return function (x, y, z) {
@@ -18,15 +17,15 @@ import pako from 'pako';
 
 	function decompressImageData(msg) {
 
-		// Assumes msg is a Msgpack object of a compressed array
-
-		msg = decode(msg);
 		const { data: compressedData, shape, dtype } = msg;
 
-		const decompressed = pako.inflate(compressedData);
+		const decompressed = LZ4.decompress(new Uint8Array(compressedData));
 
 		let TypedArray;
 		switch (dtype) {
+			case "float16":
+				TypedArray = Float16Array;
+				break;
 			case "float32":
 				TypedArray = Float32Array;
 				break;
@@ -52,15 +51,16 @@ import pako from 'pako';
 			if (dataArray.length !== height * width) {
 				throw new Error("Data length mismatch for 2D reshape");
 			}
-			return Array.from({ length: height }, (_, y) =>
+			const result = Array.from({ length: height }, (_, y) =>
 				dataArray.slice(y * width, (y + 1) * width)
 			);
+			return result;
 		} else if (shape.length === 3) {
 			const [depth, height, width] = shape;
 			if (dataArray.length !== depth * height * width) {
 				throw new Error("Data length mismatch for 3D reshape");
 			}
-			return Array.from({ length: depth }, (_, d) =>
+			const result = Array.from({ length: depth }, (_, d) =>
 				Array.from({ length: height }, (_, h) =>
 					dataArray.slice(
 						(d * height * width) + (h * width),
@@ -68,11 +68,11 @@ import pako from 'pako';
 					)
 				)
 			);
+			return result;
 		} else {
 			throw new Error("Only 2D and 3D arrays are supported");
 		}
 	}
-
   self.onmessage = function(e) {
 	const { data, meshShape, isovalue, resolution, scanBounds } = e.data;
   
