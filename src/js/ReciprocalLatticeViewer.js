@@ -109,20 +109,63 @@ class MeshCollection{
 }
 
 
+function getResolutionRange(positionsByID, rLPScaleFactor) {
+  let dMin = Infinity, dMax = 0;
+  for (const positions of Object.values(positionsByID)) {
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i] / rLPScaleFactor;
+      const y = positions[i+1] / rLPScaleFactor;
+      const z = positions[i+2] / rLPScaleFactor;
+      const q = Math.sqrt(x*x + y*y + z*z);
+      if (q > 0) {
+        const d = 1 / q;
+        if (d < dMin) dMin = d;
+        if (d > dMax) dMax = d;
+      }
+    }
+  }
+  return {
+    dMin: dMin === Infinity ? 1 : dMin,
+    dMax: dMax === 0 ? 50 : dMax
+  };
+}
+
+function computeResolutionColors(positions, rLPScaleFactor, dMin, dMax) {
+  const n = positions.length / 3;
+  const colors = new Float32Array(n * 3);
+  const color = new THREE.Color();
+  const range = dMax - dMin || 1;
+  for (let i = 0; i < n; i++) {
+    const x = positions[3*i] / rLPScaleFactor;
+    const y = positions[3*i+1] / rLPScaleFactor;
+    const z = positions[3*i+2] / rLPScaleFactor;
+    const q = Math.sqrt(x*x + y*y + z*z);
+    const d = q > 0 ? 1/q : dMax;
+    const t = Math.max(0, Math.min(1, (d - dMin) / range));
+    // t=0 (high res, small d) → red; t=1 (low res, large d) → blue
+    color.setHSL(t * 0.667, 1.0, 0.5);
+    colors[3*i] = color.r;
+    colors[3*i+1] = color.g;
+    colors[3*i+2] = color.b;
+  }
+  return colors;
+}
+
 class ReflectionSet{
 
   /*
    * Reflections that share the same color and behaviour
    * E.g. all reflections of the same type (indexed/unindexed etc.)
-   * that belong to the same orientation 
+   * that belong to the same orientation
   */
 
-  constructor(positions, color, size, sprite, visible, rLPScaleFactor){
+  constructor(positions, color, size, sprite, visible, rLPScaleFactor, vertexColors = null){
     this.positions = positions;
     this.color = color;
     this.sprite = sprite;
     this.rLPScaleFactor = rLPScaleFactor;
-    const points = this.createPoints(positions, color, size, sprite);
+    this.vertexColors = vertexColors;
+    const points = this.createPoints(positions, color, size, sprite, vertexColors);
     window.scene.add(points);
     this.points = points;
     if (!visible){
@@ -130,19 +173,27 @@ class ReflectionSet{
     }
   }
 
-  createPoints(positions, color, size, sprite){
+  createPoints(positions, color, size, sprite, vertexColors = null){
     const reflGeometry = new THREE.BufferGeometry();
     reflGeometry.setAttribute(
       "position", new THREE.Float32BufferAttribute(positions, 3)
     );
 
-    const reflMaterial = new THREE.PointsMaterial({
+    const materialOptions = {
       size: size,
       map: sprite,
       alphaTest: 0.5,
       transparent: true,
-      color: color
-    });
+    };
+
+    if (vertexColors) {
+      reflGeometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
+      materialOptions.vertexColors = true;
+    } else {
+      materialOptions.color = color;
+    }
+
+    const reflMaterial = new THREE.PointsMaterial(materialOptions);
     return new THREE.Points(reflGeometry, reflMaterial);
   }
 
@@ -167,7 +218,7 @@ class ReflectionSet{
   resize(newSize){
     const visible = this.points.visible;
     this.destroy();
-    const points = this.createPoints(this.positions, this.color, newSize, this.sprite);
+    const points = this.createPoints(this.positions, this.color, newSize, this.sprite, this.vertexColors);
     window.scene.add(points);
     this.points = points;
     this.size = newSize;
@@ -359,6 +410,8 @@ export class ReciprocalLatticeViewer {
     this.crystalIndexedReflections = new MeshCollection({});
     this.crystalCalculatedReflections = new MeshCollection({});
     this.crystalIntegratedReflections = new MeshCollection({});
+    this.resolutionIndexedReflections = new MeshCollection({});
+    this.resolutionUnindexedReflections = new MeshCollection({});
 
     // Reciprocal cells
     this.orientationReciprocalCells = new MeshCollection({});
@@ -372,6 +425,7 @@ export class ReciprocalLatticeViewer {
     this.beamMeshes = [];
     this.sampleMesh = null;
     this.crystalView = false;
+    this.resolutionView = false;
     this.crystalFrame = false;
     this.integratedReflectionsFromCalculated = false;
 
@@ -560,18 +614,26 @@ export class ReciprocalLatticeViewer {
 
   updateIndexedReflectionsVisibility() {
     if (this.indexedReflectionsCheckbox.checked){
-      if (this.crystalView){
+      if (this.resolutionView){
+        this.resolutionIndexedReflections.show();
+        this.indexedReflections.hide();
+        this.crystalIndexedReflections.hide();
+      }
+      else if (this.crystalView){
         this.crystalIndexedReflections.showVisibleIDs(this.visibleCrystalIDs);
         this.indexedReflections.hide();
+        this.resolutionIndexedReflections.hide();
       }
       else{
         this.indexedReflections.showVisibleIDs(this.visibleExptIDs);
         this.crystalIndexedReflections.hide();
+        this.resolutionIndexedReflections.hide();
       }
     }
     else{
       this.crystalIndexedReflections.hide();
       this.indexedReflections.hide();
+      this.resolutionIndexedReflections.hide();
       if (this.unindexedReflectionsCheckbox.checked && this.crystalView){
         this.crystalIndexedReflections.show("-1");
       }
@@ -581,18 +643,26 @@ export class ReciprocalLatticeViewer {
 
   updateUnindexedReflectionsVisibility() {
     if (this.unindexedReflectionsCheckbox.checked){
-      if (this.crystalView){
+      if (this.resolutionView){
+        this.resolutionUnindexedReflections.show();
+        this.unindexedReflections.hide();
+        this.crystalIndexedReflections.hide("-1");
+      }
+      else if (this.crystalView){
         this.crystalIndexedReflections.show("-1");
         this.unindexedReflections.hide();
+        this.resolutionUnindexedReflections.hide();
       }
       else{
         this.unindexedReflections.showVisibleIDs(this.visibleExptIDs);
         this.crystalIndexedReflections.hide("-1");
+        this.resolutionUnindexedReflections.hide();
       }
     }
     else{
       this.unindexedReflections.hide();
       this.crystalIndexedReflections.hide("-1");
+      this.resolutionUnindexedReflections.hide();
     }
     this.requestRender();
   }
@@ -655,6 +725,8 @@ export class ReciprocalLatticeViewer {
 
   switchToCrystalView(){
     this.crystalView = true;
+    this.resolutionView = false;
+    document.querySelector('.dropdown').style.display = '';
     const dropdownButton = document.getElementById('selectionDropdownButton');
     dropdownButton.innerHTML = `<b>${"Crystals"}</b> <i class="fa fa-chevron-right" id="dropdownIcon"></i>`;
     this.setSelectionDropdownToCrystals();
@@ -664,9 +736,19 @@ export class ReciprocalLatticeViewer {
 
   switchToOrientationView(){
     this.crystalView = false;
+    this.resolutionView = false;
+    document.querySelector('.dropdown').style.display = '';
     const dropdownButton = document.getElementById('selectionDropdownButton');
     dropdownButton.innerHTML = `<b>${"Orientations"}</b> <i class="fa fa-chevron-right" id="dropdownIcon"></i>`;
     this.setSelectionDropdownToOrientations();
+    this.updateReflectionsVisibility();
+    this.updateReciprocalCellsVisibility();
+  }
+
+  switchToResolutionView(){
+    this.resolutionView = true;
+    this.crystalView = false;
+    document.querySelector('.dropdown').style.display = 'none';
     this.updateReflectionsVisibility();
     this.updateReciprocalCellsVisibility();
   }
@@ -683,6 +765,8 @@ export class ReciprocalLatticeViewer {
     this.crystalIndexedReflections.resize(newSize);
     this.crystalCalculatedReflections.resize(newSize);
     this.crystalIntegratedReflections.resize(newSize);
+    this.resolutionIndexedReflections.resize(newSize);
+    this.resolutionUnindexedReflections.resize(newSize);
 
     this.requestRender();
   }
@@ -796,6 +880,8 @@ export class ReciprocalLatticeViewer {
     this.crystalIndexedReflections.destroy();
     this.crystalCalculatedReflections.destroy();
     this.crystalIntegratedReflections.destroy();
+    this.resolutionIndexedReflections.destroy();
+    this.resolutionUnindexedReflections.destroy();
     this.refl.clearReflectionTable();
 
     this.updateReflectionCheckboxStatus();
@@ -1089,10 +1175,33 @@ export class ReciprocalLatticeViewer {
       crystalIntegratedReflectionSets[crystalID] = reflectionSet;
     }
     this.crystalIntegratedReflections = new MeshCollection(crystalIntegratedReflectionSets);
+
+    const { dMin, dMax } = getResolutionRange(
+      Object.assign({}, positionsIndexed, positionsUnindexed), this.rLPScaleFactor
+    );
+    const resolutionIndexedSets = {};
+    for (const [exptID, positions] of Object.entries(positionsIndexed)) {
+      const colors = computeResolutionColors(positions, this.rLPScaleFactor, dMin, dMax);
+      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID] && this.resolutionView;
+      resolutionIndexedSets[exptID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
+    }
+    this.resolutionIndexedReflections = new MeshCollection(resolutionIndexedSets);
+
+    const resolutionUnindexedSets = {};
+    for (const [exptID, positions] of Object.entries(positionsUnindexed)) {
+      const colors = computeResolutionColors(positions, this.rLPScaleFactor, dMin, dMax);
+      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExptIDs[exptID] && this.resolutionView;
+      resolutionUnindexedSets[exptID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
+    }
+    this.resolutionUnindexedReflections = new MeshCollection(resolutionUnindexedSets);
+
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
     this.updateReflectionsVisibility();
-    if (this.crystalView){
+    if (this.resolutionView){
+      this.switchToResolutionView();
+    }
+    else if (this.crystalView){
       this.switchToCrystalView();
     }
     else{
@@ -1100,7 +1209,7 @@ export class ReciprocalLatticeViewer {
     }
     this.requestRender();
   }
-  
+
   addReflectionsFromJSONMsgpack(reflMsgpack, ignoreIntegratedReflections=false) {
 
     function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
@@ -1403,10 +1512,33 @@ export class ReciprocalLatticeViewer {
       crystalIntegratedReflectionSets[crystalID] = reflectionSet;
     }
     this.crystalIntegratedReflections = new MeshCollection(crystalIntegratedReflectionSets);
+
+    const { dMin, dMax } = getResolutionRange(
+      Object.assign({}, positionsIndexed, positionsUnindexed), this.rLPScaleFactor
+    );
+    const resolutionIndexedSets = {};
+    for (const [imagesetID, positions] of Object.entries(positionsIndexed)) {
+      const colors = computeResolutionColors(positions, this.rLPScaleFactor, dMin, dMax);
+      const visible = this.indexedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID] && this.resolutionView;
+      resolutionIndexedSets[imagesetID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
+    }
+    this.resolutionIndexedReflections = new MeshCollection(resolutionIndexedSets);
+
+    const resolutionUnindexedSets = {};
+    for (const [imagesetID, positions] of Object.entries(positionsUnindexed)) {
+      const colors = computeResolutionColors(positions, this.rLPScaleFactor, dMin, dMax);
+      const visible = this.unindexedReflectionsCheckbox.checked && this.visibleExptIDs[imagesetID] && this.resolutionView;
+      resolutionUnindexedSets[imagesetID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
+    }
+    this.resolutionUnindexedReflections = new MeshCollection(resolutionUnindexedSets);
+
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
     this.updateReflectionsVisibility();
-    if (this.crystalView){
+    if (this.resolutionView){
+      this.switchToResolutionView();
+    }
+    else if (this.crystalView){
       this.switchToCrystalView();
     }
     else{
@@ -1414,7 +1546,7 @@ export class ReciprocalLatticeViewer {
     }
     this.requestRender();
   }
-  
+
   addCalculatedIntegratedReflectionsFromJSONMsgpack(reflMsgpack) {
 
     function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
