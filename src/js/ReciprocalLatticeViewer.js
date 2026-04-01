@@ -873,6 +873,7 @@ export class ReciprocalLatticeViewer {
     const crystalPositionsIndexed = {};
     const crystalPositionsCalculated = {};
     const crystalPositionsIntegrated = {};
+    this.millerIndicesIndexed = {};
 
     var scan = this.expt.scan;
     const addAnglesToReflections = (goniometer !== null && scan !== null);
@@ -924,10 +925,12 @@ export class ReciprocalLatticeViewer {
             // Indexed reflection
             if (!positionsIndexed[exptID]){
               positionsIndexed[exptID] = [];
+              this.millerIndicesIndexed[exptID] = [];
             }
             positionsIndexed[exptID].push(rlp.x);
             positionsIndexed[exptID].push(rlp.y);
             positionsIndexed[exptID].push(rlp.z);
+            this.millerIndicesIndexed[exptID].push(panelReflection["millerIdx"]);
           }
           else { 
             // Unindexed reflection
@@ -1162,6 +1165,7 @@ export class ReciprocalLatticeViewer {
     const crystalPositionsIndexed = {};
     const crystalPositionsCalculated = {};
     const crystalPositionsIntegrated = {};
+    this.millerIndicesIndexed = {};
 
     const crystalIDsMap = this.expt.getCrystalIDsMap()
 
@@ -1238,10 +1242,12 @@ export class ReciprocalLatticeViewer {
           // Indexed reflection
           if (!positionsIndexed[imagesetID]){
             positionsIndexed[imagesetID] = [];
+            this.millerIndicesIndexed[imagesetID] = [];
           }
           positionsIndexed[imagesetID].push(rlp.x);
           positionsIndexed[imagesetID].push(rlp.y);
           positionsIndexed[imagesetID].push(rlp.z);
+          this.millerIndicesIndexed[imagesetID].push(millerIndices[reflIdx]);
         }
         else { 
           // Unindexed reflection
@@ -2262,14 +2268,17 @@ export class ReciprocalLatticeViewer {
 
         for (const [id, reflectionSet] of meshCollection) {
           window.rayCaster.setFromCamera(window.mousePosition, window.camera);
-          const intersects = window.rayCaster.intersectObjects(reflectionSet.points);
+          const intersects = window.rayCaster.intersectObject(reflectionSet.points);
           if (intersects.length > 0) {
             for (var j = 0; j < intersects.length; j++) {
-              const summary = viewer.refl.getIndexedSummaryById(intersects[j].index);
+              const idx = intersects[j].index;
+              const millerIndices = viewer.millerIndicesIndexed[id];
+              const hkl = millerIndices ? millerIndices[idx] : null;
+              const hklText = hkl ? " <b>hkl: </b>(" + hkl + ")" : "";
               viewer.displayHeaderText(
-                summary + " <b>res: </b>" + getDSpacing(
-                  reflectionSet.positions, intersects[j].index, viewer
-                ) + " Angstrom"
+                "<b>expt: </b>" + id + hklText + " <b>res: </b>" + getDSpacing(
+                  reflectionSet.positions, idx, viewer
+                ) + " Å"
               );
             }
           }
@@ -2279,15 +2288,14 @@ export class ReciprocalLatticeViewer {
 
       if (viewer.unindexedReflectionsCheckbox.checked) {
         for (const [id, reflectionSet] of viewer.unindexedReflections) {
-          const intersects = window.rayCaster.intersectObjects(reflectionSet.points);
           window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+          const intersects = window.rayCaster.intersectObject(reflectionSet.points);
           if (intersects.length > 0) {
             for (var j = 0; j < intersects.length; j++) {
-              const summary = viewer.refl.getUnindexedSummaryById(intersects[j].index);
               viewer.displayHeaderText(
-                summary + " <b>res: </b>" + getDSpacing(
+                "<b>expt: </b>" + id + " <b>unindexed</b> <b>res: </b>" + getDSpacing(
                   reflectionSet.positions, intersects[j].index, viewer
-                ) + " Angstrom"
+                ) + " Å"
               );
             }
           }
@@ -2299,8 +2307,8 @@ export class ReciprocalLatticeViewer {
       if (viewer.beamHidden()) {
         return;
       }
-      const intersects = window.rayCaster.intersectObjects(viewer.beamMeshes);
       window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+      const intersects = window.rayCaster.intersectObjects(viewer.beamMeshes);
       if (intersects.length > 0) {
         const text = "<b>beam: </b>" + viewer.expt.getBeamSummary(0);
         viewer.displayHeaderText(text);
@@ -2314,8 +2322,8 @@ export class ReciprocalLatticeViewer {
       if (viewer.expt.getCrystalSummary() === null) {
         return;
       }
-      const intersects = window.rayCaster.intersectObjects([viewer.sampleMesh]);
       window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+      const intersects = window.rayCaster.intersectObjects([viewer.sampleMesh]);
       if (intersects.length > 0) {
         const text = "<b>crystal: </b>" + viewer.expt.getCrystalSummary();
         viewer.displayHeaderText(text);
@@ -2708,6 +2716,7 @@ export function setupScene() {
 
   window.renderer.render(window.scene, window.camera);
   window.rayCaster = new THREE.Raycaster(); // used for all raycasting
+  window.rayCaster.params.Points.threshold = 10;
 
   // Controls
   window.controls = new OrbitControls(window.camera, window.renderer.domElement);
