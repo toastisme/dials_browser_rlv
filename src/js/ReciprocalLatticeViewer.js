@@ -388,6 +388,7 @@ export class ReciprocalLatticeViewer {
     this.integratedReflectionsCheckbox = document.getElementById("integratedReflectionsCheckbox");
     this.reciprocalCellCheckbox = document.getElementById("reciprocalCellCheckbox");
     this.crystalFrameCheckbox = document.getElementById("crystalFrameCheckbox");
+    this.ewaldSphereCheckbox = document.getElementById("ewaldSphereCheckbox");
     this.reflectionSize = document.getElementById("reflectionSizeSlider");
 
     // rs_mapper
@@ -398,6 +399,7 @@ export class ReciprocalLatticeViewer {
     this.rLPMax = null;
     this.rLPStep = null;
     this.beamMeshes = [];
+    this.ewaldSphereMeshes = [];
     this.sampleMesh = null;
     this.reciprocalMeshVisible = false;
     this.resolutionCircleMeshes = [];
@@ -423,6 +425,7 @@ export class ReciprocalLatticeViewer {
 
     // Bookkeeping for meshes
     this.beamMeshes = [];
+    this.ewaldSphereMeshes = [];
     this.sampleMesh = null;
     this.crystalView = false;
     this.resolutionView = false;
@@ -501,6 +504,7 @@ export class ReciprocalLatticeViewer {
       "highlight": 0xFFFFFF,
       "resolutionCircle": 0x6a7688,
       "beam": 0xFFFFFF,
+      "ewaldSphere": 0x88ccff,
       "reciprocalCell": 0xFFFFFF,
     };
   }
@@ -790,6 +794,7 @@ export class ReciprocalLatticeViewer {
       this.beamMeshes[i].material.dispose();
     }
     this.beamMeshes = [];
+    this.clearEwaldSpheres();
     if (this.sampleMesh) {
       window.scene.remove(this.sampleMesh);
       this.sampleMesh.geometry.dispose();
@@ -814,6 +819,7 @@ export class ReciprocalLatticeViewer {
     console.assert(this.hasExperiment());
     this.addBeam();
     this.addSample();
+    this.addEwaldSpheres();
     this.addReciprocalCells();
     this.setCameraToDefaultPositionWithExperiment();
     this.showSidebar();
@@ -837,6 +843,7 @@ export class ReciprocalLatticeViewer {
     console.assert(this.hasExperiment());
     this.addBeam();
     this.addSample();
+    this.addEwaldSpheres();
     this.addReciprocalCells();
     if (defaultSetup) {
       this.setCameraToDefaultPositionWithExperiment();
@@ -2212,6 +2219,55 @@ export class ReciprocalLatticeViewer {
     sphere.name = "sample";
     this.sampleMesh = sphere;
     window.scene.add(sphere);
+  }
+
+  clearEwaldSpheres() {
+    for (const mesh of this.ewaldSphereMeshes) {
+      window.scene.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+    }
+    this.ewaldSphereMeshes = [];
+    this.ewaldSphereCheckbox.checked = false;
+    this.ewaldSphereCheckbox.disabled = true;
+  }
+
+  addEwaldSpheres() {
+    const beamData = this.expt.getBeamData(0);
+    const wavelengthRange = beamData["wavelength_range"];
+    if (!wavelengthRange) {
+      return;
+    }
+
+    const bd = this.expt.getBeamDirection(0).normalize();
+    const material = new THREE.MeshBasicMaterial({
+      color: this.colors["ewaldSphere"],
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    for (const wavelength of wavelengthRange) {
+      const radius = (1 / wavelength) * this.rLPScaleFactor;
+      const center = bd.clone().multiplyScalar(radius);
+      const geometry = new THREE.SphereGeometry(radius, 32, 32);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.copy(center);
+      mesh.visible = false;
+      window.scene.add(mesh);
+      this.ewaldSphereMeshes.push(mesh);
+    }
+
+    this.ewaldSphereCheckbox.disabled = false;
+  }
+
+  updateEwaldSpheresVisibility() {
+    const visible = this.ewaldSphereCheckbox.checked;
+    for (const mesh of this.ewaldSphereMeshes) {
+      mesh.visible = visible;
+    }
+    this.requestRender();
   }
 
   clearReciprocalCells(){

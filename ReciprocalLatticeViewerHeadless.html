@@ -50,8 +50,13 @@
 			}
 
 			function updateCrystalFrame(){
-				window.viewer.disableMouseClick(); 
+				window.viewer.disableMouseClick();
 				window.viewer.updateCrystalFrame();
+			}
+
+			function updateEwaldSpheres(){
+				window.viewer.disableMouseClick();
+				window.viewer.updateEwaldSpheresVisibility();
 			}
 
 			function recalculateMesh(){
@@ -109,6 +114,11 @@
 		<div class="checkbox-row">
 		<b>reciprocal cell:</b><input type="checkbox" id="reciprocalCellCheckbox"
 		onclick="updateReciprocalCell()" disabled>
+		</div>
+
+		<div class="checkbox-row">
+		<b>Ewald spheres:</b><input type="checkbox" id="ewaldSphereCheckbox"
+		onclick="updateEwaldSpheres()" disabled>
 		</div>
 
 		<div id="reflectionSizeContainer" class="slider-container">
