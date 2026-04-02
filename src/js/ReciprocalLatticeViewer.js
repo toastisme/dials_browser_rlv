@@ -433,6 +433,7 @@ export class ReciprocalLatticeViewer {
     this.integratedReflectionsFromCalculated = false;
 
     this.preventMouseClick = false;
+    this.reflHighlight = null;
 
     this.savedUserState = null;
 
@@ -2408,6 +2409,74 @@ export class ReciprocalLatticeViewer {
     obj.material.color = new THREE.Color(this.colors["highlight"]);
   }
 
+  clickOnReflection() {
+    if (this.preventMouseClick) return;
+
+    const meshCollections = [];
+    if (this.indexedReflectionsCheckbox.checked) {
+      const mc = this.crystalView ? this.crystalIndexedReflections : this.indexedReflections;
+      for (const [id, reflectionSet] of mc) {
+        meshCollections.push({ id, reflectionSet });
+      }
+    }
+    if (this.unindexedReflectionsCheckbox.checked) {
+      for (const [id, reflectionSet] of this.unindexedReflections) {
+        meshCollections.push({ id, reflectionSet });
+      }
+    }
+
+    for (const { id, reflectionSet } of meshCollections) {
+      window.rayCaster.setFromCamera(window.mousePosition, window.camera);
+      const intersects = window.rayCaster.intersectObject(reflectionSet.points);
+      if (intersects.length > 0) {
+        const idx = intersects[0].index;
+        const rlp = [
+          reflectionSet.positions[3 * idx] / this.rLPScaleFactor,
+          reflectionSet.positions[3 * idx + 1] / this.rLPScaleFactor,
+          reflectionSet.positions[3 * idx + 2] / this.rLPScaleFactor,
+        ];
+        this.serverWS.send(JSON.stringify({
+          "channel": "server",
+          "command": "clicked_reflection_rlv",
+          "rlp": rlp,
+          "expt_id": id
+        }));
+        return;
+      }
+    }
+  }
+
+  highlightReflection(rlp) {
+    if (this.reflHighlight) {
+      window.scene.remove(this.reflHighlight);
+      this.reflHighlight.geometry.dispose();
+      this.reflHighlight.material.dispose();
+      this.reflHighlight = null;
+    }
+    if (!rlp || rlp.length !== 3) return;
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([
+        rlp[0] * this.rLPScaleFactor,
+        rlp[1] * this.rLPScaleFactor,
+        rlp[2] * this.rLPScaleFactor
+      ], 3)
+    );
+    const material = new THREE.PointsMaterial({
+      size: 15,
+      color: this.colors["highlight"],
+      map: this.reflSprite,
+      alphaTest: 0.5,
+      transparent: true,
+      depthTest: false,
+    });
+    this.reflHighlight = new THREE.Points(geometry, material);
+    window.scene.add(this.reflHighlight);
+    this.requestRender();
+  }
+
   beamHidden() {
     if (this.beamMeshes.length === 0) {
       return true;
@@ -2954,9 +3023,19 @@ export function setupScene() {
   window.addEventListener('dblclick', function(event) {
   });
 
+  let mouseDownPos = { x: 0, y: 0 };
   window.addEventListener('mousedown', function(event) {
+    mouseDownPos = { x: event.clientX, y: event.clientY };
     if (event.button == 2) {
       window.viewer.setCameraToDefaultPositionWithExperiment();
+    }
+  });
+
+  window.addEventListener('click', function(event) {
+    const dx = event.clientX - mouseDownPos.x;
+    const dy = event.clientY - mouseDownPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 5) {
+      window.viewer.clickOnReflection();
     }
   });
   window.addEventListener('keydown', function(event) {

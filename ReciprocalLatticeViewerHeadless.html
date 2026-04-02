@@ -627,6 +627,9 @@
 				case "hide_mesh":
 					window.viewer.updateMeshVisibility(false)
 					break;
+				case "highlight_reflection":
+					window.viewer.highlightReflection(msg["rlp"]);
+					break;
 				default:
 					console.warn("Unrecognised command ", command);
 			}
