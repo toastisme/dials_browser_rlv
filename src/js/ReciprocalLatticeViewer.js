@@ -353,6 +353,88 @@ class ReciprocalCell{
   }
 }
 
+class MillerIndexLabelSet {
+
+  constructor(positions, millerIndices, size, visible) {
+    this.positions = positions;
+    this.millerIndices = millerIndices;
+    this.sprites = [];
+    this.createSprites(positions, millerIndices, size);
+    if (!visible) this.hide();
+  }
+
+  createSprite(text, x, y, z, scale) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 48;
+    const ctx = canvas.getContext('2d');
+    ctx.font = 'Bold 24px Tahoma';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.01,
+      depthWrite: false,
+      depthTest: false,
+      sizeAttenuation: true
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(scale * 2, scale, 1);
+    sprite.position.set(x, y, z);
+    return sprite;
+  }
+
+  createSprites(positions, millerIndices, size) {
+    const scale = size * 4;
+    for (let i = 0; i < millerIndices.length; i++) {
+      const hkl = millerIndices[i];
+      const text = `${hkl[0]} ${hkl[1]} ${hkl[2]}`;
+      const sprite = this.createSprite(
+        text,
+        positions[3 * i],
+        positions[3 * i + 1],
+        positions[3 * i + 2],
+        scale
+      );
+      window.scene.add(sprite);
+      this.sprites.push(sprite);
+    }
+  }
+
+  hide() {
+    for (const sprite of this.sprites) sprite.visible = false;
+  }
+
+  show() {
+    for (const sprite of this.sprites) sprite.visible = true;
+  }
+
+  isVisible() {
+    return this.sprites.length > 0 && this.sprites[0].visible;
+  }
+
+  destroy() {
+    for (const sprite of this.sprites) {
+      window.scene.remove(sprite);
+      sprite.material.map.dispose();
+      sprite.material.dispose();
+    }
+    this.sprites = [];
+  }
+
+  resize(newSize) {
+    const scale = newSize * 4;
+    for (const sprite of this.sprites) {
+      sprite.scale.set(scale * 2, scale, 1);
+    }
+  }
+}
+
 export class ReciprocalLatticeViewer {
   constructor(exptParser, reflParser, calculatedIntegratedReflParser, standalone, colors = null) {
 
@@ -390,6 +472,8 @@ export class ReciprocalLatticeViewer {
     this.crystalFrameCheckbox = document.getElementById("crystalFrameCheckbox");
     this.ewaldSphereCheckbox = document.getElementById("ewaldSphereCheckbox");
     this.reflectionSize = document.getElementById("reflectionSizeSlider");
+    this.millerIndexLabelsCheckbox = document.getElementById("millerIndexLabelsCheckbox");
+    this.millerIndexLabelSizeSlider = document.getElementById("millerIndexLabelSizeSlider");
 
     // rs_mapper
     this.currentMesh = null;
@@ -405,6 +489,7 @@ export class ReciprocalLatticeViewer {
     this.resolutionCircleMeshes = [];
 
     // Reflections
+    this.millerIndexLabels = new MeshCollection({});
     this.unindexedReflections = new MeshCollection({});
     this.indexedReflections = new MeshCollection({});
     this.calculatedReflections = new MeshCollection({});
@@ -552,6 +637,7 @@ export class ReciprocalLatticeViewer {
       "integratedReflectionsCheckbox" : this.integratedReflectionsCheckbox.checked,
       "crystalFrameCheckbox" : this.crystalFrameCheckbox.checked,
       "reciprocalCellCheckbox" : this.reciprocalCellCheckbox.checked,
+      "millerIndexLabelsCheckbox" : this.millerIndexLabelsCheckbox.checked,
       "visibleExptIDs" : this.visibleExptIDs,
       "visibleCrystalIDs" : this.visibleCrystalIDs
     };
@@ -566,6 +652,9 @@ export class ReciprocalLatticeViewer {
     this.integratedReflectionsCheckbox.checked = s["integratedReflectionsCheckbox"];
     this.crystalFrameCheckbox.checked = s["crystalFrameCheckbox"];
     this.reciprocalCellCheckbox.checked = s["reciprocalCellCheckbox"];
+    if (s["millerIndexLabelsCheckbox"] !== undefined) {
+      this.millerIndexLabelsCheckbox.checked = s["millerIndexLabelsCheckbox"];
+    }
     this.visibleExptIDs = s["visibleExptIDs"];
     this.visibleCrystalIDs = s["visibleCrystalIDs"];
     this.updateReciprocalCellsVisibility();
@@ -607,13 +696,14 @@ export class ReciprocalLatticeViewer {
 
   updateReflectionsVisibility(){
     /**
-     * Uses checkbox and visible id info to check 
+     * Uses checkbox and visible id info to check
      * which reflections should be visible
      */
     this.updateUnindexedReflectionsVisibility();
     this.updateIndexedReflectionsVisibility();
     this.updateCalculatedReflectionsVisibility();
     this.updateIntegratedReflectionsVisibility();
+    this.updateMillerIndexLabelsVisibility();
   }
 
 
@@ -881,6 +971,7 @@ export class ReciprocalLatticeViewer {
   }
 
   clearReflectionTable() {
+    this.millerIndexLabels.destroy();
     this.unindexedReflections.destroy();
     this.indexedReflections.destroy();
     this.calculatedReflections.destroy();
@@ -1202,6 +1293,19 @@ export class ReciprocalLatticeViewer {
       resolutionUnindexedSets[exptID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
     }
     this.resolutionUnindexedReflections = new MeshCollection(resolutionUnindexedSets);
+
+    const millerIndexLabelSetsData = {};
+    for (const [exptID, positions] of Object.entries(positionsIndexed)) {
+      const indices = this.millerIndicesIndexed[exptID];
+      if (!indices || indices.length === 0) continue;
+      const labelSize = parseInt(this.millerIndexLabelSizeSlider.value);
+      const visible = this.millerIndexLabelsCheckbox.checked &&
+                      this.indexedReflectionsCheckbox.checked &&
+                      !this.crystalView && !this.resolutionView &&
+                      !!this.visibleExptIDs[exptID];
+      millerIndexLabelSetsData[exptID] = new MillerIndexLabelSet(positions, indices, labelSize, visible);
+    }
+    this.millerIndexLabels = new MeshCollection(millerIndexLabelSetsData);
 
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
@@ -1539,6 +1643,19 @@ export class ReciprocalLatticeViewer {
       resolutionUnindexedSets[imagesetID] = new ReflectionSet(positions, null, this.reflectionSize.value, this.reflSprite, visible, this.rLPScaleFactor, colors);
     }
     this.resolutionUnindexedReflections = new MeshCollection(resolutionUnindexedSets);
+
+    const millerIndexLabelSets = {};
+    for (const [imagesetID, positions] of Object.entries(positionsIndexed)) {
+      const indices = this.millerIndicesIndexed[imagesetID];
+      if (!indices || indices.length === 0) continue;
+      const labelSize = parseInt(this.millerIndexLabelSizeSlider.value);
+      const visible = this.millerIndexLabelsCheckbox.checked &&
+                      this.indexedReflectionsCheckbox.checked &&
+                      !this.crystalView && !this.resolutionView &&
+                      !!this.visibleExptIDs[imagesetID];
+      millerIndexLabelSets[imagesetID] = new MillerIndexLabelSet(positions, indices, labelSize, visible);
+    }
+    this.millerIndexLabels = new MeshCollection(millerIndexLabelSets);
 
     this.updateReflectionCheckboxStatus();
     this.setDefaultReflectionsDisplay();
@@ -2141,6 +2258,7 @@ export class ReciprocalLatticeViewer {
       this.calculatedReflectionsCheckbox.disabled = true;
       this.integratedReflectionsCheckbox.disabled = true;
       this.crystalFrameCheckbox.disabled = true;
+      this.millerIndexLabelsCheckbox.disabled = true;
       return;
     }
     this.indexedReflectionsCheckbox.disabled = this.indexedReflections.empty();
@@ -2148,6 +2266,7 @@ export class ReciprocalLatticeViewer {
     this.calculatedReflectionsCheckbox.disabled = this.calculatedReflections.empty();
     this.integratedReflectionsCheckbox.disabled = this.integratedReflections.empty();
     this.crystalFrameCheckbox.disabled = this.indexedReflections.empty();
+    this.millerIndexLabelsCheckbox.disabled = this.millerIndexLabels.empty();
   }
 
   updateReciprocalCellCheckboxStatus(){
@@ -2160,6 +2279,25 @@ export class ReciprocalLatticeViewer {
       this.crystalFrameCheckbox.disabled = (this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
     }
 
+  }
+
+  updateMillerIndexLabelsVisibility() {
+    if (!this.millerIndexLabelsCheckbox.checked ||
+        !this.indexedReflectionsCheckbox.checked ||
+        this.crystalView ||
+        this.resolutionView) {
+      this.millerIndexLabels.hide();
+    } else {
+      this.millerIndexLabels.showVisibleIDs(this.visibleExptIDs);
+    }
+    this.requestRender();
+  }
+
+  updateMillerIndexLabelSize() {
+    if (this.millerIndexLabels.empty()) return;
+    const size = parseInt(this.millerIndexLabelSizeSlider.value);
+    this.millerIndexLabels.resize(size);
+    this.requestRender();
   }
 
   addBeam() {
