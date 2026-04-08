@@ -385,7 +385,7 @@ class MillerIndexLabelSet {
     });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(scale * 2, scale, 1);
-    sprite.position.set(x, y, z);
+    sprite.position.set(x, y + scale * 0.6, z);
     return sprite;
   }
 
