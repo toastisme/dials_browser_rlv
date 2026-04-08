@@ -1301,7 +1301,7 @@ export class ReciprocalLatticeViewer {
       const labelSize = parseInt(this.millerIndexLabelSizeSlider.value);
       const visible = this.millerIndexLabelsCheckbox.checked &&
                       this.indexedReflectionsCheckbox.checked &&
-                      !this.crystalView && !this.resolutionView &&
+                      
                       !!this.visibleExptIDs[exptID];
       millerIndexLabelSetsData[exptID] = new MillerIndexLabelSet(positions, indices, labelSize, visible);
     }
@@ -2283,10 +2283,15 @@ export class ReciprocalLatticeViewer {
 
   updateMillerIndexLabelsVisibility() {
     if (!this.millerIndexLabelsCheckbox.checked ||
-        !this.indexedReflectionsCheckbox.checked ||
-        this.crystalView ||
-        this.resolutionView) {
+        !this.indexedReflectionsCheckbox.checked) {
       this.millerIndexLabels.hide();
+      this.requestRender();
+      return;
+    }
+    if (this.crystalView) {
+      this.millerIndexLabels.showVisibleIDs(this.visibleCrystalIDs);
+    } else if (this.resolutionView) {
+      this.millerIndexLabels.show();
     } else {
       this.millerIndexLabels.showVisibleIDs(this.visibleExptIDs);
     }
