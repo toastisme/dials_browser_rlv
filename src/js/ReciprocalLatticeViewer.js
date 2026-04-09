@@ -349,7 +349,11 @@ class ReciprocalCell{
   }
 
   resize(newSize){
-    return;
+    // meshes[0] is the cell wireframe, meshes[1..3] are the a*/b*/c* label sprites
+    for (let i = 1; i < this.meshes.length; i++) {
+      this.meshes[i].scale.set(newSize * 12.5, newSize * 6.25, 1);
+    }
+    window.viewer.requestRender();
   }
 }
 
@@ -2116,9 +2120,11 @@ export class ReciprocalLatticeViewer {
   
     const displayVal = val ? "" : "none"; 
   
+    const meshRecalculateContainer = document.getElementById("meshRecalculateContainer");
     if (meshThresholdContainer) meshThresholdContainer.style.display = displayVal;
     if (maxResolutionContainer) maxResolutionContainer.style.display = displayVal;
     if (meshGridSizeContainer) meshGridSizeContainer.style.display = displayVal;
+    if (meshRecalculateContainer) meshRecalculateContainer.style.display = displayVal;
   
     this.reciprocalMeshVisible = val;
     for (let i = 0; i < this.resolutionCircleMeshes.length; i++){
@@ -2229,6 +2235,9 @@ export class ReciprocalLatticeViewer {
     this.currentMesh = contourMesh;
     this.loading = false;
     this.requestRender();
+    if (this.serverWS && this.serverWS.readyState === WebSocket.OPEN) {
+      this.serverWS.send(JSON.stringify({"channel": "server", "command": "rlv_mesh_ready"}));
+    }
   }
 
   setDefaultReflectionsDisplay() {
@@ -2285,8 +2294,7 @@ export class ReciprocalLatticeViewer {
   }
 
   updateMillerIndexLabelsVisibility() {
-    if (!this.millerIndexLabelsCheckbox.checked ||
-        !this.indexedReflectionsCheckbox.checked) {
+    if (!this.millerIndexLabelsCheckbox.checked) {
       this.millerIndexLabels.hide();
       this.requestRender();
       return;
@@ -2305,13 +2313,17 @@ export class ReciprocalLatticeViewer {
     if (this.millerIndexLabels.empty()) return;
     const size = parseInt(this.millerIndexLabelSizeSlider.value);
     this.millerIndexLabels.resize(size);
+    this.orientationReciprocalCells.resize(size);
+    this.crystalReciprocalCells.resize(size);
     this.requestRender();
   }
 
   updateUnitCellAlignButtonsVisibility() {
     const hasCrystals = this.expt.crystals && this.expt.crystals.length > 0;
-    this.unitCellAlignContainer.style.display = hasCrystals ? "block" : "none";
-    if (!hasCrystals) {
+    const hasIndexedReflections = !this.indexedReflections.empty();
+    const show = hasCrystals && hasIndexedReflections;
+    this.unitCellAlignContainer.style.display = show ? "block" : "none";
+    if (!show) {
       this.unitCellAlignCrystalIdx = [0, 0, 0];
     }
   }
@@ -2321,7 +2333,11 @@ export class ReciprocalLatticeViewer {
     const numCrystals = this.expt.crystals.length;
     const crystalIdx = this.unitCellAlignCrystalIdx[axisIndex] % numCrystals;
     this.unitCellAlignCrystalIdx[axisIndex] = (crystalIdx + 1) % numCrystals;
-    const vec = this.expt.crystals[crystalIdx].reciprocalCell[axisIndex].clone().normalize().multiplyScalar(1000);
+    const vec = this.expt.crystals[crystalIdx].reciprocalCell[axisIndex].clone();
+    if (this.crystalFrame) {
+      vec.applyMatrix3(this.expt.getCrystalU(crystalIdx));
+    }
+    vec.normalize().multiplyScalar(1000);
     this.setCameraSmooth(vec);
   }
 
