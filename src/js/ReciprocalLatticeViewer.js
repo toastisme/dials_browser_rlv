@@ -484,6 +484,7 @@ export class ReciprocalLatticeViewer {
     // rs_mapper
     this.currentMesh = null;
     this.meshData = null;
+    this.meshWorker = null;
     this.meshShape = null;
     this.rLPMin = null;
     this.rLPMax = null;
@@ -2016,6 +2017,15 @@ export class ReciprocalLatticeViewer {
     this.requestRender();
   }
 
+  cancelMesh() {
+    if (this.meshWorker) {
+      this.meshWorker.terminate();
+      this.meshWorker = null;
+    }
+    this.loading = false;
+    this.clearMesh();
+  }
+
   createSignedDistanceFunction(meshData, meshShape, isovalue) {
     return function (x, y, z) {
         let xi = Math.floor(x);
@@ -2185,15 +2195,18 @@ export class ReciprocalLatticeViewer {
     // Launch worker
     const result = await new Promise((resolve, reject) => {
       const worker = new Worker(new URL('./MeshWorker.js', import.meta.url), { type: 'module' });
+      this.meshWorker = worker;
 
       worker.onmessage = (e) => {
         if (e.data.type === 'marchingResult') {
+          this.meshWorker = null;
           resolve(e.data.result);
           worker.terminate();
         }
       };
 
       worker.onerror = (err) => {
+        this.meshWorker = null;
         console.error("Worker error:", err);
         reject(err);
         worker.terminate();

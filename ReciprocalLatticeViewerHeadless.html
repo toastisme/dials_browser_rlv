@@ -705,6 +705,9 @@
 				case "hide_mesh":
 					window.viewer.updateMeshVisibility(false)
 					break;
+				case "cancel_mesh":
+					window.viewer.cancelMesh();
+					break;
 				case "highlight_reflection":
 					window.viewer.highlightReflection(msg["rlp"]);
 					break;
