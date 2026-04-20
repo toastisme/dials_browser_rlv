@@ -544,6 +544,7 @@ export class ReciprocalLatticeViewer {
   static defaultColors() {
     return {
       "background": 0x222222,
+      "backgroundLight": 0xa9b3bc,
       "sample": 0xfdf6e3,
       "reflectionUnindexed": [
         0x96f97b,
@@ -676,6 +677,17 @@ export class ReciprocalLatticeViewer {
 
   toggleSidebar() {
     const isHidden = this.sidebar.classList.toggle("hidden");
+  }
+
+  updateTheme(theme) {
+    const color = theme === "light"
+      ? this.colors["backgroundLight"]
+      : this.colors["background"];
+    window.renderer.setClearColor(color);
+    if (window.scene.fog) {
+      window.scene.fog.color.setHex(color);
+    }
+    this.requestRender();
   }
 
   showSidebar() {

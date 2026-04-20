@@ -533,6 +533,7 @@
 
 	const colors = {
 			"background": 0x020817,
+      "backgroundLight": 0x222222,
 			"sample": 0xfdf6e3,
 			"reflectionUnindexed": [
 				0x96f97b,
@@ -715,6 +716,9 @@
 					break;
 				case "highlight_reflection":
 					window.viewer.highlightReflection(msg["rlp"]);
+					break;
+				case "update_theme":
+					window.viewer.updateTheme(msg["theme"]);
 					break;
 				default:
 					console.warn("Unrecognised command ", command);
