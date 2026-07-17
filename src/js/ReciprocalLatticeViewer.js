@@ -479,6 +479,16 @@ export class ReciprocalLatticeViewer {
     this.millerIndexLabelsCheckbox = document.getElementById("millerIndexLabelsCheckbox");
     this.millerIndexLabelSizeSlider = document.getElementById("millerIndexLabelSizeSlider");
     this.unitCellAlignContainer = document.getElementById("unitCellAlignContainer");
+    this.indexedReflectionsRow = document.getElementById("indexedReflectionsRow");
+    this.unindexedReflectionsRow = document.getElementById("unindexedReflectionsRow");
+    this.calculatedReflectionsRow = document.getElementById("calculatedReflectionsRow");
+    this.integratedReflectionsRow = document.getElementById("integratedReflectionsRow");
+    this.crystalFrameRow = document.getElementById("crystalFrameRow");
+    this.reciprocalCellRow = document.getElementById("reciprocalCellRow");
+    this.millerIndexLabelsRow = document.getElementById("millerIndexLabelsRow");
+    this.ewaldSphereRow = document.getElementById("ewaldSphereRow");
+    this.reflectionSizeContainer = document.getElementById("reflectionSizeContainer");
+    this.millerIndexLabelSizeContainer = document.getElementById("millerIndexLabelSizeContainer");
     this.unitCellAlignCrystalIdx = [0, 0, 0]; // per-axis cycling index
 
     // rs_mapper
@@ -2295,14 +2305,40 @@ export class ReciprocalLatticeViewer {
       this.integratedReflectionsCheckbox.disabled = true;
       this.crystalFrameCheckbox.disabled = true;
       this.millerIndexLabelsCheckbox.disabled = true;
+
+      this.indexedReflectionsRow.style.display = "none";
+      this.unindexedReflectionsRow.style.display = "none";
+      this.calculatedReflectionsRow.style.display = "none";
+      this.integratedReflectionsRow.style.display = "none";
+      this.crystalFrameRow.style.display = "none";
+      this.millerIndexLabelsRow.style.display = "none";
+      this.millerIndexLabelSizeContainer.style.display = "none";
+      this.reflectionSizeContainer.style.display = "none";
       return;
     }
-    this.indexedReflectionsCheckbox.disabled = this.indexedReflections.empty();
-    this.unindexedReflectionsCheckbox.disabled = this.unindexedReflections.empty();
-    this.calculatedReflectionsCheckbox.disabled = this.calculatedReflections.empty();
-    this.integratedReflectionsCheckbox.disabled = this.integratedReflections.empty();
-    this.crystalFrameCheckbox.disabled = this.indexedReflections.empty();
-    this.millerIndexLabelsCheckbox.disabled = this.millerIndexLabels.empty();
+
+    const hasIndexed = !this.indexedReflections.empty();
+    const hasUnindexed = !this.unindexedReflections.empty();
+    const hasCalculated = !this.calculatedReflections.empty();
+    const hasIntegrated = !this.integratedReflections.empty();
+    const hasMillerLabels = !this.millerIndexLabels.empty();
+
+    this.indexedReflectionsCheckbox.disabled = !hasIndexed;
+    this.unindexedReflectionsCheckbox.disabled = !hasUnindexed;
+    this.calculatedReflectionsCheckbox.disabled = !hasCalculated;
+    this.integratedReflectionsCheckbox.disabled = !hasIntegrated;
+    this.crystalFrameCheckbox.disabled = !hasIndexed;
+    this.millerIndexLabelsCheckbox.disabled = !hasMillerLabels;
+
+    this.indexedReflectionsRow.style.display = hasIndexed ? "" : "none";
+    this.unindexedReflectionsRow.style.display = hasUnindexed ? "" : "none";
+    this.calculatedReflectionsRow.style.display = hasCalculated ? "" : "none";
+    this.integratedReflectionsRow.style.display = hasIntegrated ? "" : "none";
+    this.crystalFrameRow.style.display = hasIndexed ? "" : "none";
+    this.millerIndexLabelsRow.style.display = hasMillerLabels ? "" : "none";
+    this.millerIndexLabelSizeContainer.style.display = hasMillerLabels ? "" : "none";
+    this.reflectionSizeContainer.style.display = "";
+
     this.updateUnitCellAlignButtonsVisibility();
   }
 
@@ -2310,10 +2346,15 @@ export class ReciprocalLatticeViewer {
     if (!this.hasExperiment()) {
       this.reciprocalCellCheckbox.disabled = true;
       this.crystalFrameCheckbox.disabled = true;
+      this.reciprocalCellRow.style.display = "none";
+      this.crystalFrameRow.style.display = "none";
     }
     else{
-      this.reciprocalCellCheckbox.disabled = (this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
-      this.crystalFrameCheckbox.disabled = (this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
+      const hasReciprocalCells = !(this.orientationReciprocalCells.empty() && this.crystalReciprocalCells.empty());
+      this.reciprocalCellCheckbox.disabled = !hasReciprocalCells;
+      this.crystalFrameCheckbox.disabled = !hasReciprocalCells;
+      this.reciprocalCellRow.style.display = hasReciprocalCells ? "" : "none";
+      this.crystalFrameRow.style.display = hasReciprocalCells ? "" : "none";
     }
 
   }
@@ -2435,6 +2476,7 @@ export class ReciprocalLatticeViewer {
     this.ewaldSphereMeshes = [];
     this.ewaldSphereCheckbox.checked = false;
     this.ewaldSphereCheckbox.disabled = true;
+    this.ewaldSphereRow.style.display = "none";
   }
 
   addEwaldSpheres() {
@@ -2465,6 +2507,7 @@ export class ReciprocalLatticeViewer {
     }
 
     this.ewaldSphereCheckbox.disabled = false;
+    this.ewaldSphereRow.style.display = "";
   }
 
   updateEwaldSpheresVisibility() {
@@ -2482,6 +2525,8 @@ export class ReciprocalLatticeViewer {
     this.reciprocalCellCheckbox.disabled = true;
     this.crystalFrameCheckbox.checked = false;
     this.crystalFrameCheckbox.disabled = true;
+    this.reciprocalCellRow.style.display = "none";
+    this.crystalFrameRow.style.display = "none";
   }
 
   addReciprocalCells() {
