@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'ReciprocalLatticeViewerHeadless.html'),
+        main: resolve(import.meta.dirname, 'ReciprocalLatticeViewerHeadless.html'),
       },
     },
     assetsDir: 'assets',
