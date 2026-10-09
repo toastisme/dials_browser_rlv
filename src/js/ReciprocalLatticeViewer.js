@@ -704,7 +704,7 @@ export class ReciprocalLatticeViewer {
     this.sidebar.style.display = 'block';
   }
 
-  updateCrystalFrame(){
+  async updateCrystalFrame(){
     this.saveUserState();
     if (!this.expt.hasCrystal(0)){
       return;
@@ -715,9 +715,9 @@ export class ReciprocalLatticeViewer {
     if (!this.refl.hasReflTable()){
       return;
     }
-    this.addReflectionsFromJSONMsgpack(this.refl.rawReflData, this.integratedReflectionsFromCalculated);
+    await this.addReflectionsFromJSONMsgpack(this.refl.rawReflData, this.integratedReflectionsFromCalculated);
     if (this.integratedReflectionsFromCalculated){
-      this.addCalculatedIntegratedReflectionsFromJSONMsgpack(this.calculatedIntegratedRefl.rawReflData);
+      await this.addCalculatedIntegratedReflectionsFromJSONMsgpack(this.calculatedIntegratedRefl.rawReflData);
     }
     this.applySavedUserState();
     this.clearSavedUserState();
@@ -1351,7 +1351,7 @@ export class ReciprocalLatticeViewer {
     this.requestRender();
   }
 
-  addReflectionsFromJSONMsgpack(reflMsgpack, ignoreIntegratedReflections=false) {
+  async addReflectionsFromJSONMsgpack(reflMsgpack, ignoreIntegratedReflections=false) {
 
     function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
 
@@ -1375,7 +1375,8 @@ export class ReciprocalLatticeViewer {
     }
 
     this.clearReflectionTable();
-    this.refl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    // Table may be msgpack or HDF5 (HDF5 parsing is async)
+    await this.refl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
 
     if (!ignoreIntegratedReflections){
       this.refl.calculatedIntegratedPanelReflData = {};
@@ -1385,8 +1386,6 @@ export class ReciprocalLatticeViewer {
       console.warn("Tried to add reflections but no experiment has been loaded");
       return;
     }
-
-    this.refl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
 
     // Get relevant data
     const panelNumbers = this.refl.getPanelNumbers();
@@ -1701,7 +1700,7 @@ export class ReciprocalLatticeViewer {
     this.requestRender();
   }
 
-  addCalculatedIntegratedReflectionsFromJSONMsgpack(reflMsgpack) {
+  async addCalculatedIntegratedReflectionsFromJSONMsgpack(reflMsgpack) {
 
     function getRLP(s1, wavelength, unitS0, viewer, goniometer, angle, U) {
 
@@ -1732,7 +1731,7 @@ export class ReciprocalLatticeViewer {
       return;
     }
 
-    this.calculatedIntegratedRefl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    await this.calculatedIntegratedRefl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
 
     // Get relevant data
     const panelNumbers = this.calculatedIntegratedRefl.getPanelNumbers();
