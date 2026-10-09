@@ -599,7 +599,9 @@
 			false,
 			colors
 		);
-		const serverWSAddr = "ws://127.0.0.1:50010/";
+		// The host app passes its server's port as ?port=<n> on this page's URL.
+		const serverPort = new URLSearchParams(window.location.search).get("port") || "50010";
+		const serverWSAddr = `ws://127.0.0.1:${serverPort}/`;
 
 		window.viewer.serverWS = new WebSocket(serverWSAddr);
 		window.viewer.serverWS.binaryType = "arraybuffer";
