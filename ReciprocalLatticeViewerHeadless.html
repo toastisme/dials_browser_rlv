@@ -722,9 +722,6 @@
 				case "highlight_reflection":
 					window.viewer.highlightReflection(msg["rlp"]);
 					break;
-				case "update_theme":
-					window.viewer.updateTheme(msg["theme"]);
-					break;
 				default:
 					console.warn("Unrecognised command ", command);
 			}
@@ -734,7 +731,7 @@
 		};
 
 		setupScene();
-		window.viewer.updateTheme(localStorage.getItem("diffraview-theme") ?? "dark");
+		window.viewer.updateTheme("dark");  
 	}
 	</script>
 
