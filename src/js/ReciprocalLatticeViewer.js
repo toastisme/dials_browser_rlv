@@ -2068,9 +2068,11 @@ export class ReciprocalLatticeViewer {
 		const data = JSON.stringify(
 				{
 					"channel" : "server",
-					"command" : "update_rs_mapper_mesh",
-					"max_resolution" : resolution,
-					"grid_size" : gridSize
+					"type" : "rlv.mesh.update",
+					"payload" : {
+						"max_resolution" : resolution,
+						"grid_size" : gridSize
+					}
 				}
 			);
 		this.serverWS.send(data);
@@ -2270,7 +2272,7 @@ export class ReciprocalLatticeViewer {
     this.loading = false;
     this.requestRender();
     if (this.serverWS && this.serverWS.readyState === WebSocket.OPEN) {
-      this.serverWS.send(JSON.stringify({"channel": "server", "command": "rlv_mesh_ready"}));
+      this.serverWS.send(JSON.stringify({"channel": "server", "type": "rlv.mesh.ready", "payload": {}}));
     }
   }
 
@@ -2685,9 +2687,11 @@ export class ReciprocalLatticeViewer {
         ];
         this.serverWS.send(JSON.stringify({
           "channel": "server",
-          "command": "clicked_reflection_rlv",
-          "rlp": rlp,
-          "expt_id": id
+          "type": "reflections.select_rlp",
+          "payload": {
+            "rlp": rlp,
+            "expt_id": id
+          }
         }));
         return;
       }

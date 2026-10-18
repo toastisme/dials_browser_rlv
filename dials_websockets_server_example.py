@@ -73,26 +73,25 @@ class BasicServer:
 	async def update_experiment(self, json_path: str) -> None:
 		expt_json = self.get_expt_json(json_path)
 		self.expt_json = expt_json
-		await self.send_to_rlv(expt_json, command="update_experiment")
+		await self.send_to_rlv("experiment.update", expt_json)
 
 	async def update_reflection_table(self, reflection_table_path: str) -> None:
 		reflection_table = self.get_reflection_table(reflection_table_path)
 		reflection_table = base64.b64encode(reflection_table.as_msgpack()).decode("utf-8")
 
-		await self.send_to_rlv({"refl_msgpack" : reflection_table}, command="update_reflection_table")
+		await self.send_to_rlv("reflections.update", {"refl_msgpack" : reflection_table})
 
 	async def show_rlv_orientation_view(self) -> None:
-		await self.send_to_rlv({}, command="show_rlv_orientation_view")
+		await self.send_to_rlv("view.set", {"view": "orientation"})
 
 	async def show_rlv_crystal_view(self) -> None:
-		await self.send_to_rlv({}, command="show_rlv_crystal_view")
+		await self.send_to_rlv("view.set", {"view": "crystal"})
 
 	async def clear_experiment(self) -> None:
-		await self.send_to_rlv({}, command="clear_experiment")
+		await self.send_to_rlv("experiment.clear", {})
 
-	async def send_to_rlv(self, msg, command):
-		msg["command"] = command
-		msg["channel"] = "rlv"
+	async def send_to_rlv(self, msg_type, payload):
+		msg = {"channel": "rlv", "type": msg_type, "payload": payload}
 		assert self.rlv_connection is not None, "Server is not connected to rlv"
 		await self.rlv_connection.send(json.dumps(msg))
 

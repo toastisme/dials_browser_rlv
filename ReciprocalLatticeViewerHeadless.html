@@ -498,8 +498,8 @@
 					if (window.viewer.serverWS.readyState === WebSocket.OPEN) {
 						window.viewer.serverWS.send(JSON.stringify({
 							"channel": "server",
-							"command": "record_connection", 
-							"id": "rlv"
+							"type": "session.connect",
+							"payload": {"id": "rlv"}
 						}));
 						console.log("RLV connected successfully")
 					} else {
@@ -611,8 +611,8 @@
 
 		window.viewer.serverWS.send(JSON.stringify({
 			"channel": "server",
-			"command": "record_connection", 
-			"id": "rlv"
+			"type": "session.connect",
+			"payload": {"id": "rlv"}
 			}
 		));
 
@@ -632,20 +632,20 @@
 			if (data instanceof ArrayBuffer){ // msgpack
 				const bytes = new Uint8Array(data);
 				try{
-					const decoded = decode(bytes)
-					let command = decoded.command;
-					console.log("Command: ", command);
-					switch(command){
-						case "update_mesh":
+					const { type, payload } = decode(bytes);
+					console.log("Type: ", type);
+					switch(type){
+						case "mesh.update":
 							window.viewer.addContourMeshFromData(
-								decoded.mesh_data,
-								decoded.mesh_dimensions,
-								decoded.rlp_min,
-								decoded.rlp_max,
-								decoded.rlp_step
+								payload.mesh_data,
+								payload.mesh_dimensions,
+								payload.rlp_min,
+								payload.rlp_max,
+								payload.rlp_step
 							);
 							break;
-
+						default:
+							console.warn("Unrecognised Msgpack message type ", type);
 					}
 					return;
 				}catch(e){
@@ -661,69 +661,73 @@
 				return;
 			}
 
-			const command = msg["command"];
-			console.log("Command: ", command);
+			const { type, payload } = msg;
+			console.log("Type: ", type);
 
-			switch(command){
-				case "new_experiment":
+			switch(type){
+				case "experiment.new":
 					window.viewer.addExperimentFromJSONString(
-						msg,
+						payload,
 						true
 					);
 					break;
-				case "update_experiment":
+				case "experiment.update":
 					window.viewer.addExperimentFromJSONString(
-						msg,
+						payload,
 						false
 					);
 				break;
-				case "clear_experiment":
+				case "experiment.clear":
 					window.viewer.clearExperiment();
 					break;
-				case "clear_reciprocal_cells":
+				case "reciprocal_cells.clear":
 					window.viewer.clearReciprocalCells();
 					break;
-				case "update_reflection_table":
-					window.viewer.addReflectionsFromJSONMsgpack(msg["refl_msgpack"]);
+				case "reflections.update":
+					window.viewer.addReflectionsFromJSONMsgpack(payload["refl_msgpack"]);
 					break;
-				case "update_calculated_integrated_reflection_table":
-					window.viewer.addCalculatedIntegratedReflectionsFromJSONMsgpack(msg["refl_msgpack"]);
+				case "reflections.update_calculated":
+					window.viewer.addCalculatedIntegratedReflectionsFromJSONMsgpack(payload["refl_msgpack"]);
 					break;
-				case "show_rlv_orientation_view":
-					window.viewer.switchToOrientationView();
+				case "view.set":
+					switch(payload["view"]){
+						case "orientation":
+							window.viewer.switchToOrientationView();
+							break;
+						case "crystal":
+							window.viewer.switchToCrystalView();
+							break;
+						case "resolution":
+							window.viewer.switchToResolutionView();
+							break;
+					}
 					break;
-				case "show_rlv_crystal_view":
-					window.viewer.switchToCrystalView();
-					break;
-				case "show_rlv_resolution_view":
-					window.viewer.switchToResolutionView();
-					break;
-				case "toggle_sidebar":
+				case "sidebar.toggle":
 					window.viewer.toggleSidebar();
 					break;
-				case "update_mesh":
+				case "mesh.update":
 					window.viewer.addContourMeshFromData(
-					msg["mesh_data"],
-					msg["mesh_dimensions"],
-					msg["rlp_min"],
-					msg["rlp_max"],
-					msg["rlp_step"]
+					payload["mesh_data"],
+					payload["mesh_dimensions"],
+					payload["rlp_min"],
+					payload["rlp_max"],
+					payload["rlp_step"]
 					);
 					break;
-				case "show_mesh":
+				case "mesh.show":
 					window.viewer.updateMeshVisibility(true)
 					break;
-				case "hide_mesh":
+				case "mesh.hide":
 					window.viewer.updateMeshVisibility(false)
 					break;
-				case "cancel_mesh":
+				case "mesh.cancel":
 					window.viewer.cancelMesh();
 					break;
-				case "highlight_reflection":
-					window.viewer.highlightReflection(msg["rlp"]);
+				case "reflections.highlight":
+					window.viewer.highlightReflection(payload["rlp"]);
 					break;
 				default:
-					console.warn("Unrecognised command ", command);
+					console.warn("Unrecognised message type ", type);
 			}
 
 
