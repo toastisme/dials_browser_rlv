@@ -2038,11 +2038,16 @@ export class ReciprocalLatticeViewer {
     this.requestRender();
   }
 
-  cancelMesh() {
+  stopMeshWorker() {
     if (this.meshWorker) {
       this.meshWorker.terminate();
       this.meshWorker = null;
+      this.resolveMeshWorker(null);
     }
+  }
+
+  cancelMesh() {
+    this.stopMeshWorker();
     this.loading = false;
     this.clearMesh();
   }
@@ -2212,52 +2217,50 @@ export class ReciprocalLatticeViewer {
     const isovalue = document.getElementById("meshThresholdSlider").value;
     this.loading=true;
 
-    const resolution = meshShape[0];
-    const scanBounds = [[0,0,0], [meshShape[0], meshShape[1], meshShape[2]]];
-
-    // Launch worker
-    const result = await new Promise((resolve, reject) => {
+    // Only the latest request is drawn
+    this.stopMeshWorker();
+    const result = await new Promise((resolve) => {
       const worker = new Worker(new URL('./MeshWorker.js', import.meta.url), { type: 'module' });
       this.meshWorker = worker;
+      this.resolveMeshWorker = resolve;
 
       worker.onmessage = (e) => {
-        if (e.data.type === 'marchingResult') {
-          this.meshWorker = null;
-          resolve(e.data.result);
-          worker.terminate();
-        }
+        this.meshWorker = null;
+        worker.terminate();
+        resolve(e.data);
       };
 
       worker.onerror = (err) => {
         this.meshWorker = null;
-        console.error("Worker error:", err);
-        reject(err);
         worker.terminate();
+        resolve({ type: 'marchingError', message: `Mesh failed: ${err.message}` });
       };
 
-      worker.postMessage({ data, meshShape, isovalue, resolution, scanBounds });
+      worker.postMessage({ data, meshShape, isovalue });
     });
 
-    const positions = result.positions;
-    const meshScaleFactor = this.rLPScaleFactor;
-
-    for (let i = 0; i < positions.length; i++) {
-      const x = positions[i][0];
-      const y = positions[i][1];
-      const z = positions[i][2];
-
-      // Reassign in z, y, x order
-      positions[i][0] = ((z - meshShape[2] / 2) * rLPStep) * meshScaleFactor;
-      positions[i][1] = ((y - meshShape[1] / 2) * rLPStep) * meshScaleFactor;
-      positions[i][2] = ((x - meshShape[0] / 2) * rLPStep) * meshScaleFactor;
+    if (result === null) {
+      return;
+    }
+    if (result.type === 'marchingError') {
+      // meshData is kept, so a new threshold can be tried
+      this.loading = false;
+      console.error(result.message);
+      if (this.serverWS && this.serverWS.readyState === WebSocket.OPEN) {
+        this.serverWS.send(JSON.stringify({"channel": "server", "type": "rlv.mesh.error", "payload": {"message": result.message}}));
+      }
+      return;
     }
 
-    const vertices = new Float32Array(positions.flat());
-    const geometry = new THREE.BufferGeometry();
-    const indices = new Uint32Array(result.cells.flat());
+    // Grid (i0, i1, i2) to reciprocal space
+    const vertices = result.positions;
+    const meshScaleFactor = this.rLPScaleFactor;
+    for (let i = 0; i < vertices.length; i++) {
+      vertices[i] = (vertices[i] - meshShape[i % 3] / 2) * rLPStep * meshScaleFactor;
+    }
 
+    const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeVertexNormals();
     geometry.computeBoundingBox();
 
@@ -2267,6 +2270,11 @@ export class ReciprocalLatticeViewer {
     });
 
     const contourMesh = new THREE.Mesh(geometry, material);
+    if (this.currentMesh !== null) {
+      window.scene.remove(this.currentMesh);
+      this.currentMesh.geometry.dispose();
+      this.currentMesh.material.dispose();
+    }
     window.scene.add(contourMesh);
     this.currentMesh = contourMesh;
     this.loading = false;
