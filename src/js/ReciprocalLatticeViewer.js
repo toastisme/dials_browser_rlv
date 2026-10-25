@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { gsap } from "gsap";
 import { MeshLineGeometry,  MeshLineMaterial, raycast } from 'meshline';
+
+// h / neutron mass (m^2 / s), for the wavelength of a time of flight
+const H_OVER_NEUTRON_MASS = 3.956034e-7;
 
 class MeshCollection{
 
@@ -475,6 +479,13 @@ export class ReciprocalLatticeViewer {
     this.reciprocalCellCheckbox = document.getElementById("reciprocalCellCheckbox");
     this.crystalFrameCheckbox = document.getElementById("crystalFrameCheckbox");
     this.ewaldSphereCheckbox = document.getElementById("ewaldSphereCheckbox");
+    this.resolutionRingsRow = document.getElementById("resolutionRingsRow");
+    this.perImageRow = document.getElementById("perImageRow");
+    this.perImageCheckbox = document.getElementById("perImageCheckbox");
+    this.perImageControls = document.getElementById("perImageControls");
+    this.imageSlider = document.getElementById("imageSlider");
+    this.imageValue = document.getElementById("imageValue");
+    this.resolutionRingsCheckbox = document.getElementById("resolutionRings");
     this.reflectionSize = document.getElementById("reflectionSizeSlider");
     this.millerIndexLabelsCheckbox = document.getElementById("millerIndexLabelsCheckbox");
     this.millerIndexLabelSizeSlider = document.getElementById("millerIndexLabelSizeSlider");
@@ -504,6 +515,15 @@ export class ReciprocalLatticeViewer {
     this.sampleMesh = null;
     this.reciprocalMeshVisible = false;
     this.resolutionCircleMeshes = [];
+    this.resolutionRingGroup = null;
+    // Per image: only the reflections (centroid z) and Ewald sphere(s) of one image
+    this.perImage = false;
+    this.shownImage = 0;
+    this.numImages = 0;
+    this.requestedImage = null;
+    this.rebuildingImage = false;
+    // Furthest reflection in the tables (1/A, scaled), whatever is shown
+    this.reflectionDStarMax = 0;
 
     // Reflections
     this.millerIndexLabels = new MeshCollection({});
@@ -607,6 +627,7 @@ export class ReciprocalLatticeViewer {
 			"reflectionIntegrated" : 0xffc25c,
       "highlight": 0xFFFFFF,
       "resolutionCircle": 0x6a7688,
+      "resolutionRings": [0x96f97b, 0x75bbfd, 0xbf77f6, 0x13eac9, 0xffb07c],
       "beam": 0xFFFFFF,
       "ewaldSphere": 0x88ccff,
       "reciprocalCell": 0xFFFFFF,
@@ -915,6 +936,12 @@ export class ReciprocalLatticeViewer {
     }
     this.beamMeshes = [];
     this.clearEwaldSpheres();
+    this.clearResolutionRings();
+    if (this.resolutionRingsRow) { this.resolutionRingsRow.style.display = "none"; }
+    this.perImage = false;
+    this.perImageCheckbox.checked = false;
+    this.perImageRow.style.display = "none";
+    this.perImageControls.style.display = "none";
     if (this.sampleMesh) {
       window.scene.remove(this.sampleMesh);
       this.sampleMesh.geometry.dispose();
@@ -939,7 +966,9 @@ export class ReciprocalLatticeViewer {
     console.assert(this.hasExperiment());
     this.addBeam();
     this.addSample();
+    this.updatePerImageControls();
     this.addEwaldSpheres();
+    this.addResolutionRings();
     this.addReciprocalCells();
     this.setCameraToDefaultPositionWithExperiment();
     this.showSidebar();
@@ -963,7 +992,9 @@ export class ReciprocalLatticeViewer {
     console.assert(this.hasExperiment());
     this.addBeam();
     this.addSample();
+    this.updatePerImageControls();
     this.addEwaldSpheres();
+    this.addResolutionRings();
     this.addReciprocalCells();
     if (defaultSetup) {
       this.setCameraToDefaultPositionWithExperiment();
@@ -1000,6 +1031,13 @@ export class ReciprocalLatticeViewer {
   }
 
   clearReflectionTable() {
+    this.destroyReflectionMeshes();
+    this.refl.clearReflectionTable();
+    this.reflectionDStarMax = 0;
+    this.finishClearReflectionTable();
+  }
+
+  destroyReflectionMeshes() {
     this.millerIndexLabels.destroy();
     this.unindexedReflections.destroy();
     this.indexedReflections.destroy();
@@ -1010,9 +1048,11 @@ export class ReciprocalLatticeViewer {
     this.crystalIntegratedReflections.destroy();
     this.resolutionIndexedReflections.destroy();
     this.resolutionUnindexedReflections.destroy();
-    this.refl.clearReflectionTable();
+  }
 
+  finishClearReflectionTable() {
     this.updateReflectionCheckboxStatus();
+    this.addResolutionRings();
     this.setDefaultReflectionsDisplay();
     if (this.isStandalone){
       this.hideCloseReflButton();
@@ -1337,6 +1377,7 @@ export class ReciprocalLatticeViewer {
     this.millerIndexLabels = new MeshCollection(millerIndexLabelSetsData);
 
     this.updateReflectionCheckboxStatus();
+    this.addResolutionRings();
     this.setDefaultReflectionsDisplay();
     this.updateReflectionsVisibility();
     if (this.resolutionView){
@@ -1374,9 +1415,16 @@ export class ReciprocalLatticeViewer {
       return rlp.multiplyScalar(viewer.rLPScaleFactor);
     }
 
-    this.clearReflectionTable();
-    // Table may be msgpack or HDF5 (HDF5 parsing is async)
-    await this.refl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    if (reflMsgpack === null) {
+      // Rebuilt from the parsed table, e.g. for another image (rebuildShownReflections)
+      this.destroyReflectionMeshes();
+    }
+    else {
+      this.clearReflectionTable();
+      // Table may be msgpack or HDF5 (HDF5 parsing is async)
+      await this.refl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    }
+    let dStarSqMax = 0;
 
     if (!ignoreIntegratedReflections){
       this.refl.calculatedIntegratedPanelReflData = {};
@@ -1486,35 +1534,38 @@ export class ReciprocalLatticeViewer {
           U = this.expt.getCrystalU(crystalID);
         }
         const rlp = getRLP(s1, reflWavelength, unitS0, this, goniometer, angle, U);
+        dStarSqMax = Math.max(dStarSqMax, rlp.lengthSq());
+        if (this.reflectionInShownImage(imagesetID, reflXyzObs[2])) {
 
-        if (millerIndices !== null && this.refl.isValidMillerIndex(millerIndices[reflIdx])) {
-          // Indexed reflection
-          if (!positionsIndexed[imagesetID]){
-            positionsIndexed[imagesetID] = [];
-            this.millerIndicesIndexed[imagesetID] = [];
+          if (millerIndices !== null && this.refl.isValidMillerIndex(millerIndices[reflIdx])) {
+            // Indexed reflection
+            if (!positionsIndexed[imagesetID]){
+              positionsIndexed[imagesetID] = [];
+              this.millerIndicesIndexed[imagesetID] = [];
+            }
+            positionsIndexed[imagesetID].push(rlp.x);
+            positionsIndexed[imagesetID].push(rlp.y);
+            positionsIndexed[imagesetID].push(rlp.z);
+            this.millerIndicesIndexed[imagesetID].push(millerIndices[reflIdx]);
           }
-          positionsIndexed[imagesetID].push(rlp.x);
-          positionsIndexed[imagesetID].push(rlp.y);
-          positionsIndexed[imagesetID].push(rlp.z);
-          this.millerIndicesIndexed[imagesetID].push(millerIndices[reflIdx]);
-        }
-        else { 
-          // Unindexed reflection
-          if (!positionsUnindexed[imagesetID]){
-            positionsUnindexed[imagesetID] = [];
+          else { 
+            // Unindexed reflection
+            if (!positionsUnindexed[imagesetID]){
+              positionsUnindexed[imagesetID] = [];
+            }
+            positionsUnindexed[imagesetID].push(rlp.x);
+            positionsUnindexed[imagesetID].push(rlp.y);
+            positionsUnindexed[imagesetID].push(rlp.z);
           }
-          positionsUnindexed[imagesetID].push(rlp.x);
-          positionsUnindexed[imagesetID].push(rlp.y);
-          positionsUnindexed[imagesetID].push(rlp.z);
-        }
 
-        // Reflection has been assigned to a crystal
-        if (!(crystalID in crystalPositionsIndexed)){
-          crystalPositionsIndexed[crystalID] = [];
+          // Reflection has been assigned to a crystal
+          if (!(crystalID in crystalPositionsIndexed)){
+            crystalPositionsIndexed[crystalID] = [];
+          }
+          crystalPositionsIndexed[crystalID].push(rlp.x);
+          crystalPositionsIndexed[crystalID].push(rlp.y);
+          crystalPositionsIndexed[crystalID].push(rlp.z);
         }
-        crystalPositionsIndexed[crystalID].push(rlp.x);
-        crystalPositionsIndexed[crystalID].push(rlp.y);
-        crystalPositionsIndexed[crystalID].push(rlp.z);
       }
 
       if (xyzCal !== null && xyzCalMm !== null) {
@@ -1532,49 +1583,54 @@ export class ReciprocalLatticeViewer {
           angle = xyzCalMm[reflIdx][2];
         }
         const rlp = getRLP(s1, reflWavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
-        if (!positionsCalculated[imagesetID]){
-          positionsCalculated[imagesetID] = [];
-        }
-        positionsCalculated[imagesetID].push(rlp.x);
-        positionsCalculated[imagesetID].push(rlp.y);
-        positionsCalculated[imagesetID].push(rlp.z);
-
-        if (crystalID !== "-1"){
-          // Reflection has been assigned to a crystal
-          if (!(crystalID in crystalPositionsCalculated)){
-            crystalPositionsCalculated[crystalID] = [];
+        dStarSqMax = Math.max(dStarSqMax, rlp.lengthSq());
+        if (this.reflectionInShownImage(imagesetID, reflXyzCal[2])) {
+          if (!positionsCalculated[imagesetID]){
+            positionsCalculated[imagesetID] = [];
           }
-          crystalPositionsCalculated[crystalID].push(rlp.x);
-          crystalPositionsCalculated[crystalID].push(rlp.y);
-          crystalPositionsCalculated[crystalID].push(rlp.z);
-        }
-
-        if (this.refl.isSummationIntegrated(flags[reflIdx])) {
-          // Reflection has been integrated
-          // If any calculated integration data exists, remove it
-          if (Object.keys(this.refl.calculatedIntegratedPanelReflData).length !== 0 && !ignoreIntegratedReflections){
-            this.refl.calculatedIntegratedPanelReflData = {}
-          }
-          if (!positionsIntegrated[imagesetID]){
-            positionsIntegrated[imagesetID] = [];
-          }
-          positionsIntegrated[imagesetID].push(rlp.x);
-          positionsIntegrated[imagesetID].push(rlp.y);
-          positionsIntegrated[imagesetID].push(rlp.z);
+          positionsCalculated[imagesetID].push(rlp.x);
+          positionsCalculated[imagesetID].push(rlp.y);
+          positionsCalculated[imagesetID].push(rlp.z);
 
           if (crystalID !== "-1"){
             // Reflection has been assigned to a crystal
-            if (!(crystalID in crystalPositionsIntegrated)){
-              crystalPositionsIntegrated[crystalID] = [];
+            if (!(crystalID in crystalPositionsCalculated)){
+              crystalPositionsCalculated[crystalID] = [];
             }
-            crystalPositionsIntegrated[crystalID].push(rlp.x);
-            crystalPositionsIntegrated[crystalID].push(rlp.y);
-            crystalPositionsIntegrated[crystalID].push(rlp.z);
+            crystalPositionsCalculated[crystalID].push(rlp.x);
+            crystalPositionsCalculated[crystalID].push(rlp.y);
+            crystalPositionsCalculated[crystalID].push(rlp.z);
+          }
+
+          if (this.refl.isSummationIntegrated(flags[reflIdx])) {
+            // Reflection has been integrated
+            // If any calculated integration data exists, remove it
+            if (Object.keys(this.refl.calculatedIntegratedPanelReflData).length !== 0 && !ignoreIntegratedReflections){
+              this.refl.calculatedIntegratedPanelReflData = {}
+            }
+            if (!positionsIntegrated[imagesetID]){
+              positionsIntegrated[imagesetID] = [];
+            }
+            positionsIntegrated[imagesetID].push(rlp.x);
+            positionsIntegrated[imagesetID].push(rlp.y);
+            positionsIntegrated[imagesetID].push(rlp.z);
+
+            if (crystalID !== "-1"){
+              // Reflection has been assigned to a crystal
+              if (!(crystalID in crystalPositionsIntegrated)){
+                crystalPositionsIntegrated[crystalID] = [];
+              }
+              crystalPositionsIntegrated[crystalID].push(rlp.x);
+              crystalPositionsIntegrated[crystalID].push(rlp.y);
+              crystalPositionsIntegrated[crystalID].push(rlp.z);
+            }
           }
         }
       }
     }
 
+
+    this.reflectionDStarMax = Math.sqrt(dStarSqMax) / this.rLPScaleFactor;
 
     /*
      * Now create actual sprites
@@ -1686,6 +1742,7 @@ export class ReciprocalLatticeViewer {
     this.millerIndexLabels = new MeshCollection(millerIndexLabelSets);
 
     this.updateReflectionCheckboxStatus();
+    this.addResolutionRings();
     this.setDefaultReflectionsDisplay();
     this.updateReflectionsVisibility();
     if (this.resolutionView){
@@ -1731,7 +1788,10 @@ export class ReciprocalLatticeViewer {
       return;
     }
 
-    await this.calculatedIntegratedRefl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    if (reflMsgpack !== null) {
+      await this.calculatedIntegratedRefl.parseReflectionTableFromJSONMsgpack(reflMsgpack);
+    }
+    let dStarSqMax = 0;
 
     // Get relevant data
     const panelNumbers = this.calculatedIntegratedRefl.getPanelNumbers();
@@ -1808,6 +1868,10 @@ export class ReciprocalLatticeViewer {
           U = this.expt.getCrystalU(crystalID);
         }
         const rlp = getRLP(s1, reflWavelengthCal, unitS0, this, goniometer, angle, U, addAnglesToReflections);
+        dStarSqMax = Math.max(dStarSqMax, rlp.lengthSq());
+        if (!this.reflectionInShownImage(imagesetID, reflXyzCal[2])) {
+          continue;
+        }
 
         if (!positionsIntegrated[imagesetID]){
           positionsIntegrated[imagesetID] = [];
@@ -1852,8 +1916,12 @@ export class ReciprocalLatticeViewer {
       const reflectionSet = new ReflectionSet(positions, color, this.reflectionSize.value, this.reflSprite, visible);
       crystalIntegratedReflectionSets[crystalID] = reflectionSet;
     }
+    this.reflectionDStarMax = Math.max(
+      this.reflectionDStarMax, Math.sqrt(dStarSqMax) / this.rLPScaleFactor
+    );
     this.crystalIntegratedReflections = new MeshCollection(crystalIntegratedReflectionSets);
     this.updateReflectionCheckboxStatus();
+    this.addResolutionRings();
     this.updateReflectionsVisibility();
     if (this.crystalView){
       this.switchToCrystalView();
@@ -2002,6 +2070,7 @@ export class ReciprocalLatticeViewer {
     }
     this.crystalIntegratedReflections = new MeshCollection(crystalIntegratedReflectionSets);
     this.updateReflectionCheckboxStatus();
+    this.addResolutionRings();
     this.updateReflectionsVisibility();
     if (this.crystalView){
       this.switchToCrystalView();
@@ -2081,6 +2150,115 @@ export class ReciprocalLatticeViewer {
 				}
 			);
 		this.serverWS.send(data);
+  }
+
+  resolutionRingMaxDStar() {
+    // Highest 1/d (1/Å) for the rings. X-ray: on the detector, from the
+    // beam's wavelength. TOF/Laue (no single wavelength): the furthest
+    // reflection, as the shortest wavelength reaches far beyond them
+    let dStarMax = 0;
+    let polychromatic = false;
+    for (let exptID = 0; exptID < this.expt.numExperiments(); exptID++) {
+      const wavelength = this.expt.getBeamData(exptID)["wavelength"];
+      if (!(wavelength > 0)) {
+        polychromatic = true;
+        continue;
+      }
+      // The beam direction is from sample to source
+      const s0Direction = this.expt.getBeamDirection(exptID).normalize().negate();
+      for (let panelIdx = 0; panelIdx < this.expt.getNumDetectorPanels(exptID); panelIdx++) {
+        for (const corner of this.expt.getDetectorPanelCorners(exptID, panelIdx)) {
+          const cosTwoTheta = Math.min(Math.max(corner.clone().normalize().dot(s0Direction), -1), 1);
+          const sinTheta = Math.sqrt((1 - cosTwoTheta) / 2);
+          dStarMax = Math.max(dStarMax, 2 * sinTheta / wavelength);
+        }
+      }
+    }
+    if (polychromatic) {
+      dStarMax = Math.max(dStarMax, this.furthestReflectionDStar());
+    }
+    return dStarMax;
+  }
+
+  furthestReflectionDStar() {
+    // Largest |rlp| (1/Å) in the reflection tables, observed or calculated
+    // on any image
+    return this.reflectionDStarMax;
+  }
+
+  addResolutionRings() {
+    // Rings evenly spaced in 1/d^2, out to
+    // resolutionRingMaxDStar. A d is a sphere of radius 1/d, drawn as its
+    // outline, a circle facing the camera 
+    this.clearResolutionRings();
+    const dStarMax = this.resolutionRingMaxDStar();
+    if (this.resolutionRingsRow) {
+      this.resolutionRingsRow.style.display = dStarMax > 0 ? "" : "none";
+    }
+    if (dStarMax === 0 || !this.resolutionRingsCheckbox) { return; }
+
+    const numRings = 5;
+    const segments = 128;
+    const colors = this.colors["resolutionRings"] ?? ReciprocalLatticeViewer.defaultColors()["resolutionRings"];
+    const group = new THREE.Group();
+    let inner = 0;
+    for (let k = 1; k <= numRings; k++) {
+      const dStar = Math.sqrt(k / numRings) * dStarMax;
+      const outer = dStar * this.rLPScaleFactor;
+      const color = new THREE.Color(colors[(k - 1) % colors.length]);
+
+      const band = new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, segments),
+        new THREE.MeshBasicMaterial({
+          color: color, transparent: true, opacity: 0.15,
+          depthWrite: false, side: THREE.DoubleSide, fog: false
+        })
+      );
+      band.renderOrder = -1;
+      const points = [];
+      for (let i = 0; i < segments; i++) {
+        const angle = i / segments * 2 * Math.PI;
+        points.push(new THREE.Vector3(outer * Math.cos(angle), outer * Math.sin(angle), 0));
+      }
+      const edge = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.7, fog: false })
+      );
+
+      // Upper right
+      const element = document.createElement("div");
+      element.className = "resolution-ring-label";
+      element.textContent = (1 / dStar).toFixed(2) + " Å";
+      element.style.color = "#" + color.getHexString();
+      const label = new CSS2DObject(element);
+      label.position.set(outer * Math.SQRT1_2, outer * Math.SQRT1_2, 0);
+
+      group.add(band, edge, label);
+      inner = outer;
+    }
+    group.visible = this.resolutionRingsCheckbox.checked;
+    window.scene.add(group);
+    this.resolutionRingGroup = group;
+    this.resolutionRingsCheckbox.disabled = false;
+    this.requestRender();
+  }
+
+  clearResolutionRings() {
+    if (this.resolutionRingGroup === null) { return; }
+    window.scene.remove(this.resolutionRingGroup);
+    this.resolutionRingGroup.traverse((object) => {
+      if (object.isCSS2DObject) { object.element.remove(); }
+      object.geometry?.dispose();
+      object.material?.dispose();
+    });
+    this.resolutionRingGroup = null;
+  }
+
+  updateResolutionRings() {
+    if (this.resolutionRingGroup !== null) {
+      this.resolutionRingGroup.visible = this.resolutionRingsCheckbox.checked;
+    }
+    this.requestRender();
   }
 
   clearResolutionCirlces(){
@@ -2477,25 +2655,96 @@ export class ReciprocalLatticeViewer {
   }
 
   clearEwaldSpheres() {
+    this.removeEwaldSphereMeshes();
+    this.ewaldSphereCheckbox.checked = false;
+    this.ewaldSphereCheckbox.disabled = true;
+    this.ewaldSphereRow.style.display = "none";
+  }
+
+  removeEwaldSphereMeshes() {
     for (const mesh of this.ewaldSphereMeshes) {
       window.scene.remove(mesh);
       mesh.geometry.dispose();
       mesh.material.dispose();
     }
     this.ewaldSphereMeshes = [];
-    this.ewaldSphereCheckbox.checked = false;
-    this.ewaldSphereCheckbox.disabled = true;
-    this.ewaldSphereRow.style.display = "none";
+  }
+
+  ewaldSphereWavelengths() {
+    // Rotation (X-ray): the beam's wavelength, per image only, as a scan has
+    // no single orientation. TOF: per image, the shown image's wavelength at
+    // the shortest and longest flight path to the detector. 
+    const beamData = this.expt.getBeamData(0);
+    if (beamData["wavelength"] > 0) {
+      return this.perImage ? [beamData["wavelength"]] : null;
+    }
+    const tof = this.expt.getScanData(0)?.["properties"]?.["time_of_flight"];
+    if (this.perImage && tof && beamData["sample_to_source_distance"]) {
+      let minDistance = Infinity;
+      let maxDistance = 0;
+      for (let panelIdx = 0; panelIdx < this.expt.getNumDetectorPanels(0); panelIdx++) {
+        // Furthest point of a panel is a corner; the nearest is the sample's
+        // projection onto it, kept within its edges
+        const corners = this.expt.getDetectorPanelCorners(0, panelIdx);
+        for (const corner of corners) {
+          maxDistance = Math.max(maxDistance, corner.length());
+        }
+        const fast = corners[1].clone().sub(corners[0]);
+        const slow = corners[3].clone().sub(corners[0]);
+        const width = fast.length();
+        const height = slow.length();
+        fast.normalize();
+        slow.normalize();
+        const toSample = corners[0].clone().negate();
+        const nearest = corners[0].clone()
+          .addScaledVector(fast, Math.min(Math.max(toSample.dot(fast), 0), width))
+          .addScaledVector(slow, Math.min(Math.max(toSample.dot(slow), 0), height));
+        minDistance = Math.min(minDistance, nearest.length());
+      }
+      const wavelength = (distance) => {
+        const pathLength = (beamData["sample_to_source_distance"] + distance) * 1e-3;
+        return H_OVER_NEUTRON_MASS * tof[this.shownImage] * 1e-6 / pathLength * 1e10;
+      };
+      return [wavelength(maxDistance), wavelength(minDistance)];
+    }
+    return beamData["wavelength_range"] ?? null;
+  }
+
+  imageAngle(exptID, image) {
+    // Mid-angle (radians) of an image, from the scan's start angle of each
+    // image; 0 without one (e.g. TOF)
+    const oscillation = this.expt.getScanData(exptID)?.["properties"]?.["oscillation"];
+    if (!oscillation || oscillation.length < 2) {
+      return 0;
+    }
+    const width = oscillation[1] - oscillation[0];
+    const start = image < oscillation.length
+      ? oscillation[image]
+      : oscillation[0] + image * width;
+    return (start + width / 2) * Math.PI / 180;
   }
 
   addEwaldSpheres() {
-    const beamData = this.expt.getBeamData(0);
-    const wavelengthRange = beamData["wavelength_range"];
-    if (!wavelengthRange) {
+    const wasChecked = this.ewaldSphereCheckbox.checked;
+    this.removeEwaldSphereMeshes();
+    const wavelengths = this.ewaldSphereWavelengths();
+    if (!wavelengths) {
+      this.ewaldSphereCheckbox.checked = false;
+      this.ewaldSphereCheckbox.disabled = true;
+      this.ewaldSphereRow.style.display = "none";
       return;
     }
 
+    // Centred on -s0, taken to the rlps' frame as getRLP does, at the shown
+    // image's angle (the scan's start if not per image)
     const bd = this.expt.getBeamDirection(0).normalize();
+    const goniometer = this.expt.experiments[0].goniometer;
+    if (goniometer) {
+      const angle = this.imageAngle(0, this.perImage ? this.shownImage : 0);
+      bd.applyMatrix3(goniometer["settingRotation"].clone().invert());
+      bd.applyAxisAngle(goniometer["rotationAxis"], -angle);
+      bd.applyMatrix3(goniometer["fixedRotation"].clone().invert().transpose());
+    }
     const material = new THREE.MeshBasicMaterial({
       color: this.colors["ewaldSphere"],
       transparent: true,
@@ -2504,19 +2753,92 @@ export class ReciprocalLatticeViewer {
       depthWrite: false,
     });
 
-    for (const wavelength of wavelengthRange) {
+    for (const wavelength of wavelengths) {
       const radius = (1 / wavelength) * this.rLPScaleFactor;
       const center = bd.clone().multiplyScalar(radius);
-      const geometry = new THREE.SphereGeometry(radius, 32, 32);
+      const geometry = new THREE.SphereGeometry(radius, 64, 64);
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.copy(center);
-      mesh.visible = false;
+      mesh.visible = wasChecked;
       window.scene.add(mesh);
       this.ewaldSphereMeshes.push(mesh);
     }
 
+    this.ewaldSphereCheckbox.checked = wasChecked;
     this.ewaldSphereCheckbox.disabled = false;
     this.ewaldSphereRow.style.display = "";
+    this.requestRender();
+  }
+
+  imageCount(exptID) {
+    const imageRange = this.expt.getScanData(exptID)?.["image_range"];
+    return imageRange ? imageRange[1] - imageRange[0] + 1 : 0;
+  }
+
+  reflectionInShownImage(imagesetID, z) {
+    // Centroid z (array index) on the shown image, counted from the scan's start
+    if (!this.perImage) {
+      return true;
+    }
+    const imageRange = this.expt.getScanData(imagesetID)?.["image_range"];
+    const first = imageRange ? imageRange[0] - 1 : 0;
+    return Math.floor(z) - first === this.shownImage;
+  }
+
+  updatePerImageControls() {
+    this.numImages = 0;
+    for (let exptID = 0; exptID < this.expt.numExperiments(); exptID++) {
+      this.numImages = Math.max(this.numImages, this.imageCount(exptID));
+    }
+    if (this.numImages < 2) {
+      this.perImage = false;
+      this.perImageCheckbox.checked = false;
+    }
+    this.shownImage = Math.min(this.shownImage, Math.max(this.numImages - 1, 0));
+    this.perImageRow.style.display = this.numImages > 1 ? "" : "none";
+    this.perImageControls.style.display = this.perImage ? "" : "none";
+    this.imageSlider.max = Math.max(this.numImages, 1);
+    this.imageSlider.value = this.shownImage + 1;
+    this.imageValue.textContent = (this.shownImage + 1) + " / " + this.numImages;
+  }
+
+  async updatePerImage() {
+    this.perImage = this.perImageCheckbox.checked;
+    this.updatePerImageControls();
+    this.addEwaldSpheres();
+    await this.rebuildShownReflections();
+  }
+
+  async showImage(image) {
+    // Latest request wins; reflections are rebuilt one image at a time
+    this.requestedImage = Math.min(Math.max(image, 0), this.numImages - 1);
+    this.imageSlider.value = this.requestedImage + 1;
+    this.imageValue.textContent = (this.requestedImage + 1) + " / " + this.numImages;
+    if (this.rebuildingImage) {
+      return;
+    }
+    this.rebuildingImage = true;
+    while (this.requestedImage !== null && this.requestedImage !== this.shownImage) {
+      this.shownImage = this.requestedImage;
+      this.addEwaldSpheres();
+      await this.rebuildShownReflections();
+    }
+    this.requestedImage = null;
+    this.rebuildingImage = false;
+  }
+
+  async rebuildShownReflections() {
+    if (!this.refl.hasReflTable()) {
+      this.requestRender();
+      return;
+    }
+    this.saveUserState();
+    await this.addReflectionsFromJSONMsgpack(null, this.integratedReflectionsFromCalculated);
+    if (this.integratedReflectionsFromCalculated) {
+      await this.addCalculatedIntegratedReflectionsFromJSONMsgpack(null);
+    }
+    this.applySavedUserState();
+    this.clearSavedUserState();
   }
 
   updateEwaldSpheresVisibility() {
@@ -3189,7 +3511,11 @@ export class ReciprocalLatticeViewer {
     }
     window.viewer.updateGUIInfo();
     window.controls.update();
+    if (this.resolutionRingGroup !== null) {
+      this.resolutionRingGroup.quaternion.copy(window.camera.quaternion);
+    }
     window.renderer.render(window.scene, window.camera);
+    window.labelRenderer?.render(window.scene, window.camera);
     this.renderRequested = false;
     window.viewer.enableMouseClick();
   }
@@ -3216,6 +3542,14 @@ export function setupScene() {
   window.renderer.setClearColor(window.viewer.colors["background"]);
   window.renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(window.renderer.domElement);
+
+  // Resolution ring labels (ReciprocalLatticeViewer.addResolutionRings)
+  window.labelRenderer = new CSS2DRenderer();
+  window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  Object.assign(window.labelRenderer.domElement.style, {
+    position: "absolute", top: "0", left: "0", pointerEvents: "none"
+  });
+  document.body.appendChild(window.labelRenderer.domElement);
 
   window.scene = new THREE.Scene()
   window.scene.fog = new THREE.Fog(window.viewer.colors["background"], 500, 8000);
@@ -3255,6 +3589,7 @@ export function setupScene() {
     window.camera.aspect = window.innerWidth / window.innerHeight;
     window.camera.updateProjectionMatrix();
     window.renderer.setSize(window.innerWidth, window.innerHeight);
+    window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
     window.viewer.requestRender();
   });
 
